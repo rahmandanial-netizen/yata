@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin YATA</title>
+    <title>Admin yatta</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -122,7 +122,7 @@
             <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
                 <a href="admin.html" class="flex items-center space-x-2 group">
                     <div class="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/30">Y</div>
-                    <span class="text-xl font-extrabold text-emerald-800">YATA Admin</span>
+                    <span class="text-xl font-extrabold text-emerald-800">yatta Admin</span>
                 </a>
             </div>
 
@@ -150,7 +150,7 @@
                     <span id="pendingBookCount" class="ml-auto bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
                 </a>
                 <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
-                    <i class="fa-solid fa-arrow-left w-5"></i> Kembali ke YATA
+                    <i class="fa-solid fa-arrow-left w-5"></i> Kembali ke yatta
                 </a>
             </nav>
 
@@ -158,7 +158,7 @@
                 <button id="btnLogout" class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition text-left">
                     <i class="fa-solid fa-right-from-bracket w-5"></i> Keluar
                 </button>
-                <p class="text-xs text-slate-400 text-center mt-4">YATA Admin v1.0</p>
+                <p class="text-xs text-slate-400 text-center mt-4">yatta Admin v1.0</p>
             </div>
         </div>
     </aside>
@@ -185,7 +185,7 @@
             <a href="#" onclick="switchAdminTab('campaigns')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kampanye</a>
             <a href="#" onclick="switchAdminTab('books')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Pengajuan Buku</a>
             <hr class="my-2 border-emerald-100" />
-            <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kembali ke YATA</a>
+            <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kembali ke yatta</a>
             <button id="btnLogoutMobile" class="block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
         </div>
     </header>
@@ -199,7 +199,7 @@
             <!-- Header -->
             <div class="mb-6">
                 <h1 class="text-2xl font-black text-slate-800">🛡️ Admin Dashboard</h1>
-                <p class="text-sm text-slate-500">Kelola YATA — Notifikasi, Komunitas, Kampanye, dan Pesan Member.</p>
+                <p class="text-sm text-slate-500">Kelola yatta — Notifikasi, Komunitas, Kampanye, dan Pesan Member.</p>
             </div>
 
             <!-- Statistik -->
@@ -228,7 +228,7 @@
             <div id="adminNotifications" class="bg-white rounded-2xl border border-emerald-100/60 shadow-sm overflow-hidden">
                 <div class="p-4 border-b border-emerald-100/60">
                     <h2 class="font-bold text-slate-800">📢 Kirim Notifikasi ke Member</h2>
-                    <p class="text-xs text-slate-500">Kirim informasi penting ke semua member atau member tertentu YATA.</p>
+                    <p class="text-xs text-slate-500">Kirim informasi penting ke semua member atau member tertentu yatta.</p>
                 </div>
                 <div class="p-5">
                     <form id="notifForm" class="space-y-4">
@@ -645,7 +645,7 @@
                 }
 
                 if (profile.role !== 'admin') {
-                    alert('Akses ditolak. Hanya admin YATA yang bisa mengakses halaman ini.');
+                    alert('Akses ditolak. Hanya admin yatta yang bisa mengakses halaman ini.');
                     window.location.href = 'dashboard.html';
                     return null;
                 }
@@ -1295,7 +1295,7 @@
                     const { data: notifData, error: notifError } = await _supabase
                         .from('yata_notifications')
                         .insert([{
-                            title: '📩 Balasan dari Tim YATA',
+                            title: '📩 Balasan dari Tim yatta',
                             content: notifContent,
                             type: 'info'
                         }])
@@ -1775,11 +1775,11 @@
                 if (error) throw error;
 
                 const statusMessages = {
-                    review: '⏳ Buku Anda sedang dalam proses Review oleh tim YATA.',
-                    editing: '✏️ Buku Anda masuk tahap Editing. Tim YATA akan melakukan penyuntingan.',
+                    review: '⏳ Buku Anda sedang dalam proses Review oleh tim yatta.',
+                    editing: '✏️ Buku Anda masuk tahap Editing. Tim yatta akan melakukan penyuntingan.',
                     layout: '📐 Buku Anda masuk tahap Layout. Desain dan tata letak sedang dikerjakan.',
                     isbn_submission: '📖 Buku Anda masuk tahap Pengajuan ISBN/QRCBN.',
-                    published: '🎉 Selamat! Buku Anda telah diterbitkan di YATA!'
+                    published: '🎉 Selamat! Buku Anda telah diterbitkan di yatta!'
                 };
 
                 const statusTitles = {

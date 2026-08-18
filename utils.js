@@ -393,13 +393,13 @@ function hideButtonLoading(buttonId) {
 
 async function generateMemberId(levelKey) {
     const prefixMap = {
-        'tamu': 'YATA-T',
-        'penulis': 'YATA-P',
-        'penulis_profesional': 'YATA-PP',
-        'mentor': 'YATA-M'
+        'tamu': 'yatta-T',
+        'penulis': 'yatta-P',
+        'penulis_profesional': 'yatta-PP',
+        'mentor': 'yatta-M'
     };
     
-    const prefix = prefixMap[levelKey] || 'YATA-T';
+    const prefix = prefixMap[levelKey] || 'yatta-T';
     
     const now = new Date();
     const tanggal = String(now.getDate()).padStart(2, '0');
@@ -437,7 +437,7 @@ function formatMemberId(memberId) {
         const tanggal = String(now.getDate()).padStart(2, '0');
         const bulan = String(now.getMonth() + 1).padStart(2, '0');
         const tahun = String(now.getFullYear()).slice(-2);
-        return `YATA-T-01${tanggal}${bulan}${tahun}`;
+        return `yatta-T-01${tanggal}${bulan}${tahun}`;
     }
     return memberId;
 }
@@ -689,8 +689,8 @@ function shareToInstagram(url) {
 }
 
 function shareToEmail(url, title) {
-    const subject = encodeURIComponent(`YATA: ${title}`);
-    const body = encodeURIComponent(`Halo,\n\nSaya ingin berbagi ${title} dari YATA:\n\n${url}\n\nYATA — Kata yang Menggerakkan`);
+    const subject = encodeURIComponent(`yatta: ${title}`);
+    const body = encodeURIComponent(`Halo,\n\nSaya ingin berbagi ${title} dari yatta:\n\n${url}\n\nyatta — Kata yang Menggerakkan`);
     window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
 }
 
