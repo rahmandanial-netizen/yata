@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Baca Buku — YATA</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6EE7B7',
+                        primaryDark: '#065F46',
+                        sage: '#A3E4D7',
+                        cream: '#FEF3C7',
+                        mint: '#B2F2BB',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        
+        .chapter-content {
+            font-family: 'Georgia', serif;
+            font-size: 17px;
+            line-height: 1.9;
+            color: #1e293b;
+        }
+        .chapter-content p {
+            margin-bottom: 1.2em;
+            position: relative;
+            padding: 4px 0;
+            border-radius: 4px;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+        .chapter-content p:hover {
+            background: rgba(6, 95, 70, 0.05);
+        }
+        .chapter-content p.selected {
+            background: rgba(6, 95, 70, 0.15);
+            border-left: 3px solid #065F46;
+            padding-left: 12px;
+        }
+        .chapter-content h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .chapter-content h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .chapter-item {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .chapter-item:hover {
+            background-color: #f1f5f9;
+            transform: translateX(4px);
+        }
+        .chapter-item.active {
+            background-color: #065F46;
+            color: white;
+        }
+        .chapter-item.active:hover {
+            background-color: #065F46;
+        }
+        .chapter-item .badge-status {
+            font-size: 9px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 9999px;
+        }
+        .badge-published { background: #D1FAE5; color: #065F46; }
+        .badge-draft { background: #F1F5F9; color: #64748B; }
+        
+        .sidebar-link.active { background-color: #065F46; color: white; }
+        .sidebar-link.active i { color: white; }
+        .sidebar-link:hover:not(.active) { background-color: #e2e8f0; }
+        .modal-enter { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .comment-highlight {
+            background: rgba(6, 95, 70, 0.12);
+            border-bottom: 2px solid #065F46;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 0 4px;
+            border-radius: 2px;
+        }
+        .comment-highlight:hover {
+            background: rgba(6, 95, 70, 0.25);
+        }
+        .comment-bubble {
+            position: fixed;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            padding: 14px 18px;
+            max-width: 320px;
+            z-index: 999;
+            border: 1px solid #e2e8f0;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .comment-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 20px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            transform: rotate(45deg);
+        }
+        .comment-bubble .comment-author {
+            font-weight: 700;
+            color: #065F46;
+            font-size: 12px;
+        }
+        .comment-bubble .comment-time {
+            font-size: 10px;
+            color: #94a3b8;
+        }
+        .comment-bubble .comment-text {
+            margin-top: 4px;
+            color: #1e293b;
+        }
+        .comment-bubble .comment-reply {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e2e8f0;
+        }
+        .comment-bubble .comment-reply textarea {
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 12px;
+            resize: none;
+            outline: none;
+        }
+        .comment-bubble .comment-reply textarea:focus {
+            border-color: #065F46;
+            ring: 2px solid rgba(6,95,70,0.2);
+        }
+        .comment-bubble .comment-reply button {
+            background: #065F46;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 4px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 4px;
+        }
+        .comment-bubble .comment-reply button:hover {
+            background: #0D9488;
+        }
+        .comment-bubble .comment-reply button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .like-btn {
+            transition: all 0.2s;
+        }
+        .like-btn:hover {
+            transform: scale(1.1);
+        }
+        .like-btn.liked {
+            color: #ef4444;
+        }
+        .like-btn.liked i {
+            font-weight: 900;
+        }
+        
+        #chapterList::-webkit-scrollbar {
+            width: 3px;
+        }
+        #chapterList::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 9999px;
+        }
+        #chapterList::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .stat-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 14px;
+            background: #f1f5f9;
+            border-radius: 9999px;
+            font-size: 12px;
+            color: #475569;
+        }
+        .stat-item i {
+            color: #065F46;
+        }
+        .stat-item .number {
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .share-btn:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- SIDEBAR (NAVIGASI PUBLIK) -->
+    <!-- ============================================ -->
+    <aside class="fixed top-0 left-0 z-40 w-64 h-screen bg-white border-r border-emerald-100/60 hidden md:block">
+        <div class="flex flex-col h-full">
+            <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
+                <a href="explore.html" class="flex items-center space-x-2 group">
+                    <div class="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/30">Y</div>
+                    <span class="text-xl font-extrabold text-emerald-800">YATA</span>
+                    <span class="text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 ml-1">Publik</span>
+                </a>
+            </div>
+
+            <nav class="flex-1 px-4 py-6 space-y-1">
+                <a href="explore.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-house w-5"></i> Beranda
+                </a>
+                <a href="feed.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book-open w-5"></i> Feed
+                </a>
+                <a href="campaigns.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-flag w-5"></i> Kampanye
+                </a>
+                <a href="login.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-emerald-600 rounded-xl transition">
+                    <i class="fa-solid fa-arrow-right-to-bracket w-5"></i> Masuk
+                </a>
+                <a href="register.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-emerald-600 rounded-xl transition">
+                    <i class="fa-solid fa-user-plus w-5"></i> Daftar
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-emerald-100/60">
+                <p class="text-xs text-slate-400 text-center">YATA v1.0 • Beta</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ============================================ -->
+    <!-- MOBILE HEADER -->
+    <!-- ============================================ -->
+    <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
+        <div class="flex items-center justify-between px-4 h-16">
+            <a href="explore.html" class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black">Y</div>
+                <span class="text-lg font-extrabold text-emerald-800">YATA</span>
+            </a>
+            <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+
+        <div id="mobileMenu" class="hidden bg-white border-t border-emerald-100/60 px-4 py-4 space-y-2">
+            <a href="explore.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Beranda</a>
+            <a href="feed.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Feed</a>
+            <a href="campaigns.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kampanye</a>
+            <a href="login.html" class="block px-4 py-2.5 text-emerald-600 font-semibold hover:bg-emerald-50 rounded-xl">Masuk</a>
+            <a href="register.html" class="block px-4 py-2.5 text-emerald-600 font-semibold hover:bg-emerald-50 rounded-xl">Daftar</a>
+        </div>
+    </header>
+
+    <!-- ============================================ -->
+    <!-- KONTEN UTAMA -->
+    <!-- ============================================ -->
+    <main class="md:ml-64 pt-4 md:pt-8 min-h-screen bg-slate-50/50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+            <div id="loadingState" class="text-center py-20">
+                <i class="fa-solid fa-spinner fa-spin text-4xl text-emerald-600 mb-4 block"></i>
+                <p class="text-slate-500 text-sm">Memuat buku...</p>
+            </div>
+
+            <div id="contentContainer" class="hidden">
+
+                <!-- Header Buku -->
+                <div class="bg-white rounded-2xl p-6 border border-emerald-100/60 shadow-sm mb-6">
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="w-40 h-56 rounded-xl flex-shrink-0 overflow-hidden bg-slate-200 flex items-center justify-center text-4xl font-bold mx-auto md:mx-0" id="bookCover">
+                            📖
+                        </div>
+
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 flex-wrap mb-2">
+                                <span id="bookStatus" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-yellow-100 text-yellow-700">Review</span>
+                                <span id="bookCategory" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-600">Novel</span>
+                            </div>
+                            <h1 id="bookTitle" class="text-2xl md:text-3xl font-black text-slate-800">Judul Buku</h1>
+                            <p id="bookAuthor" class="text-sm text-slate-500 mt-1">Penulis</p>
+                            <p id="bookSynopsis" class="text-sm text-slate-600 mt-3 max-w-2xl">Sinopsis buku akan ditampilkan di sini.</p>
+                            
+                            <div class="flex flex-wrap items-center gap-3 mt-4">
+                                <span class="stat-item">
+                                    <i class="fa-regular fa-heart"></i>
+                                    <span class="number" id="totalBookLikes">0</span>
+                                    <span>suka</span>
+                                </span>
+                                <span class="stat-item">
+                                    <i class="fa-regular fa-comment"></i>
+                                    <span class="number" id="totalBookComments">0</span>
+                                    <span>komentar</span>
+                                </span>
+                                <span class="stat-item">
+                                    <i class="fa-regular fa-file-lines"></i>
+                                    <span class="number" id="totalChaptersHeader">0</span>
+                                    <span>chapter</span>
+                                </span>
+                                <button onclick="shareBook()" class="share-btn bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2">
+                                    <i class="fa-regular fa-share-from-square"></i>
+                                    Bagikan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daftar Chapter & Konten -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="md:col-span-1">
+                        <div class="bg-white rounded-2xl p-4 border border-emerald-100/60 shadow-sm sticky top-20">
+                            <h3 class="font-bold text-slate-800 text-sm mb-3">📑 Daftar Chapter</h3>
+                            <div id="chapterList" class="space-y-1 max-h-[500px] overflow-y-auto pr-1">
+                                <div class="text-center py-4 text-slate-400 text-xs">
+                                    <i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-3">
+                        <div class="bg-white rounded-2xl p-6 md:p-8 border border-emerald-100/60 shadow-sm">
+                            <div id="chapterContentContainer">
+                                <div class="text-center py-12 text-slate-400 text-sm">
+                                    <i class="fa-regular fa-book-open text-4xl block mb-3"></i>
+                                    Pilih chapter untuk mulai membaca
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <a href="feed.html" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-left"></i> Kembali ke Feed
+                    </a>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ============================================ -->
+    <!-- MODAL KOMENTAR -->
+    <!-- ============================================ -->
+    <div id="commentModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeCommentModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Komentar</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Tulis Komentar</h3>
+                <p class="text-xs text-slate-500 mt-1" id="commentSelectedText">Komentar untuk kalimat yang dipilih</p>
+            </div>
+
+            <form id="commentForm" class="space-y-4">
+                <div>
+                    <label for="commentInput" class="block text-xs font-semibold text-slate-700 mb-1">Komentar <span class="text-red-500">*</span></label>
+                    <textarea id="commentInput" rows="3" placeholder="Tulis komentar Anda..." required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
+                </div>
+
+                <input type="hidden" id="commentChapterId" value="" />
+                <input type="hidden" id="commentParagraphIndex" value="" />
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm">
+                    <i class="fa-regular fa-paper-plane mr-1"></i> Kirim Komentar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+        // ✅ Gunakan _supabase konsisten
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        let bookId = null;
+        let bookData = null;
+        let chapters = [];
+        let currentChapterId = null;
+        let currentUser = null;
+        let selectedParagraph = null;
+        let selectedParagraphIndex = null;
+        let bookComments = [];
+        let totalLikes = 0;
+        let totalComments = 0;
+
+        // ============================================
+        // 1. AMBIL ID BUKU DARI URL
+        // ============================================
+        function getBookId() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('id');
+        }
+
+        // ============================================
+        // 2. CEK LOGIN (TANPA REDIRECT!)
+        // ============================================
+        async function checkAuth() {
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (session) {
+                    currentUser = session.user;
+                }
+                return session;
+            } catch (err) {
+                console.error('Auth check error:', err);
+                return null;
+            }
+        }
+
+        // ============================================
+        // 3. LOAD BUKU
+        // ============================================
+        async function loadBook() {
+            bookId = getBookId();
+            if (!bookId) {
+                showError('ID buku tidak ditemukan.', 'Error');
+                window.location.href = 'feed.html';
+                return;
+            }
+
+            try {
+                await checkAuth();
+
+                const { data: book, error } = await _supabase
+                    .from('yata_book_projects')
+                    .select(`
+                        *,
+                        author:author_id (
+                            full_name,
+                            username,
+                            member_level
+                        )
+                    `)
+                    .eq('id', bookId)
+                    .single();
+
+                if (error) {
+                    console.error('Load book error:', error);
+                    if (error.code === 'PGRST116') {
+                        showError('Buku tidak ditemukan.', 'Error');
+                    } else {
+                        showError('Gagal memuat buku: ' + error.message, 'Error');
+                    }
+                    window.location.href = 'feed.html';
+                    return;
+                }
+
+                bookData = book;
+
+                const { data: chapterData, error: chapterError } = await _supabase
+                    .from('yata_book_chapters')
+                    .select('*')
+                    .eq('book_project_id', bookId)
+                    .order('chapter_number', { ascending: true });
+
+                if (chapterError) throw chapterError;
+
+                chapters = chapterData || [];
+
+                await loadComments();
+
+                totalLikes = chapters.reduce((sum, c) => sum + (c.likes || 0), 0);
+                totalComments = bookComments.length;
+
+                renderBook();
+                renderChapterList();
+
+                if (chapters.length > 0) {
+                    openChapter(chapters[0].id);
+                }
+
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('contentContainer').classList.remove('hidden');
+
+            } catch (err) {
+                console.error('Load book error:', err);
+                showError('Terjadi kesalahan saat memuat buku.', 'Error');
+            }
+        }
+
+        // ============================================
+        // 4. LOAD COMMENTS
+        // ============================================
+        async function loadComments() {
+            try {
+                const { data: comments, error } = await _supabase
+                    .from('yata_book_comments')
+                    .select('*')
+                    .eq('book_project_id', bookId)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Load comments error:', error);
+                    bookComments = [];
+                    return;
+                }
+
+                if (comments && comments.length > 0) {
+                    const userIds = [...new Set(comments.map(c => c.user_id))];
+                    
+                    const { data: users, error: userError } = await _supabase
+                        .from('yata_profiles')
+                        .select('id, full_name, username')
+                        .in('id', userIds);
+
+                    if (!userError && users) {
+                        const userMap = {};
+                        users.forEach(u => {
+                            userMap[u.id] = u;
+                        });
+                        
+                        comments.forEach(c => {
+                            c.user = userMap[c.user_id] || { full_name: 'User', username: 'user' };
+                        });
+                    }
+                }
+
+                bookComments = comments || [];
+            } catch (err) {
+                console.error('Load comments error:', err);
+                bookComments = [];
+            }
+        }
+
+        // ============================================
+        // 5. RENDER BOOK INFO
+        // ============================================
+        function renderBook() {
+            const statusLabels = {
+                draft: '📝 Draft',
+                review: '⏳ Review',
+                editing: '✏️ Editing',
+                layout: '📐 Layout',
+                isbn_submission: '📖 ISBN',
+                published: '✅ Terbit'
+            };
+            const statusColors = {
+                draft: 'bg-slate-100 text-slate-600',
+                review: 'bg-yellow-100 text-yellow-700',
+                editing: 'bg-blue-100 text-blue-700',
+                layout: 'bg-indigo-100 text-indigo-700',
+                isbn_submission: 'bg-pink-100 text-pink-700',
+                published: 'bg-emerald-100 text-emerald-700'
+            };
+
+            const titleEl = document.getElementById('bookTitle');
+            const authorEl = document.getElementById('bookAuthor');
+            const synopsisEl = document.getElementById('bookSynopsis');
+            const statusEl = document.getElementById('bookStatus');
+            const categoryEl = document.getElementById('bookCategory');
+            const chaptersHeaderEl = document.getElementById('totalChaptersHeader');
+            const likesEl = document.getElementById('totalBookLikes');
+            const commentsEl = document.getElementById('totalBookComments');
+            const coverEl = document.getElementById('bookCover');
+
+            if (titleEl) titleEl.textContent = bookData.title || 'Judul Buku';
+            if (authorEl) authorEl.textContent = bookData.author?.full_name || 'Penulis';
+            if (synopsisEl) synopsisEl.textContent = bookData.synopsis || 'Tidak ada sinopsis.';
+            
+            if (statusEl) {
+                statusEl.textContent = statusLabels[bookData.status] || bookData.status || 'Review';
+                statusEl.className = `text-xs px-2.5 py-0.5 rounded-full font-semibold ${statusColors[bookData.status] || 'bg-yellow-100 text-yellow-700'}`;
+            }
+            
+            if (categoryEl) categoryEl.textContent = bookData.category || 'Umum';
+            
+            if (chaptersHeaderEl) chaptersHeaderEl.textContent = chapters.length;
+            if (likesEl) likesEl.textContent = totalLikes;
+            if (commentsEl) commentsEl.textContent = totalComments;
+
+            if (coverEl) {
+                if (bookData.cover_url) {
+                    coverEl.innerHTML = `<img src="${bookData.cover_url}" class="w-full h-full object-cover" />`;
+                } else {
+                    coverEl.textContent = (bookData.title || '?').charAt(0).toUpperCase();
+                    coverEl.className = 'w-40 h-56 rounded-xl flex-shrink-0 overflow-hidden bg-emerald-100 flex items-center justify-center text-6xl font-bold text-emerald-600 mx-auto md:mx-0';
+                }
+            }
+        }
+
+        // ============================================
+        // 6. RENDER CHAPTER LIST
+        // ============================================
+        function renderChapterList() {
+            const container = document.getElementById('chapterList');
+
+            if (chapters.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-slate-400 text-xs">
+                        <i class="fa-regular fa-file-lines text-xl block mb-1"></i>
+                        Belum ada chapter
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = chapters.map(c => `
+                <div class="chapter-item flex items-center justify-between px-3 py-2 rounded-lg transition ${currentChapterId === c.id ? 'active text-white' : 'hover:bg-slate-50'}" 
+                     onclick="openChapter('${c.id}')" data-chapter-id="${c.id}">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="text-xs font-bold text-slate-400 flex-shrink-0 ${currentChapterId === c.id ? 'text-white' : ''}">${c.chapter_number}</span>
+                        <span class="text-sm font-medium truncate ${currentChapterId === c.id ? 'text-white' : 'text-slate-700'}">${c.title}</span>
+                    </div>
+                    <div class="flex items-center gap-1 text-[10px] text-slate-400">
+                        <span><i class="fa-regular fa-heart"></i> ${c.likes || 0}</span>
+                        <span class="badge-status ${c.status === 'published' ? 'badge-published' : 'badge-draft'} ${currentChapterId === c.id ? 'opacity-80' : ''}">
+                            ${c.status === 'published' ? '✅' : '📝'}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============================================
+        // 7. OPEN CHAPTER
+        // ============================================
+        async function openChapter(chapterId) {
+            currentChapterId = chapterId;
+
+            document.querySelectorAll('.chapter-item').forEach(el => {
+                el.classList.remove('active', 'text-white');
+                el.classList.add('hover:bg-slate-50');
+                const textSpan = el.querySelector('span.text-white');
+                if (textSpan) {
+                    textSpan.classList.remove('text-white');
+                    textSpan.classList.add('text-slate-700');
+                }
+            });
+
+            const activeEl = document.querySelector(`.chapter-item[data-chapter-id="${chapterId}"]`);
+            if (activeEl) {
+                activeEl.classList.add('active', 'text-white');
+                activeEl.classList.remove('hover:bg-slate-50');
+                const textSpan = activeEl.querySelector('span.text-slate-700');
+                if (textSpan) {
+                    textSpan.classList.remove('text-slate-700');
+                    textSpan.classList.add('text-white');
+                }
+            }
+
+            try {
+                const { data: chapter, error } = await _supabase
+                    .from('yata_book_chapters')
+                    .select('*')
+                    .eq('id', chapterId)
+                    .single();
+
+                if (error) throw error;
+
+                const container = document.getElementById('chapterContentContainer');
+                const content = chapter.content || 'Tidak ada konten.';
+                const paragraphs = content.split('\n').filter(p => p.trim() !== '');
+
+                let userLiked = false;
+                if (currentUser) {
+                    const { data: likeData } = await _supabase
+                        .from('yata_book_chapter_likes')
+                        .select('*')
+                        .eq('chapter_id', chapterId)
+                        .eq('user_id', currentUser.id)
+                        .maybeSingle();
+                    userLiked = !!likeData;
+                } else {
+                    const guestId = localStorage.getItem('guest_id');
+                    if (guestId) {
+                        const { data: likeData } = await _supabase
+                            .from('yata_book_chapter_likes')
+                            .select('*')
+                            .eq('chapter_id', chapterId)
+                            .eq('user_id', 'guest_' + guestId)
+                            .maybeSingle();
+                        userLiked = !!likeData;
+                    }
+                }
+
+                const chapterComments = bookComments.filter(c => c.chapter_id === chapterId);
+
+                container.innerHTML = `
+                    <div class="mb-6 pb-6 border-b border-slate-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="text-2xl font-bold text-slate-800">${chapter.title}</h2>
+                                <div class="flex items-center gap-3 mt-1 text-xs text-slate-400">
+                                    <span><i class="fa-regular fa-file-lines mr-1"></i> Chapter ${chapter.chapter_number}</span>
+                                    <span><i class="fa-regular fa-clock mr-1"></i> ${new Date(chapter.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                    <span class="px-2 py-0.5 rounded-full ${chapter.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'} text-[10px] font-semibold">
+                                        ${chapter.status === 'published' ? '✅ Published' : '📝 Draft'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button onclick="toggleLikeChapter('${chapterId}')" class="like-btn ${userLiked ? 'liked' : ''} text-slate-400 hover:text-red-500 transition text-lg p-2 hover:bg-red-50 rounded-full">
+                                    <i class="${userLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i>
+                                </button>
+                                <span id="chapterLikeCount" class="text-sm font-semibold text-slate-600">${chapter.likes || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chapter-content" id="chapterContent">
+                        ${paragraphs.map((p, index) => {
+                            const hasComment = chapterComments.some(c => c.paragraph_index === index);
+                            return `
+                                <p data-paragraph-index="${index}" onclick="selectParagraph(this, ${index}, '${chapterId}')" 
+                                   class="paragraph-selectable ${hasComment ? 'has-comment' : ''}">
+                                    ${p}
+                                    ${chapterComments.filter(c => c.paragraph_index === index).map(c => `
+                                        <span class="comment-highlight" onclick="event.stopPropagation(); showCommentBubble(event, '${c.id}')" 
+                                              title="Klik untuk lihat komentar">
+                                            💬
+                                        </span>
+                                    `).join('')}
+                                </p>
+                            `;
+                        }).join('')}
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-slate-200 text-xs text-slate-400 flex items-center justify-between">
+                        <span>${chapter.word_count || 0} kata</span>
+                        <span>${chapterComments.length} komentar</span>
+                    </div>
+                `;
+
+                document.getElementById('commentChapterId').value = chapterId;
+
+            } catch (err) {
+                console.error('Load chapter error:', err);
+                document.getElementById('chapterContentContainer').innerHTML = `
+                    <div class="text-center py-8 text-red-400 text-sm">
+                        <i class="fa-solid fa-circle-exclamation mr-1"></i>
+                        Gagal memuat chapter.
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 8. SELECT PARAGRAPH
+        // ============================================
+        function selectParagraph(element, index, chapterId) {
+            document.querySelectorAll('.paragraph-selectable').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            element.classList.add('selected');
+            selectedParagraph = element;
+            selectedParagraphIndex = index;
+            
+            const text = element.textContent.trim().substring(0, 100) + (element.textContent.length > 100 ? '...' : '');
+            document.getElementById('commentSelectedText').textContent = `💬 "${text}"`;
+            document.getElementById('commentParagraphIndex').value = index;
+            document.getElementById('commentChapterId').value = chapterId;
+            document.getElementById('commentInput').value = '';
+            document.getElementById('commentModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // ============================================
+        // 9. SHOW COMMENT BUBBLE
+        // ============================================
+        function showCommentBubble(event, commentId) {
+            event.stopPropagation();
+            
+            document.querySelectorAll('.comment-bubble').forEach(el => el.remove());
+            
+            const comment = bookComments.find(c => c.id === commentId);
+            if (!comment) return;
+            
+            const rect = event.target.getBoundingClientRect();
+            const bubble = document.createElement('div');
+            bubble.className = 'comment-bubble';
+            bubble.style.top = Math.max(10, rect.top - 10) + 'px';
+            bubble.style.left = Math.min(window.innerWidth - 340, rect.left + 20) + 'px';
+            bubble.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="comment-author">${comment.user?.full_name || 'User'}</span>
+                    <span class="comment-time">${timeAgo(comment.created_at)}</span>
+                </div>
+                <div class="comment-text">${comment.content}</div>
+                ${currentUser ? `
+                    <div class="comment-reply">
+                        <textarea placeholder="Balas komentar..." rows="1"></textarea>
+                        <button onclick="replyComment('${comment.id}', this)">Balas</button>
+                    </div>
+                ` : ''}
+                <div class="mt-1 text-[10px] text-slate-400">
+                    ${comment.likes || 0} suka
+                </div>
+            `;
+            document.body.appendChild(bubble);
+            
+            setTimeout(() => {
+                document.addEventListener('click', function closeBubble(e) {
+                    if (!bubble.contains(e.target) && e.target !== event.target) {
+                        bubble.remove();
+                        document.removeEventListener('click', closeBubble);
+                    }
+                });
+            }, 100);
+        }
+
+        // ============================================
+        // 10. REPLY COMMENT
+        // ============================================
+        async function replyComment(commentId, btn) {
+            const textarea = btn.previousElementSibling;
+            const reply = textarea.value.trim();
+            if (!reply) {
+                showError('Tulis balasan terlebih dahulu.', 'Info');
+                return;
+            }
+            if (!currentUser) {
+                showError('Silakan login untuk membalas komentar.', 'Info');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Mengirim...';
+
+            try {
+                const { error } = await _supabase
+                    .from('yata_book_comment_replies')
+                    .insert([{
+                        comment_id: commentId,
+                        user_id: currentUser.id,
+                        content: reply
+                    }]);
+
+                if (error) throw error;
+
+                showError('✅ Balasan terkirim!', 'Sukses');
+                textarea.value = '';
+                btn.disabled = false;
+                btn.textContent = 'Balas';
+                
+                await loadComments();
+                totalComments = bookComments.length;
+                document.getElementById('totalBookComments').textContent = totalComments;
+                if (currentChapterId) {
+                    openChapter(currentChapterId);
+                }
+
+            } catch (err) {
+                console.error('Reply error:', err);
+                showError('Gagal mengirim balasan: ' + err.message, 'Error');
+                btn.disabled = false;
+                btn.textContent = 'Balas';
+            }
+        }
+
+        // ============================================
+        // 11. TOGGLE LIKE CHAPTER (TANPA LOGIN)
+        // ============================================
+        async function toggleLikeChapter(chapterId) {
+            const rateCheck = checkRateLimit('like');
+            if (!rateCheck.allowed) {
+                showError(rateCheck.message, '⏳ Terlalu Cepat');
+                return;
+            }
+
+            let userId = currentUser?.id || getGuestId();
+
+            try {
+                const { data: existing, error: checkError } = await _supabase
+                    .from('yata_book_chapter_likes')
+                    .select('*')
+                    .eq('chapter_id', chapterId)
+                    .eq('user_id', userId)
+                    .maybeSingle();
+
+                if (checkError) throw checkError;
+
+                const { data: chapter, error: getError } = await _supabase
+                    .from('yata_book_chapters')
+                    .select('likes')
+                    .eq('id', chapterId)
+                    .single();
+
+                if (getError) throw getError;
+
+                let newLikes = chapter.likes || 0;
+
+                if (existing) {
+                    const { error } = await _supabase
+                        .from('yata_book_chapter_likes')
+                        .delete()
+                        .eq('chapter_id', chapterId)
+                        .eq('user_id', userId);
+
+                    if (error) throw error;
+
+                    newLikes = Math.max(0, newLikes - 1);
+
+                    const likeBtn = document.querySelector('.like-btn');
+                    if (likeBtn) {
+                        likeBtn.classList.remove('liked');
+                        likeBtn.innerHTML = '<i class="fa-regular fa-heart"></i>';
+                    }
+
+                } else {
+                    if (!currentUser) {
+                        await ensureGuestProfile(userId);
+                    }
+
+                    const { error } = await _supabase
+                        .from('yata_book_chapter_likes')
+                        .insert([{
+                            chapter_id: chapterId,
+                            user_id: userId
+                        }]);
+
+                    if (error) throw error;
+
+                    newLikes = newLikes + 1;
+
+                    const likeBtn = document.querySelector('.like-btn');
+                    if (likeBtn) {
+                        likeBtn.classList.add('liked');
+                        likeBtn.innerHTML = '<i class="fa-solid fa-heart"></i>';
+                    }
+                }
+
+                saveRateLimit('like');
+
+                const { error: updateError } = await _supabase
+                    .from('yata_book_chapters')
+                    .update({ likes: newLikes })
+                    .eq('id', chapterId);
+
+                if (updateError) throw updateError;
+
+                totalLikes = totalLikes - (chapter.likes || 0) + newLikes;
+                document.getElementById('totalBookLikes').textContent = totalLikes;
+
+                const likeCountEl = document.getElementById('chapterLikeCount');
+                if (likeCountEl) {
+                    likeCountEl.textContent = newLikes;
+                }
+
+                renderChapterList();
+
+            } catch (err) {
+                console.error('Like error:', err);
+                showError('Gagal menyukai chapter: ' + err.message, 'Error');
+            }
+        }
+
+        // ============================================
+        // 12. SHARE BOOK
+        // ============================================
+        function shareBook() {
+            if (!bookData) return;
+            const url = window.location.href;
+            const title = bookData.title || 'Buku di YATA';
+            openShareDialog(title, url, 'buku');
+        }
+
+        // ============================================
+        // 13. SUBMIT COMMENT (TANPA LOGIN)
+        // ============================================
+        document.getElementById('commentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const rateCheck = checkRateLimit('comment');
+            if (!rateCheck.allowed) {
+                showError(rateCheck.message, '⏳ Terlalu Cepat');
+                return;
+            }
+
+            let userId = currentUser?.id || getGuestId();
+
+            const content = document.getElementById('commentInput').value.trim();
+            const chapterId = document.getElementById('commentChapterId').value;
+            const paragraphIndex = parseInt(document.getElementById('commentParagraphIndex').value);
+
+            if (!content) {
+                showError('Tulis komentar terlebih dahulu.', 'Info');
+                return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+
+            try {
+                if (!currentUser) {
+                    await ensureGuestProfile(userId);
+                }
+
+                const { error } = await _supabase
+                    .from('yata_book_comments')
+                    .insert([{
+                        book_project_id: bookId,
+                        chapter_id: chapterId,
+                        user_id: userId,
+                        content: content,
+                        paragraph_index: paragraphIndex
+                    }]);
+
+                if (error) throw error;
+
+                saveRateLimit('comment');
+
+                showError('✅ Komentar terkirim!', 'Sukses');
+                closeCommentModal();
+                
+                await loadComments();
+                totalComments = bookComments.length;
+                document.getElementById('totalBookComments').textContent = totalComments;
+                
+                if (currentChapterId) {
+                    openChapter(currentChapterId);
+                }
+
+            } catch (err) {
+                console.error('Comment error:', err);
+                showError('Gagal mengirim komentar: ' + err.message, 'Error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Komentar';
+            }
+        });
+
+        function closeCommentModal() {
+            document.getElementById('commentModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            document.querySelectorAll('.paragraph-selectable').forEach(el => {
+                el.classList.remove('selected');
+            });
+        }
+
+        document.getElementById('commentModal').addEventListener('click', function(e) {
+            if (e.target === this) closeCommentModal();
+        });
+
+        // ============================================
+        // 14. INIT
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadBook();
+
+            document.getElementById('mobileMenuButton').addEventListener('click', function() {
+                document.getElementById('mobileMenu').classList.toggle('hidden');
+            });
+
+            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(el => {
+                el.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
+            });
+        });
+    </script>
+
+</body>
+</html>

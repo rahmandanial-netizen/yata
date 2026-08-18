@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profil — YATA</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6EE7B7',
+                        primaryDark: '#065F46',
+                        sage: '#A3E4D7',
+                        cream: '#FEF3C7',
+                        mint: '#B2F2BB',
+                        gold: '#D4AF37',
+                        platinum: '#E5E4E2',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    
+    <!-- ✅ HTML2CANVAS UNTUK DOWNLOAD KTA -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #065F46; color: white; }
+        .sidebar-link.active i { color: white; }
+        .sidebar-link:hover:not(.active) { background-color: #e2e8f0; }
+        .modal-enter { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .avatar-large {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: 700;
+            border: 4px solid #065F46;
+            object-fit: cover;
+            background: #e2e8f0;
+            color: #065F46;
+        }
+        .avatar-large img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .level-icon { font-size: 20px; }
+        .level-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .level-tamu { background: #D1FAE5; color: #065F46; }
+        .level-penulis { background: #DBEAFE; color: #1E40AF; }
+        .level-profesional { background: #FEF3C7; color: #92400E; }
+        .level-mentor { background: #FDE68A; color: #78350F; }
+
+        /* KTA CARD DESIGN */
+        .kta-card {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            border-radius: 20px;
+            padding: 28px 24px 24px;
+            position: relative;
+            overflow: hidden;
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+            cursor: default;
+            font-family: 'Inter', sans-serif;
+        }
+        .kta-card:hover {
+            transform: scale(1.01);
+        }
+        .kta-card .kta-bg-pattern {
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            opacity: 0.08;
+            pointer-events: none;
+        }
+        .kta-card .kta-bg-pattern-2 {
+            position: absolute;
+            bottom: -40px;
+            left: -40px;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            opacity: 0.06;
+            pointer-events: none;
+        }
+        .kta-card .kta-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            position: relative;
+            z-index: 2;
+        }
+        .kta-card .kta-brand {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 3px;
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+        .kta-card .kta-title {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            opacity: 0.6;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+        .kta-card .kta-badge-icon {
+            font-size: 32px;
+            opacity: 0.95;
+            line-height: 1;
+        }
+        .kta-card .kta-name {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            margin-top: 12px;
+            position: relative;
+            z-index: 2;
+        }
+        .kta-card .kta-level {
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0.8;
+            margin-top: 2px;
+            position: relative;
+            z-index: 2;
+        }
+        .kta-card .kta-divider {
+            margin: 14px 0 12px;
+            height: 1px;
+            opacity: 0.15;
+            position: relative;
+            z-index: 2;
+        }
+        .kta-card .kta-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            position: relative;
+            z-index: 2;
+        }
+        .kta-card .kta-footer .label {
+            font-size: 7px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            opacity: 0.5;
+            font-weight: 700;
+        }
+        .kta-card .kta-footer .value {
+            font-size: 12px;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+        }
+        .kta-card .kta-footer .valid-date {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .kta-tamu {
+            background: linear-gradient(145deg, #D1FAE5 0%, #A7F3D0 100%);
+            color: #064E3B;
+        }
+        .kta-tamu .kta-divider { background: #064E3B; }
+        .kta-tamu .kta-bg-pattern { background: #064E3B; }
+        .kta-tamu .kta-bg-pattern-2 { background: #064E3B; }
+        .kta-penulis {
+            background: linear-gradient(145deg, #065F46 0%, #0D9488 100%);
+            color: #FFFFFF;
+        }
+        .kta-penulis .kta-divider { background: #FFFFFF; }
+        .kta-penulis .kta-bg-pattern { background: #FFFFFF; }
+        .kta-penulis .kta-bg-pattern-2 { background: #FFFFFF; }
+        .kta-penulis .kta-brand { color: #A7F3D0; }
+        .kta-penulis .kta-title { color: #A7F3D0; }
+        .kta-profesional {
+            background: linear-gradient(145deg, #92400E 0%, #D4AF37 100%);
+            color: #FFFFFF;
+        }
+        .kta-profesional .kta-divider { background: #FFFFFF; }
+        .kta-profesional .kta-bg-pattern { background: #FFFFFF; }
+        .kta-profesional .kta-bg-pattern-2 { background: #FFFFFF; }
+        .kta-profesional .kta-brand { color: #FDE68A; }
+        .kta-profesional .kta-title { color: #FDE68A; }
+        .kta-mentor {
+            background: linear-gradient(145deg, #374151 0%, #9CA3AF 50%, #E5E4E2 100%);
+            color: #1F2937;
+        }
+        .kta-mentor .kta-divider { background: #1F2937; }
+        .kta-mentor .kta-bg-pattern { background: #1F2937; }
+        .kta-mentor .kta-bg-pattern-2 { background: #1F2937; }
+        .kta-mentor .kta-brand { color: #6B7280; }
+        .kta-mentor .kta-title { color: #6B7280; }
+
+        .kta-small {
+            max-width: 320px;
+            margin: 0 auto;
+            border-radius: 16px;
+            padding: 20px 18px 16px;
+            position: relative;
+            overflow: hidden;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+        .kta-small:hover { transform: scale(1.02); }
+        .kta-small .kta-brand-sm {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            opacity: 0.6;
+            text-transform: uppercase;
+        }
+        .kta-small .kta-title-sm {
+            font-size: 10px;
+            font-weight: 600;
+            opacity: 0.5;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .kta-small .kta-badge-sm {
+            font-size: 24px;
+        }
+        .kta-small .kta-name-sm {
+            font-size: 16px;
+            font-weight: 800;
+            margin-top: 6px;
+        }
+        .kta-small .kta-level-sm {
+            font-size: 11px;
+            font-weight: 600;
+            opacity: 0.7;
+        }
+        .kta-small .kta-footer-sm {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.15);
+        }
+        .kta-small .kta-footer-sm .label {
+            font-size: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.5;
+            font-weight: 700;
+        }
+        .kta-small .kta-footer-sm .value {
+            font-size: 9px;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.5px;
+        }
+
+        .download-btn {
+            transition: all 0.3s ease;
+        }
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(6, 95, 70, 0.3);
+        }
+        .download-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .line-clamp-1 {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .owner-only {
+            display: none;
+        }
+        .owner-only.visible {
+            display: block;
+        }
+        .owner-only.inline-visible {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- SIDEBAR -->
+    <!-- ============================================ -->
+    <aside class="fixed top-0 left-0 z-40 w-64 h-screen bg-white border-r border-emerald-100/60 hidden md:block">
+        <div class="flex flex-col h-full">
+            <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
+                <a href="dashboard.html" class="flex items-center space-x-2 group">
+                    <div class="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/30">Y</div>
+                    <span class="text-xl font-extrabold text-emerald-800">YATA</span>
+                </a>
+            </div>
+
+            <!-- SIDEBAR NAVIGATION - STRUKTUR MENU FINAL -->
+            <nav class="flex-1 px-4 py-6 space-y-1">
+                <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-house w-5"></i> Beranda
+                </a>
+                <a href="write.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-pen w-5"></i> Tulis
+                </a>
+                <a href="#" onclick="checkProjectAccess(event)" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book w-5"></i> Proyek Buku
+                </a>
+                <a href="library.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book-open w-5"></i> Perpustakaan
+                </a>
+                <div class="space-y-0.5">
+                    <a href="community.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                        <i class="fa-solid fa-users w-5"></i> Komunitas
+                    </a>
+                    <a href="campaigns.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition pl-10 text-xs opacity-75">
+                        <i class="fa-solid fa-flag w-5 text-slate-400"></i> Lihat Kampanye
+                    </a>
+                </div>
+                <a href="mentoring.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring
+                </a>
+                <a href="profile.html" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-sm font-semibold text-emerald-800 rounded-xl transition">
+                    <i class="fa-solid fa-user w-5 text-emerald-600"></i> Profil
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-emerald-100/60">
+                <button id="btnLogout" class="owner-only flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition text-left">
+                    <i class="fa-solid fa-right-from-bracket w-5"></i> Keluar
+                </button>
+                <p class="text-xs text-slate-400 text-center mt-4">YATA v1.0 • Beta</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ============================================ -->
+    <!-- MOBILE HEADER -->
+    <!-- ============================================ -->
+    <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
+        <div class="flex items-center justify-between px-4 h-16">
+            <a href="dashboard.html" class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black">Y</div>
+                <span class="text-lg font-extrabold text-emerald-800">YATA</span>
+            </a>
+            <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+
+        <div id="mobileMenu" class="hidden bg-white border-t border-emerald-100/60 px-4 py-4 space-y-2">
+            <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Beranda</a>
+            <a href="write.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Tulis</a>
+            <a href="#" onclick="checkProjectAccess(event)" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Proyek Buku</a>
+            <a href="library.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Perpustakaan</a>
+            <a href="community.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Komunitas</a>
+            <a href="campaigns.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl pl-6 text-xs opacity-75">
+                <i class="fa-solid fa-flag mr-1 text-slate-400"></i> Lihat Kampanye
+            </a>
+            <a href="mentoring.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Mentoring</a>
+            <a href="profile.html" class="block px-4 py-2.5 bg-emerald-50 text-emerald-800 font-semibold rounded-xl">Profil</a>
+            <hr class="my-2 border-emerald-100" />
+            <button id="btnLogoutMobile" class="owner-only block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
+        </div>
+    </header>
+
+    <!-- ============================================ -->
+    <!-- KONTEN UTAMA -->
+    <!-- ============================================ -->
+    <main class="md:ml-64 pt-4 md:pt-8 min-h-screen bg-slate-50/50">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+            <!-- Header -->
+            <div class="mb-6">
+                <div class="flex items-center gap-3">
+                    <a href="penulis.html" class="text-slate-400 hover:text-emerald-600 transition">
+                        <i class="fa-solid fa-arrow-left text-lg"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-black text-slate-800">👤 Profil</h1>
+                        <p class="text-sm text-slate-500">Informasi dan karya penulis YATA.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div id="loadingState" class="text-center py-12">
+                <i class="fa-solid fa-spinner fa-spin text-3xl text-emerald-600"></i>
+                <p class="text-slate-500 text-sm mt-2">Memuat profil...</p>
+            </div>
+
+            <!-- Konten -->
+            <div id="profileContent" class="hidden">
+
+                <!-- 1. HEADER PROFIL -->
+                <div class="bg-white rounded-3xl p-6 border border-emerald-100/60 shadow-sm">
+                    <div class="flex flex-col sm:flex-row items-center gap-6">
+                        <!-- Avatar -->
+                        <div class="relative flex-shrink-0">
+                            <div id="profileAvatar" class="avatar-large bg-emerald-100 text-emerald-700 flex items-center justify-center">?</div>
+                            <button onclick="openAvatarUpload()" id="avatarUploadBtn" class="owner-only absolute bottom-0 right-0 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm shadow-md transition">
+                                <i class="fa-solid fa-camera"></i>
+                            </button>
+                        </div>
+
+                        <div class="flex-1 text-center sm:text-left">
+                            <h2 id="profileName" class="text-2xl font-black text-slate-800">Memuat...</h2>
+                            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1">
+                                <span id="profileLevel" class="level-badge level-tamu">
+                                    <span id="profileLevelIcon" class="level-icon">🌱</span> 
+                                    <span id="profileLevelName">Tamu</span>
+                                </span>
+                                <span class="text-slate-400">•</span>
+                                <span id="profileMemberId" class="text-xs font-mono text-slate-500">YATA-T-00001</span>
+                            </div>
+                            <p id="profileBio" class="text-sm text-slate-500 mt-2 max-w-md">Belum ada bio.</p>
+                            <div class="flex flex-wrap items-center justify-center sm:justify-start gap-4 mt-3 text-xs text-slate-400">
+                                <span><i class="fa-regular fa-user mr-1"></i> <span id="profileUsername">@username</span></span>
+                                <span><i class="fa-regular fa-envelope mr-1"></i> <span id="profileEmail">email@domain.com</span></span>
+                            </div>
+                        </div>
+                        <button onclick="openEditProfile()" id="editProfileBtn" class="owner-only bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2">
+                            <i class="fa-regular fa-pen-to-square"></i> Edit Profil
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. STATISTIK -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div class="bg-white rounded-2xl p-4 border border-emerald-100/60 shadow-sm text-center">
+                        <p class="text-2xl font-black text-slate-800" id="statTotalWritings">0</p>
+                        <p class="text-xs text-slate-500">Total Karya</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 border border-emerald-100/60 shadow-sm text-center">
+                        <p class="text-2xl font-black text-slate-800" id="statTotalReads">0</p>
+                        <p class="text-xs text-slate-500">Pembaca</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 border border-emerald-100/60 shadow-sm text-center">
+                        <p class="text-2xl font-black text-slate-800" id="statTotalLikes">0</p>
+                        <p class="text-xs text-slate-500">Like</p>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 border border-emerald-100/60 shadow-sm text-center">
+                        <p class="text-2xl font-black text-slate-800" id="statRank">#-</p>
+                        <p class="text-xs text-slate-500">Peringkat</p>
+                    </div>
+                </div>
+
+                <!-- 3. KTA DIGITAL -->
+                <div class="mt-6 bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-regular fa-id-card text-emerald-600"></i> Kartu Tanda Anggota
+                        </h3>
+                        <button onclick="viewFullKTA()" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold">
+                            Lihat Detail <i class="fa-solid fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                    <div id="ktaPreview" class="kta-small kta-tamu">
+                        <div class="kta-bg-pattern" style="position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;background:currentColor;opacity:0.05;pointer-events:none;"></div>
+                        <div>
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:2;">
+                                <div>
+                                    <p class="kta-brand-sm">YATA</p>
+                                    <p class="kta-title-sm">Kartu Tanda Anggota</p>
+                                </div>
+                                <span id="ktaIcon" class="kta-badge-sm">🌱</span>
+                            </div>
+                            <p id="ktaName" class="kta-name-sm">Nama</p>
+                            <p id="ktaLevel" class="kta-level-sm">Tamu</p>
+                        </div>
+                        <div class="kta-footer-sm">
+                            <div>
+                                <p class="label">ID Anggota</p>
+                                <p id="ktaId" class="value">YATA-T-00001</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="label">Berlaku</p>
+                                <p id="ktaValid" style="font-size:10px;font-weight:600;">31 Des 2027</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex justify-end gap-2">
+                        <button onclick="viewFullKTA()" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1">
+                            <i class="fa-regular fa-eye"></i> Lihat Detail
+                        </button>
+                        <button onclick="shareKTA()" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1">
+                            <i class="fa-regular fa-share-from-square"></i> Bagikan
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4. KAMPANYE YANG SAYA BUAT (HANYA PEMILIK) -->
+                <div id="userCampaignsSection" class="mt-6 bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm owner-only">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-flag text-emerald-600"></i> Kampanye yang Saya Buat
+                        </h3>
+                        <a href="campaigns.html" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold">
+                            Lihat semua <i class="fa-solid fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                    <div id="userCampaigns" class="space-y-3">
+                        <div class="text-center py-6 text-slate-400 text-sm">
+                            <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat kampanye...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. PENGATURAN AKUN (HANYA PEMILIK) -->
+                <div id="settingsSection" class="mt-6 bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm owner-only">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2 mb-4">
+                        <i class="fa-solid fa-gear text-slate-400"></i> Pengaturan Akun
+                    </h3>
+                    <div class="space-y-3">
+                        <button onclick="changePassword()" class="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2">
+                            <i class="fa-solid fa-key"></i> Ganti Password
+                        </button>
+                        <button onclick="handleLogout()" class="w-full sm:w-auto bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2">
+                            <i class="fa-solid fa-right-from-bracket"></i> Keluar
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ============================================ -->
+    <!-- MODAL UPLOAD AVATAR -->
+    <!-- ============================================ -->
+    <div id="avatarModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeAvatarUpload()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Foto Profil</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Upload Foto</h3>
+                <p class="text-xs text-slate-500 mt-1">Pilih foto untuk profil Anda.</p>
+            </div>
+
+            <div class="flex flex-col items-center gap-4">
+                <div id="avatarPreview" class="w-32 h-32 rounded-full bg-slate-200 flex items-center justify-center text-4xl text-slate-400 overflow-hidden border-4 border-emerald-200">
+                    <i class="fa-regular fa-user"></i>
+                </div>
+                <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="previewAvatar(event)" />
+                <button onclick="document.getElementById('avatarInput').click()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                    <i class="fa-solid fa-upload mr-1"></i> Pilih Foto
+                </button>
+                <button onclick="uploadAvatar()" id="uploadAvatarBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-check mr-1"></i> Simpan Foto
+                </button>
+                <button onclick="removeAvatar()" class="text-red-500 hover:text-red-600 text-sm font-semibold transition">
+                    <i class="fa-regular fa-trash-can mr-1"></i> Hapus Foto
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL EDIT PROFIL -->
+    <!-- ============================================ -->
+    <div id="editProfileModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeEditProfile()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Profil</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Edit Profil</h3>
+            </div>
+
+            <form id="editProfileForm" class="space-y-4">
+                <div>
+                    <label for="editFullName" class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap</label>
+                    <input type="text" id="editFullName" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="editUsername" class="block text-xs font-semibold text-slate-700 mb-1">Username</label>
+                    <input type="text" id="editUsername" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm lowercase" />
+                    <p class="text-xs text-slate-400 mt-1">Hanya huruf kecil, angka, dan underscore (_)</p>
+                </div>
+
+                <div>
+                    <label for="editBio" class="block text-xs font-semibold text-slate-700 mb-1">Bio</label>
+                    <textarea id="editBio" rows="3" placeholder="Ceritakan tentang dirimu..." class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
+                    <p class="text-xs text-slate-400 mt-1">Maksimal 160 karakter</p>
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-regular fa-floppy-disk mr-1"></i> Simpan Perubahan
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL GANTI PASSWORD -->
+    <!-- ============================================ -->
+    <div id="passwordModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closePasswordModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Keamanan</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Ganti Password</h3>
+            </div>
+
+            <form id="passwordForm" class="space-y-4">
+                <div>
+                    <label for="currentPassword" class="block text-xs font-semibold text-slate-700 mb-1">Password Saat Ini</label>
+                    <input type="password" id="currentPassword" placeholder="Masukkan password saat ini" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+                <div>
+                    <label for="newPassword" class="block text-xs font-semibold text-slate-700 mb-1">Password Baru</label>
+                    <input type="password" id="newPassword" placeholder="Minimal 6 karakter" required minlength="6" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+                <div>
+                    <label for="confirmNewPassword" class="block text-xs font-semibold text-slate-700 mb-1">Konfirmasi Password Baru</label>
+                    <input type="password" id="confirmNewPassword" placeholder="Ulangi password baru" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-key mr-1"></i> Ganti Password
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL KTA DETAIL -->
+    <!-- ============================================ -->
+    <div id="ktaModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeKtaModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl z-10">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Kartu Tanda Anggota</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">KTA YATA</h3>
+                <p class="text-xs text-slate-500 mt-1">Identitas resmi anggota YATA</p>
+            </div>
+
+            <div class="flex justify-center">
+                <div id="ktaFullPreview" class="kta-card kta-tamu" style="max-width:360px;width:100%;">
+                    <div class="kta-bg-pattern"></div>
+                    <div class="kta-bg-pattern-2"></div>
+                    <div>
+                        <div class="kta-header">
+                            <div>
+                                <p class="kta-brand">YATA</p>
+                                <p class="kta-title">Kartu Tanda Anggota</p>
+                            </div>
+                            <span id="ktaFullIcon" class="kta-badge-icon">🌱</span>
+                        </div>
+                        <p id="ktaFullName" class="kta-name">Nama Member</p>
+                        <p id="ktaFullLevel" class="kta-level">Tamu</p>
+                    </div>
+                    <div>
+                        <div class="kta-divider"></div>
+                        <div class="kta-footer">
+                            <div>
+                                <p class="label">ID Anggota</p>
+                                <p id="ktaFullId" class="value">YATA-T-00001</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="label">Berlaku Hingga</p>
+                                <p id="ktaFullValid" class="valid-date">31 Des 2027</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 space-y-3">
+                <button onclick="downloadKTA()" id="downloadKtaBtn" class="download-btn w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-download"></i> Unduh KTA (PNG)
+                </button>
+                <button onclick="sendKTAViaEmail()" id="sendKtaEmailBtn" class="download-btn w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2">
+                    <i class="fa-regular fa-envelope"></i> Kirim ke Email
+                </button>
+                <p class="text-xs text-slate-400 text-center">
+                    <i class="fa-regular fa-envelope mr-1"></i> KTA akan dikirimkan ke email Anda.
+                </p>
+                <button onclick="closeKtaModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-xl transition text-sm">
+                    Tutup
+                </button>
+            </div>
+
+            <div id="ktaMessage" class="mt-3 text-sm text-center hidden"></div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        let currentUser = null;
+        let currentProfile = null;
+        let allWritings = [];
+        let allWritersData = [];
+        let selectedFile = null;
+        let currentAvatarUrl = null;
+        let isDownloadingKTA = false;
+        let currentKtaData = null;
+        let isOwnProfile = false;
+        let profileUserId = null;
+
+        // ============================================
+        // CEK LOGIN (TANPA REDIRECT)
+        // ============================================
+        async function checkAuth() {
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (session) {
+                    currentUser = session.user;
+                }
+                return session;
+            } catch (err) {
+                console.error('Auth check error:', err);
+                return null;
+            }
+        }
+
+        // ============================================
+        // CEK AKSES PROYEK BUKU
+        // ============================================
+        async function checkProjectAccess(e) {
+            if (e) e.preventDefault();
+            
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('member_level')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error) {
+                    console.error('Error checking level:', error);
+                    window.location.href = 'projects.html';
+                    return;
+                }
+
+                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
+                if (allowedLevels.includes(profile.member_level)) {
+                    window.location.href = 'projects.html';
+                } else {
+                    showProjectAccessDenied(profile.member_level || 'Tamu');
+                }
+            } catch (err) {
+                console.error('Error checking access:', err);
+                window.location.href = 'projects.html';
+            }
+        }
+
+        function showProjectAccessDenied(currentLevel) {
+            let modal = document.getElementById('projectAccessModal');
+            if (modal) modal.remove();
+
+            const modalHtml = `
+                <div id="projectAccessModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+                        <button onclick="closeProjectAccessModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        <div class="text-center mb-4">
+                            <span class="text-amber-500 text-4xl block mb-2">🔒</span>
+                            <h3 class="text-xl font-black text-slate-800">Akses Dibatasi</h3>
+                            <p class="text-sm text-slate-500 mt-1">Fitur Proyek Buku hanya untuk member level tertentu.</p>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-4 border border-amber-200 mb-4">
+                            <p class="text-sm text-slate-600">Level Anda saat ini: <strong class="text-amber-700">${currentLevel || 'Tamu'}</strong></p>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">Anda perlu mencapai level:</p>
+                        <ul class="space-y-2 text-sm mb-4">
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">✍️</span>
+                                <div>
+                                    <strong>Penulis</strong>
+                                    <p class="text-xs text-slate-500">5+ karya dipublikasikan • 3+ kali mentoring</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">📚</span>
+                                <div>
+                                    <strong>Penulis Profesional</strong>
+                                    <p class="text-xs text-slate-500">20+ karya • 1+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">🌟</span>
+                                <div>
+                                    <strong>Mentor</strong>
+                                    <p class="text-xs text-slate-500">50+ karya • 3+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                        </ul>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button onclick="closeProjectAccessModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
+                                Tutup
+                            </button>
+                            <button onclick="closeProjectAccessModal(); window.location.href='dashboard.html'" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
+                                <i class="fa-regular fa-circle-question mr-1"></i> Lihat Syarat Level
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeProjectAccessModal() {
+            const modal = document.getElementById('projectAccessModal');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // ============================================
+        // LOAD PROFILE (PUBLIK - TANPA REDIRECT)
+        // ============================================
+        async function loadProfile() {
+            try {
+                const session = await checkAuth();
+                
+                // Ambil ID dari URL
+                const params = new URLSearchParams(window.location.search);
+                profileUserId = params.get('id');
+
+                // Jika tidak ada ID di URL dan user login, redirect ke profil sendiri
+                if (!profileUserId) {
+                    if (session) {
+                        window.location.href = `profile.html?id=${session.user.id}`;
+                        return;
+                    } else {
+                        // Jika tidak login dan tidak ada ID, redirect ke explore
+                        window.location.href = 'explore.html';
+                        return;
+                    }
+                }
+
+                // Ambil data profile
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('*')
+                    .eq('id', profileUserId)
+                    .single();
+
+                if (error) {
+                    console.error('Profile error:', error);
+                    showError('Gagal memuat profil.', 'Error');
+                    window.location.href = 'penulis.html';
+                    return;
+                }
+
+                currentProfile = profile;
+                currentAvatarUrl = profile.avatar_url || null;
+
+                // Cek apakah ini profil sendiri
+                isOwnProfile = session && profileUserId === session.user.id;
+
+                // Tampilkan/sembunyikan elemen owner-only
+                document.querySelectorAll('.owner-only').forEach(el => {
+                    if (isOwnProfile) {
+                        el.classList.add('visible');
+                        if (el.tagName === 'BUTTON' || el.tagName === 'DIV') {
+                            el.style.display = 'block';
+                        } else {
+                            el.style.display = 'inline-block';
+                        }
+                    } else {
+                        el.classList.remove('visible');
+                        el.style.display = 'none';
+                    }
+                });
+
+                // Jika bukan pemilik, sembunyikan tombol edit
+                if (!isOwnProfile) {
+                    const editBtn = document.getElementById('editProfileBtn');
+                    if (editBtn) editBtn.style.display = 'none';
+                    const avatarBtn = document.getElementById('avatarUploadBtn');
+                    if (avatarBtn) avatarBtn.style.display = 'none';
+                }
+
+                const { data: writings, error: writingsError } = await _supabase
+                    .from('yata_writings')
+                    .select('*')
+                    .eq('author_id', profileUserId);
+
+                if (!writingsError) {
+                    allWritings = writings || [];
+                }
+
+                const { data: allWriters, error: writersError } = await _supabase
+                    .from('yata_writings')
+                    .select('author_id, views');
+
+                if (!writersError) {
+                    allWritersData = allWriters || [];
+                }
+
+                // Generate member_id jika belum ada
+                if (!profile.member_id) {
+                    try {
+                        const levelMap = {
+                            'Tamu': 'tamu',
+                            'Penulis': 'penulis',
+                            'Penulis Profesional': 'penulis_profesional',
+                            'Mentor': 'mentor'
+                        };
+                        let levelKey = levelMap[profile.member_level] || 'tamu';
+                        
+                        const now = new Date();
+                        const tanggal = String(now.getDate()).padStart(2, '0');
+                        const bulan = String(now.getMonth() + 1).padStart(2, '0');
+                        const tahun = String(now.getFullYear()).slice(-2);
+                        const timestamp = String(Date.now()).slice(-4);
+                        
+                        const prefixMap = {
+                            'tamu': 'YATA-T',
+                            'penulis': 'YATA-P',
+                            'penulis_profesional': 'YATA-PP',
+                            'mentor': 'YATA-M'
+                        };
+                        const prefix = prefixMap[levelKey] || 'YATA-T';
+                        const newMemberId = `${prefix}-${timestamp}${tanggal}${bulan}${tahun}`;
+                        
+                        // Update ke database jika ini profil sendiri
+                        if (isOwnProfile) {
+                            const { error: updateError } = await _supabase
+                                .from('yata_profiles')
+                                .update({ member_id: newMemberId })
+                                .eq('id', session.user.id);
+                            
+                            if (!updateError) {
+                                profile.member_id = newMemberId;
+                            } else {
+                                profile.member_id = `${prefix}-${timestamp}${tanggal}${bulan}${tahun}`;
+                            }
+                        } else {
+                            profile.member_id = `${prefix}-${timestamp}${tanggal}${bulan}${tahun}`;
+                        }
+                    } catch (err) {
+                        console.error('Generate member_id error:', err);
+                        const now = new Date();
+                        const timestamp = String(Date.now()).slice(-4);
+                        profile.member_id = `YATA-T-${timestamp}`;
+                    }
+                }
+
+                renderProfile(profile, session?.user);
+
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('profileContent').classList.remove('hidden');
+
+                // Load kampanye hanya jika ini profil sendiri
+                if (isOwnProfile) {
+                    await loadUserCampaigns();
+                }
+
+            } catch (err) {
+                console.error('Load profile error:', err);
+                document.getElementById('loadingState').innerHTML = `
+                    <i class="fa-solid fa-circle-exclamation text-3xl text-red-500"></i>
+                    <p class="text-red-500 text-sm mt-2">Gagal memuat profil: ${err.message}</p>
+                    <button onclick="loadProfile()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                        <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                    </button>
+                `;
+            }
+        }
+
+        // ============================================
+        // RENDER PROFILE
+        // ============================================
+        function renderProfile(profile, user) {
+            // Avatar
+            const avatarEl = document.getElementById('profileAvatar');
+            if (profile.avatar_url) {
+                avatarEl.innerHTML = `<img src="${profile.avatar_url}" alt="Avatar" />`;
+            } else {
+                avatarEl.innerHTML = profile.full_name ? profile.full_name.charAt(0).toUpperCase() : '?';
+                avatarEl.className = 'avatar-large bg-emerald-100 text-emerald-700 flex items-center justify-center';
+            }
+
+            // Nama
+            document.getElementById('profileName').textContent = profile.full_name || 'Pengguna';
+            document.getElementById('profileBio').textContent = profile.bio || 'Belum ada bio.';
+            document.getElementById('profileUsername').textContent = '@' + (profile.username || 'username');
+            
+            // Email (hanya tampil jika pemilik)
+            const emailEl = document.getElementById('profileEmail');
+            if (isOwnProfile && user) {
+                emailEl.textContent = user.email || 'email@domain.com';
+                emailEl.parentElement.style.display = 'flex';
+            } else {
+                emailEl.parentElement.style.display = 'none';
+            }
+
+            // Level
+            const levelMap = {
+                'Tamu': { icon: '🌱', class: 'level-tamu' },
+                'Penulis': { icon: '✍️', class: 'level-penulis' },
+                'Penulis Profesional': { icon: '📚', class: 'level-profesional' },
+                'Mentor': { icon: '🌟', class: 'level-mentor' }
+            };
+
+            let levelName = profile.member_level || 'Tamu';
+            const lv = levelMap[levelName] || levelMap['Tamu'];
+
+            document.getElementById('profileLevelIcon').textContent = lv.icon;
+            document.getElementById('profileLevelName').textContent = levelName;
+            document.getElementById('profileLevel').className = `level-badge ${lv.class}`;
+
+            // Member ID
+            const memberId = profile.member_id || formatMemberId();
+            document.getElementById('profileMemberId').textContent = memberId;
+
+            // KTA
+            updateKTA(profile, memberId, levelName);
+
+            // Statistik
+            const totalWritings = allWritings.length;
+            const totalViews = allWritings.reduce((sum, w) => sum + (w.views || 0), 0);
+            const totalLikes = allWritings.reduce((sum, w) => sum + (w.likes || 0), 0);
+
+            document.getElementById('statTotalWritings').textContent = totalWritings;
+            document.getElementById('statTotalReads').textContent = totalViews;
+            document.getElementById('statTotalLikes').textContent = totalLikes;
+
+            // Peringkat
+            let rank = '-';
+            if (totalViews > 0 && allWritersData.length > 0) {
+                const viewsMap = {};
+                allWritersData.forEach(w => {
+                    viewsMap[w.author_id] = (viewsMap[w.author_id] || 0) + (w.views || 0);
+                });
+                const sorted = Object.entries(viewsMap).sort((a, b) => b[1] - a[1]);
+                const userRank = sorted.findIndex(([id]) => id === profile.id) + 1;
+                if (userRank > 0) {
+                    rank = userRank;
+                }
+            }
+            document.getElementById('statRank').textContent = rank !== '-' ? `#${rank}` : '#-';
+
+            // Edit form
+            document.getElementById('editFullName').value = profile.full_name || '';
+            document.getElementById('editUsername').value = profile.username || '';
+            document.getElementById('editBio').value = profile.bio || '';
+        }
+
+        // ============================================
+        // UPDATE KTA
+        // ============================================
+        function updateKTA(profile, memberId, levelName) {
+            const level = levelName || 'Tamu';
+            const levelIcons = {
+                'Tamu': '🌱',
+                'Penulis': '✍️',
+                'Penulis Profesional': '📚',
+                'Mentor': '🌟'
+            };
+            const ktaClasses = {
+                'Tamu': 'kta-tamu',
+                'Penulis': 'kta-penulis',
+                'Penulis Profesional': 'kta-profesional',
+                'Mentor': 'kta-mentor'
+            };
+
+            const name = profile.full_name || 'Member';
+            const finalMemberId = memberId || formatMemberId();
+            const validDate = getKTAValidDate();
+
+            const preview = document.getElementById('ktaPreview');
+            preview.className = `kta-small ${ktaClasses[level] || 'kta-tamu'}`;
+            document.getElementById('ktaIcon').textContent = levelIcons[level] || '🌱';
+            document.getElementById('ktaName').textContent = name;
+            document.getElementById('ktaLevel').textContent = level;
+            document.getElementById('ktaId').textContent = finalMemberId;
+            document.getElementById('ktaValid').textContent = validDate;
+
+            currentKtaData = {
+                level: level,
+                levelIcons: levelIcons,
+                ktaClasses: ktaClasses,
+                name: name,
+                memberId: finalMemberId,
+                validDate: validDate,
+                icon: levelIcons[level] || '🌱'
+            };
+        }
+
+        // ============================================
+        // VIEW FULL KTA
+        // ============================================
+        function viewFullKTA() {
+            const data = currentKtaData;
+            if (!data) return;
+
+            const { level, icon, ktaClasses, name, memberId, validDate } = data;
+
+            const container = document.getElementById('ktaFullPreview');
+            container.className = `kta-card ${ktaClasses[level] || 'kta-tamu'}`;
+            container.style.maxWidth = '360px';
+            container.style.width = '100%';
+
+            document.getElementById('ktaFullIcon').textContent = icon;
+            document.getElementById('ktaFullName').textContent = name;
+            document.getElementById('ktaFullLevel').textContent = level;
+            document.getElementById('ktaFullId').textContent = memberId;
+            document.getElementById('ktaFullValid').textContent = validDate || getKTAValidDate();
+
+            document.getElementById('ktaMessage').className = 'text-sm text-center hidden';
+            document.getElementById('downloadKtaBtn').disabled = false;
+            document.getElementById('downloadKtaBtn').innerHTML = '<i class="fa-solid fa-download"></i> Unduh KTA (PNG)';
+            document.getElementById('sendKtaEmailBtn').disabled = false;
+            document.getElementById('sendKtaEmailBtn').innerHTML = '<i class="fa-regular fa-envelope"></i> Kirim ke Email';
+
+            document.getElementById('ktaModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeKtaModal() {
+            document.getElementById('ktaModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            document.getElementById('ktaMessage').className = 'text-sm text-center hidden';
+        }
+
+        // ============================================
+        // SHARE KTA
+        // ============================================
+        function shareKTA() {
+            if (!currentKtaData) return;
+            const url = window.location.origin + '/profile.html?id=' + (currentProfile?.id || '');
+            const title = `KTA YATA - ${currentKtaData.name || 'Member'}`;
+            openShareDialog(title, url, 'KTA');
+        }
+
+        // ============================================
+        // DOWNLOAD KTA
+        // ============================================
+        async function downloadKTA() {
+            if (isDownloadingKTA) return;
+            
+            const element = document.getElementById('ktaFullPreview');
+            if (!element) {
+                showKtaMessage('KTA tidak ditemukan.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('downloadKtaBtn');
+            isDownloadingKTA = true;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memproses...';
+            showKtaMessage('', '');
+
+            try {
+                const canvas = await html2canvas(element, {
+                    scale: 3,
+                    backgroundColor: null,
+                    allowTaint: true,
+                    useCORS: true,
+                    logging: false,
+                    width: element.scrollWidth,
+                    height: element.scrollHeight,
+                    windowWidth: element.scrollWidth,
+                    windowHeight: element.scrollHeight,
+                });
+
+                const link = document.createElement('a');
+                const name = currentKtaData?.name || 'Member';
+                link.download = `KTA_YATA_${name.replace(/\s/g, '_')}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                showKtaMessage('✅ KTA berhasil diunduh!', 'success');
+                
+                try {
+                    const session = await checkAuth();
+                    if (session) {
+                        await _supabase
+                            .from('yata_activity_logs')
+                            .insert([{
+                                user_id: session.user.id,
+                                action: 'download_kta',
+                                details: { timestamp: new Date().toISOString() }
+                            }]);
+                    }
+                } catch (logErr) {
+                    console.error('Log activity error:', logErr);
+                }
+
+            } catch (err) {
+                console.error('Download KTA error:', err);
+                showKtaMessage('❌ Gagal mengunduh KTA. Silakan coba screenshot manual.', 'error');
+            } finally {
+                isDownloadingKTA = false;
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-download"></i> Unduh KTA (PNG)';
+            }
+        }
+
+        // ============================================
+        // SEND KTA VIA EMAIL (HANYA PEMILIK)
+        // ============================================
+        async function sendKTAViaEmail() {
+            if (!isOwnProfile) {
+                showKtaMessage('Anda tidak memiliki akses untuk mengirim KTA ini.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('sendKtaEmailBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+            showKtaMessage('', '');
+
+            try {
+                const session = await checkAuth();
+                if (!session) {
+                    showKtaMessage('Silakan login terlebih dahulu.', 'error');
+                    return;
+                }
+
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('email')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error) throw error;
+
+                const notifContent = `📧 KTA Anda telah dikirim ke email ${profile.email || 'Anda'}. Silakan cek kotak masuk (termasuk spam).`;
+
+                const { data: notifData } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: '📧 KTA Dikirim ke Email',
+                        content: notifContent,
+                        type: 'info'
+                    }])
+                    .select()
+                    .single();
+
+                if (notifData) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: session.user.id,
+                            is_read: false
+                        }]);
+                }
+
+                await _supabase
+                    .from('yata_activity_logs')
+                    .insert([{
+                        user_id: session.user.id,
+                        action: 'send_kta_email',
+                        details: { email: profile.email, timestamp: new Date().toISOString() }
+                    }]);
+
+                showKtaMessage(`✅ KTA telah dikirim ke email ${profile.email || 'Anda'}! Cek kotak masuk (termasuk spam).`, 'success');
+
+            } catch (err) {
+                console.error('Send KTA email error:', err);
+                showKtaMessage('❌ Gagal mengirim KTA ke email: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-regular fa-envelope"></i> Kirim ke Email';
+            }
+        }
+
+        function showKtaMessage(text, type) {
+            const msg = document.getElementById('ktaMessage');
+            msg.textContent = text;
+            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
+                type === 'success' ? 'text-emerald-600' :
+                type === 'error' ? 'text-red-600' :
+                ''
+            }`;
+        }
+
+        // ============================================
+        // UPLOAD AVATAR
+        // ============================================
+        function openAvatarUpload() {
+            if (!isOwnProfile) {
+                showError('Anda tidak memiliki akses untuk mengubah foto profil ini.', 'Akses Ditolak');
+                return;
+            }
+            document.getElementById('avatarModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            const preview = document.getElementById('avatarPreview');
+            if (currentAvatarUrl) {
+                preview.innerHTML = `<img src="${currentAvatarUrl}" class="w-full h-full object-cover" />`;
+            } else {
+                preview.innerHTML = '<i class="fa-regular fa-user text-4xl"></i>';
+                preview.className = 'w-32 h-32 rounded-full bg-slate-200 flex items-center justify-center text-4xl text-slate-400 overflow-hidden border-4 border-emerald-200';
+            }
+            document.getElementById('avatarInput').value = '';
+            selectedFile = null;
+            document.getElementById('uploadAvatarBtn').disabled = true;
+        }
+
+        function closeAvatarUpload() {
+            document.getElementById('avatarModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        function previewAvatar(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                showError('Silakan pilih file gambar.', 'Info');
+                return;
+            }
+
+            if (file.size > 2 * 1024 * 1024) {
+                showError('Ukuran file maksimal 2MB.', 'Validasi Gagal');
+                event.target.value = '';
+                return;
+            }
+
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showError('Format file tidak didukung. Gunakan JPG, PNG, GIF, atau WEBP.', 'Validasi Gagal');
+                event.target.value = '';
+                return;
+            }
+
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('avatarPreview');
+                preview.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-full" />`;
+                document.getElementById('uploadAvatarBtn').disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function uploadAvatar() {
+            if (!isOwnProfile) {
+                showError('Anda tidak memiliki akses untuk mengubah foto profil ini.', 'Akses Ditolak');
+                return;
+            }
+
+            if (!selectedFile) {
+                showError('Silakan pilih foto terlebih dahulu.', 'Info');
+                return;
+            }
+
+            const btn = document.getElementById('uploadAvatarBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengupload...';
+
+            try {
+                const session = await checkAuth();
+                if (!session) {
+                    showError('Silakan login terlebih dahulu.', 'Info');
+                    return;
+                }
+
+                const fileExt = selectedFile.name.split('.').pop();
+                const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
+                const filePath = `avatars/${fileName}`;
+
+                const { data: uploadData, error: uploadError } = await _supabase.storage
+                    .from('avatars')
+                    .upload(filePath, selectedFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data: urlData } = _supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(filePath);
+
+                const avatarUrl = urlData.publicUrl;
+
+                const { error: updateError } = await _supabase
+                    .from('yata_profiles')
+                    .update({ avatar_url: avatarUrl })
+                    .eq('id', currentUser.id);
+
+                if (updateError) throw updateError;
+
+                currentAvatarUrl = avatarUrl;
+                showError('✅ Foto profil berhasil diupload!', 'Sukses');
+                closeAvatarUpload();
+                await loadProfile();
+
+            } catch (err) {
+                handleSupabaseError(err, 'Upload foto profil');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Simpan Foto';
+            }
+        }
+
+        async function removeAvatar() {
+            if (!isOwnProfile) {
+                showError('Anda tidak memiliki akses untuk menghapus foto profil ini.', 'Akses Ditolak');
+                return;
+            }
+
+            if (!confirm('Yakin ingin menghapus foto profil?')) return;
+
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const { error } = await _supabase
+                    .from('yata_profiles')
+                    .update({ avatar_url: null })
+                    .eq('id', session.user.id);
+
+                if (error) throw error;
+
+                currentAvatarUrl = null;
+                showError('✅ Foto profil dihapus.', 'Sukses');
+                closeAvatarUpload();
+                await loadProfile();
+
+            } catch (err) {
+                handleSupabaseError(err, 'Menghapus foto profil');
+            }
+        }
+
+        // ============================================
+        // EDIT PROFILE (HANYA PEMILIK)
+        // ============================================
+        function openEditProfile() {
+            if (!isOwnProfile) {
+                showError('Anda tidak memiliki akses untuk mengedit profil ini.', 'Akses Ditolak');
+                return;
+            }
+            document.getElementById('editProfileModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeEditProfile() {
+            document.getElementById('editProfileModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.getElementById('editProfileForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!isOwnProfile) {
+                showError('Anda tidak memiliki akses untuk mengedit profil ini.', 'Akses Ditolak');
+                return;
+            }
+
+            const fullName = document.getElementById('editFullName').value.trim();
+            const username = document.getElementById('editUsername').value.trim().toLowerCase().replace(/\s/g, '');
+            const bio = document.getElementById('editBio').value.trim().slice(0, 160);
+
+            if (!fullName) {
+                showError('Nama lengkap wajib diisi.', 'Validasi Gagal');
+                return;
+            }
+
+            if (username && !/^[a-z0-9_]+$/.test(username)) {
+                showError('Username hanya boleh huruf kecil, angka, dan underscore (_).', 'Validasi Gagal');
+                return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...';
+
+            try {
+                const session = await checkAuth();
+                if (!session) {
+                    showError('Silakan login terlebih dahulu.', 'Info');
+                    return;
+                }
+
+                const { error } = await _supabase
+                    .from('yata_profiles')
+                    .update({
+                        full_name: fullName,
+                        username: username || null,
+                        bio: bio || null,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', session.user.id);
+
+                if (error) throw error;
+
+                showError('✅ Profil berhasil diperbarui!', 'Sukses');
+                closeEditProfile();
+                await loadProfile();
+
+            } catch (err) {
+                handleSupabaseError(err, 'Menyimpan profil');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> Simpan Perubahan';
+            }
+        });
+
+        // ============================================
+        // CHANGE PASSWORD (HANYA PEMILIK)
+        // ============================================
+        function changePassword() {
+            if (!isOwnProfile) {
+                showError('Anda tidak memiliki akses untuk mengubah password.', 'Akses Ditolak');
+                return;
+            }
+            document.getElementById('passwordModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.getElementById('passwordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!isOwnProfile) {
+                showError('Anda tidak memiliki akses untuk mengubah password.', 'Akses Ditolak');
+                return;
+            }
+
+            const currentPass = document.getElementById('currentPassword').value;
+            const newPass = document.getElementById('newPassword').value;
+            const confirmPass = document.getElementById('confirmNewPassword').value;
+
+            if (newPass.length < 6) {
+                showError('Password baru minimal 6 karakter.', 'Validasi Gagal');
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                showError('Password baru dan konfirmasi tidak sama.', 'Validasi Gagal');
+                return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memproses...';
+
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const { error } = await _supabase.auth.updateUser({
+                    password: newPass
+                });
+
+                if (error) {
+                    if (error.message.includes('Invalid')) {
+                        showError('Password saat ini salah. Silakan coba lagi.', 'Error');
+                    } else {
+                        throw error;
+                    }
+                    return;
+                }
+
+                showError('✅ Password berhasil diubah!', 'Sukses');
+                closePasswordModal();
+                this.reset();
+
+            } catch (err) {
+                handleSupabaseError(err, 'Mengubah password');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-key mr-1"></i> Ganti Password';
+            }
+        });
+
+        // ============================================
+        // LOAD KAMPANYE YANG DIBUAT USER (HANYA PEMILIK)
+        // ============================================
+        async function loadUserCampaigns() {
+            if (!isOwnProfile) return;
+            
+            const container = document.getElementById('userCampaigns');
+            
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const { data: campaigns, error } = await _supabase
+                    .from('yata_community_campaigns')
+                    .select('*')
+                    .eq('creator_id', session.user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                if (error) throw error;
+
+                // Ambil data community terpisah
+                if (campaigns && campaigns.length > 0) {
+                    const communityIds = [...new Set(campaigns.map(c => c.community_id).filter(id => id))];
+                    
+                    let communityMap = {};
+                    if (communityIds.length > 0) {
+                        const { data: communities, error: commError } = await _supabase
+                            .from('yata_communities')
+                            .select('id, name')
+                            .in('id', communityIds);
+                        
+                        if (!commError && communities) {
+                            communities.forEach(c => {
+                                communityMap[c.id] = c;
+                            });
+                        }
+                    }
+                    
+                    campaigns.forEach(c => {
+                        c.community = communityMap[c.community_id] || null;
+                    });
+                }
+
+                if (!campaigns || campaigns.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-slate-400 text-sm bg-slate-50 rounded-xl">
+                            <i class="fa-regular fa-flag text-2xl block mb-2"></i>
+                            Belum ada kampanye yang Anda buat.
+                            <a href="community.html" class="block mt-1 text-emerald-600 hover:text-emerald-700 font-semibold text-xs">
+                                Buat kampanye di komunitas Anda
+                            </a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const statusLabels = {
+                    pending: '⏳ Menunggu Verifikasi',
+                    approved: '✅ Terverifikasi',
+                    rejected: '❌ Ditolak'
+                };
+
+                const statusColors = {
+                    pending: 'bg-yellow-100 text-yellow-700',
+                    approved: 'bg-emerald-100 text-emerald-700',
+                    rejected: 'bg-red-100 text-red-700'
+                };
+
+                container.innerHTML = campaigns.map(c => `
+                    <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 hover:shadow-sm transition">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h4 class="font-bold text-slate-800 text-sm truncate">${c.title}</h4>
+                                    <span class="text-xs px-2 py-0.5 rounded-full ${statusColors[c.verification_status] || 'bg-yellow-100 text-yellow-700'}">
+                                        ${statusLabels[c.verification_status] || '⏳ Menunggu'}
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-500">Komunitas: ${c.community?.name || '-'}</p>
+                                <p class="text-xs text-slate-400 mt-1 line-clamp-1">${c.description || 'Tidak ada deskripsi'}</p>
+                                ${c.target_progress > 0 ? `
+                                    <div class="mt-1 flex items-center gap-2 text-[10px] text-slate-400">
+                                        <span>Progress: ${c.current_progress || 0}/${c.target_progress}</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <span class="text-[10px] text-slate-400 flex-shrink-0">${new Date(c.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
+                        </div>
+                        ${c.rejection_reason ? `
+                            <p class="text-xs text-red-500 mt-1">❌ ${c.rejection_reason}</p>
+                        ` : ''}
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                console.error('Load user campaigns error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-6 text-red-400 text-sm">
+                        Gagal memuat kampanye.
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // LOGOUT
+        // ============================================
+        async function handleLogout() {
+            if (!isOwnProfile) {
+                showError('Anda tidak memiliki akses untuk logout dari akun ini.', 'Akses Ditolak');
+                return;
+            }
+
+            if (confirm('Yakin ingin keluar?')) {
+                try {
+                    const { error } = await _supabase.auth.signOut();
+                    if (!error) {
+                        window.location.href = 'login.html';
+                    } else {
+                        console.error('Logout error:', error);
+                    }
+                } catch (err) {
+                    console.error('Logout error:', err);
+                }
+            }
+        }
+
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProfile();
+
+            document.getElementById('btnLogout').addEventListener('click', handleLogout);
+            document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);
+
+            document.getElementById('mobileMenuButton').addEventListener('click', function() {
+                document.getElementById('mobileMenu').classList.toggle('hidden');
+            });
+
+            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(el => {
+                el.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
+            });
+
+            document.getElementById('avatarModal').addEventListener('click', function(e) {
+                if (e.target === this) closeAvatarUpload();
+            });
+
+            document.getElementById('editProfileModal').addEventListener('click', function(e) {
+                if (e.target === this) closeEditProfile();
+            });
+
+            document.getElementById('passwordModal').addEventListener('click', function(e) {
+                if (e.target === this) closePasswordModal();
+            });
+
+            document.getElementById('ktaModal').addEventListener('click', function(e) {
+                if (e.target === this) closeKtaModal();
+            });
+
+            document.addEventListener('click', function(e) {
+                const modal = document.getElementById('projectAccessModal');
+                if (modal && e.target === modal) {
+                    closeProjectAccessModal();
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>

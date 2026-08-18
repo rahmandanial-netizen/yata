@@ -1,0 +1,2541 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Komunitas — YATA</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6EE7B7',
+                        primaryDark: '#065F46',
+                        sage: '#A3E4D7',
+                        cream: '#FEF3C7',
+                        mint: '#B2F2BB',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #065F46; color: white; }
+        .sidebar-link.active i { color: white; }
+        .sidebar-link:hover:not(.active) { background-color: #e2e8f0; }
+        .community-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .community-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px -12px rgba(6, 95, 70, 0.2);
+        }
+        .join-btn.joined {
+            background-color: #e2e8f0;
+            color: #64748b;
+        }
+        .join-btn.joined:hover {
+            background-color: #cbd5e1;
+        }
+        .modal-enter {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .campaign-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px -8px rgba(6, 95, 70, 0.15);
+        }
+        .campaign-card {
+            transition: all 0.3s ease;
+        }
+        .progress-bar {
+            transition: width 1s ease-in-out;
+        }
+        .status-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            display: inline-block;
+        }
+        .status-pending { background-color: #FEF3C7; color: #92400E; }
+        .status-pre-active { background-color: #DBEAFE; color: #1E40AF; }
+        .status-active { background-color: #D1FAE5; color: #065F46; }
+        .status-rejected { background-color: #FEE2E2; color: #991B1B; }
+        .admin-badge {
+            background: #FDE68A;
+            color: #78350F;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            display: inline-block;
+        }
+        .tab-btn.active {
+            background-color: #065F46;
+            color: white;
+        }
+        .tab-btn:not(.active):hover {
+            background-color: #f1f5f9;
+        }
+        .admin-only {
+            display: none;
+        }
+        .admin-only.visible {
+            display: block;
+        }
+        .admin-only.inline-visible {
+            display: inline-block;
+        }
+        .member-only {
+            display: none;
+        }
+        .member-only.visible {
+            display: block;
+        }
+        .line-clamp-1 {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- SIDEBAR -->
+    <!-- ============================================ -->
+    <aside class="fixed top-0 left-0 z-40 w-64 h-screen bg-white border-r border-emerald-100/60 hidden md:block">
+        <div class="flex flex-col h-full">
+            <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
+                <a href="dashboard.html" class="flex items-center space-x-2 group">
+                    <div class="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/30">Y</div>
+                    <span class="text-xl font-extrabold text-emerald-800">YATA</span>
+                </a>
+            </div>
+
+            <!-- SIDEBAR NAVIGATION - STRUKTUR MENU FINAL -->
+            <nav class="flex-1 px-4 py-6 space-y-1">
+                <!-- Beranda -->
+                <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-house w-5"></i> Beranda
+                </a>
+
+                <!-- Tulis -->
+                <a href="write.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-pen w-5"></i> Tulis
+                </a>
+
+                <!-- Proyek Buku -->
+                <a href="#" onclick="checkProjectAccess(event)" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book w-5"></i> Proyek Buku
+                </a>
+
+                <!-- Perpustakaan -->
+                <a href="library.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book-open w-5"></i> Perpustakaan
+                </a>
+
+                <!-- Komunitas + Kampanye -->
+                <div class="space-y-0.5">
+                    <a href="community.html" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-sm font-semibold text-emerald-800 rounded-xl transition">
+                        <i class="fa-solid fa-users w-5 text-emerald-600"></i> Komunitas
+                    </a>
+                    <a href="campaigns.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition pl-10 text-xs opacity-75">
+                        <i class="fa-solid fa-flag w-5 text-slate-400"></i> Lihat Kampanye
+                    </a>
+                </div>
+
+                <!-- Mentoring -->
+                <a href="mentoring.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring
+                </a>
+
+                <!-- Profil -->
+                <a href="profile.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-user w-5"></i> Profil
+                </a>
+            </nav>
+            <!-- END SIDEBAR NAVIGATION -->
+
+            <div class="p-4 border-t border-emerald-100/60">
+                <button id="btnLogout" class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition text-left">
+                    <i class="fa-solid fa-right-from-bracket w-5"></i> Keluar
+                </button>
+                <p class="text-xs text-slate-400 text-center mt-4">YATA v1.0 • Beta</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ============================================ -->
+    <!-- MOBILE HEADER -->
+    <!-- ============================================ -->
+    <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
+        <div class="flex items-center justify-between px-4 h-16">
+            <a href="dashboard.html" class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black">Y</div>
+                <span class="text-lg font-extrabold text-emerald-800">YATA</span>
+            </a>
+            <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+
+        <div id="mobileMenu" class="hidden bg-white border-t border-emerald-100/60 px-4 py-4 space-y-2">
+            <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Beranda</a>
+            <a href="write.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Tulis</a>
+            <a href="#" onclick="checkProjectAccess(event)" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Proyek Buku</a>
+            <a href="library.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Perpustakaan</a>
+            <a href="community.html" class="block px-4 py-2.5 bg-emerald-50 text-emerald-800 font-semibold rounded-xl">Komunitas</a>
+            <a href="campaigns.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl pl-6 text-xs opacity-75">
+                <i class="fa-solid fa-flag mr-1 text-slate-400"></i> Lihat Kampanye
+            </a>
+            <a href="mentoring.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Mentoring</a>
+            <a href="profile.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Profil</a>
+            <hr class="my-2 border-emerald-100" />
+            <button id="btnLogoutMobile" class="block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
+        </div>
+    </header>
+
+    <!-- ============================================ -->
+    <!-- KONTEN UTAMA -->
+    <!-- ============================================ -->
+    <main class="md:ml-64 pt-4 md:pt-8 min-h-screen bg-slate-50/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+            <!-- Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-800">👥 Komunitas</h1>
+                    <p class="text-sm text-slate-500">Temukan dan bergabung dengan komunitas literasi.</p>
+                </div>
+                <button onclick="openCreateCommunity()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition shadow-sm shadow-emerald-500/20 flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Daftarkan Komunitas
+                </button>
+            </div>
+
+            <!-- Filter & Search -->
+            <div class="bg-white rounded-2xl p-4 border border-emerald-100/60 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button onclick="filterCommunity('all')" class="filter-btn active px-4 py-2 rounded-full text-xs font-bold transition bg-emerald-600 text-white" id="filterAll">Semua</button>
+                    <button onclick="filterCommunity('sekolah')" class="filter-btn px-4 py-2 rounded-full text-xs font-bold transition text-slate-600" id="filterSekolah">🏫 Sekolah</button>
+                    <button onclick="filterCommunity('daerah')" class="filter-btn px-4 py-2 rounded-full text-xs font-bold transition text-slate-600" id="filterDaerah">📍 Daerah</button>
+                    <button onclick="filterCommunity('hobi')" class="filter-btn px-4 py-2 rounded-full text-xs font-bold transition text-slate-600" id="filterHobi">🎯 Hobi</button>
+                    <button onclick="filterCommunity('profesi')" class="filter-btn px-4 py-2 rounded-full text-xs font-bold transition text-slate-600" id="filterProfesi">💼 Profesi</button>
+                    <button onclick="filterCommunity('umum')" class="filter-btn px-4 py-2 rounded-full text-xs font-bold transition text-slate-600" id="filterUmum">🌍 Umum</button>
+                </div>
+                <div class="relative w-full sm:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input
+                        type="text"
+                        id="searchCommunity"
+                        placeholder="Cari komunitas..."
+                        oninput="searchCommunity()"
+                        class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                    />
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- TAB: KOMUNITAS SAYA vs KOMUNITAS UMUM -->
+            <!-- ============================================ -->
+            <div class="bg-white rounded-2xl border border-emerald-100/60 shadow-sm overflow-hidden mb-6">
+                <div class="flex border-b border-slate-200">
+                    <button onclick="switchCommunityTab('my')" id="tabMyCommunities" class="tab-btn active px-6 py-3 text-sm font-semibold transition bg-emerald-600 text-white">
+                        <i class="fa-regular fa-user mr-1"></i> Komunitas Saya
+                    </button>
+                    <button onclick="switchCommunityTab('public')" id="tabPublicCommunities" class="tab-btn px-6 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
+                        <i class="fa-regular fa-users mr-1"></i> Komunitas Umum
+                    </button>
+                </div>
+
+                <!-- Daftar Komunitas Saya -->
+                <div id="myCommunitiesContainer" class="p-4">
+                    <div id="myCommunityGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="col-span-full text-center py-12 text-slate-400 text-sm">
+                            <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat komunitas...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Daftar Komunitas Umum -->
+                <div id="publicCommunitiesContainer" class="p-4 hidden">
+                    <div id="publicCommunityGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="col-span-full text-center py-12 text-slate-400 text-sm">
+                            <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat komunitas...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ============================================ -->
+    <!-- MODAL DAFTARKAN KOMUNITAS -->
+    <!-- ============================================ -->
+    <div id="createCommunityModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeCreateCommunity()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Komunitas</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Daftarkan Komunitas</h3>
+                <p class="text-xs text-slate-500 mt-1">Komunitas akan diverifikasi oleh tim YATA sebelum aktif.</p>
+            </div>
+
+            <form id="createCommunityForm" class="space-y-4">
+                <div>
+                    <label for="communityName" class="block text-xs font-semibold text-slate-700 mb-1">Nama Komunitas <span class="text-red-500">*</span></label>
+                    <input type="text" id="communityName" placeholder="Contoh: Penulis Muda Gorontalo" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                    <p class="text-xs text-slate-400 mt-1" id="nameAvailability">🔍 Nama akan dicek ketersediaannya</p>
+                </div>
+
+                <div>
+                    <label for="communitySlug" class="block text-xs font-semibold text-slate-700 mb-1">Slug <span class="text-red-500">*</span></label>
+                    <input type="text" id="communitySlug" placeholder="Contoh: penulis-muda-gorontalo" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm lowercase" />
+                    <p class="text-xs text-slate-400 mt-1">Hanya huruf kecil, angka, dan tanda hubung (-)</p>
+                </div>
+
+                <div>
+                    <label for="communityDescription" class="block text-xs font-semibold text-slate-700 mb-1">Deskripsi</label>
+                    <textarea id="communityDescription" rows="3" placeholder="Ceritakan tentang komunitas ini..." class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
+                </div>
+
+                <div>
+                    <label for="communityCategory" class="block text-xs font-semibold text-slate-700 mb-1">Kategori</label>
+                    <select id="communityCategory" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white">
+                        <option value="umum">🌍 Umum</option>
+                        <option value="sekolah">🏫 Sekolah</option>
+                        <option value="daerah">📍 Daerah</option>
+                        <option value="hobi">🎯 Hobi</option>
+                        <option value="profesi">💼 Profesi</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="communityPortfolio" class="block text-xs font-semibold text-slate-700 mb-1">Portfolio / Proposal <span class="text-red-500">*</span></label>
+                    <input type="url" id="communityPortfolio" placeholder="Contoh: https://drive.google.com/..." required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                    <p class="text-xs text-slate-400 mt-1">Upload portofolio komunitas (Google Drive, PDF, atau website)</p>
+                </div>
+
+                <div>
+                    <label for="communityEstablished" class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Berdiri Komunitas <span class="text-red-500">*</span></label>
+                    <input type="date" id="communityEstablished" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                    <p class="text-xs text-slate-400 mt-1">Komunitas minimal sudah berjalan <strong>3 bulan</strong></p>
+                </div>
+
+                <div>
+                    <label for="communityMembers" class="block text-xs font-semibold text-slate-700 mb-1">Jumlah Anggota Saat Ini <span class="text-red-500">*</span></label>
+                    <input type="number" id="communityMembers" placeholder="Minimal 10 anggota" min="10" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                    <p class="text-xs text-slate-400 mt-1">Minimal <strong>10 anggota</strong> yang siap bergabung ke YATA</p>
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-paper-plane mr-1"></i> Kirim Verifikasi
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL DETAIL KOMUNITAS -->
+    <!-- ============================================ -->
+    <div id="communityDetailModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeCommunityDetail()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl z-10">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <!-- Header Komunitas -->
+            <div id="detailCommunityHeader" class="mb-6">
+                <div class="flex items-start gap-4">
+                    <span id="detailCommunityIcon" class="text-5xl">🌍</span>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h2 id="detailCommunityName" class="text-2xl font-black text-slate-800">Nama Komunitas</h2>
+                            <span id="detailStatusBadge" class="status-badge status-pending">⏳ Menunggu</span>
+                        </div>
+                        <p id="detailCommunityLeader" class="text-sm text-slate-500">Dipimpin oleh Admin</p>
+                        <p id="detailCommunityDesc" class="text-sm text-slate-600 mt-2">Deskripsi komunitas</p>
+                        <div class="flex items-center gap-4 mt-3 text-xs text-slate-400">
+                            <span><i class="fa-regular fa-user mr-1"></i> <span id="detailMemberCount">0</span> anggota</span>
+                            <span><i class="fa-regular fa-calendar mr-1"></i> <span id="detailCreatedAt">-</span></span>
+                            <span><i class="fa-regular fa-flag mr-1"></i> <span id="detailCategory">Umum</span></span>
+                            <span id="detailStatusText" class="text-xs">⏳ Menunggu Verifikasi</span>
+                        </div>
+                        <div id="detailRejectionReason" class="hidden mt-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700"></div>
+                        <div id="detailUserRole" class="mt-2 text-xs font-semibold"></div>
+                    </div>
+                    <button id="detailJoinBtn" onclick="toggleJoinFromDetail()" class="px-4 py-2 rounded-xl text-sm font-semibold transition bg-emerald-600 text-white">
+                        Bergabung
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab: Kampanye, Anggota, Admin, Kelola Kampanye -->
+            <div class="border-b border-slate-200 mb-6">
+                <div class="flex gap-4 overflow-x-auto pb-1">
+                    <button onclick="switchDetailTab('campaigns')" id="tabCampaigns" class="py-3 text-sm font-semibold text-emerald-600 border-b-2 border-emerald-600 transition whitespace-nowrap">📢 Kampanye</button>
+                    <button onclick="switchDetailTab('members')" id="tabMembers" class="py-3 text-sm font-medium text-slate-500 hover:text-emerald-600 transition whitespace-nowrap">👥 Anggota</button>
+                    <button onclick="switchDetailTab('admins')" id="tabAdmins" class="py-3 text-sm font-medium text-slate-500 hover:text-emerald-600 transition whitespace-nowrap">🛡️ Admin</button>
+                    <button onclick="switchDetailTab('manage')" id="tabManage" class="admin-only py-3 text-sm font-medium text-slate-500 hover:text-emerald-600 transition whitespace-nowrap">📋 Kelola Kampanye</button>
+                </div>
+            </div>
+
+            <!-- Tab Content: Kampanye -->
+            <div id="tabContentCampaigns">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-800">📢 Kampanye Komunitas</h3>
+                    <button id="btnCreateCampaign" onclick="openCreateCampaign()" class="admin-only bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-xs transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Buat Kampanye
+                    </button>
+                </div>
+                <div id="campaignList" class="space-y-4">
+                    <div class="text-center py-8 text-slate-400 text-sm">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat kampanye...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Anggota -->
+            <div id="tabContentMembers" class="hidden">
+                <h3 class="font-bold text-slate-800 mb-4">👥 Anggota Komunitas</h3>
+                <div id="memberList" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div class="text-center py-8 text-slate-400 text-sm col-span-full">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat anggota...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Admin -->
+            <div id="tabContentAdmins" class="hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-800">🛡️ Admin Komunitas</h3>
+                    <span class="text-xs text-slate-400" id="adminCount">0 / 5 admin</span>
+                    <button id="btnAddAdmin" onclick="openAddAdminModal()" class="admin-only bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-3 py-1.5 rounded-xl text-xs transition">
+                        <i class="fa-solid fa-user-plus"></i> Tambah Admin
+                    </button>
+                </div>
+                <div id="adminList" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="text-center py-8 text-slate-400 text-sm col-span-full">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat admin...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Kelola Kampanye (Admin Only) -->
+            <div id="tabContentManage" class="hidden admin-only">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-800">📋 Kelola Kampanye</h3>
+                    <span class="text-xs text-slate-400" id="manageCampaignCount">0 kampanye</span>
+                </div>
+                <div id="manageCampaignList" class="space-y-4">
+                    <div class="text-center py-8 text-slate-400 text-sm">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat kampanye...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL BUAT KAMPANYE -->
+    <!-- ============================================ -->
+    <div id="createCampaignModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeCreateCampaign()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Kampanye</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Buat Kampanye Baru</h3>
+                <p class="text-xs text-slate-500 mt-1">Kampanye akan diverifikasi oleh tim YATA.</p>
+                <p class="text-xs text-red-500 mt-1">⚠️ Dilarang mengumpulkan dana! Hanya untuk agenda/event komunitas.</p>
+            </div>
+
+            <form id="createCampaignForm" class="space-y-4">
+                <div>
+                    <label for="campaignTitle" class="block text-xs font-semibold text-slate-700 mb-1">Judul Kampanye <span class="text-red-500">*</span></label>
+                    <input type="text" id="campaignTitle" placeholder="Contoh: Donasi 100 Buku untuk Panti" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="campaignSlug" class="block text-xs font-semibold text-slate-700 mb-1">Slug <span class="text-red-500">*</span></label>
+                    <input type="text" id="campaignSlug" placeholder="Contoh: donasi-100-buku" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm lowercase" />
+                    <p class="text-xs text-slate-400 mt-1">Hanya huruf kecil, angka, dan tanda hubung (-)</p>
+                </div>
+
+                <div>
+                    <label for="campaignDescription" class="block text-xs font-semibold text-slate-700 mb-1">Deskripsi Kampanye <span class="text-red-500">*</span></label>
+                    <textarea id="campaignDescription" rows="3" placeholder="Jelaskan tujuan kampanye ini (bukan pengumpulan dana)" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
+                </div>
+
+                <div>
+                    <label for="campaignGoal" class="block text-xs font-semibold text-slate-700 mb-1">Target Kampanye</label>
+                    <input type="text" id="campaignGoal" placeholder="Contoh: 100 buku, 50 relawan" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="campaignTarget" class="block text-xs font-semibold text-slate-700 mb-1">Target Jumlah</label>
+                    <input type="number" id="campaignTarget" placeholder="Contoh: 100" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="campaignMaxParticipants" class="block text-xs font-semibold text-slate-700 mb-1">Max Peserta</label>
+                    <input type="number" id="campaignMaxParticipants" placeholder="Contoh: 50" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                    <p class="text-xs text-slate-400 mt-1">Kosongkan jika tidak ada batasan</p>
+                </div>
+
+                <div>
+                    <label for="campaignEventDate" class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Event</label>
+                    <input type="datetime-local" id="campaignEventDate" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="campaignEventLocation" class="block text-xs font-semibold text-slate-700 mb-1">Lokasi Event</label>
+                    <input type="text" id="campaignEventLocation" placeholder="Contoh: Aula Komunitas / Link Zoom" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="campaignContact" class="block text-xs font-semibold text-slate-700 mb-1">Kontak Panitia</label>
+                    <input type="text" id="campaignContact" placeholder="Contoh: 08123456789" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-paper-plane mr-1"></i> Kirim Verifikasi
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL TAMBAH ADMIN -->
+    <!-- ============================================ -->
+    <div id="addAdminModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeAddAdminModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Admin</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Tambah Admin</h3>
+                <p class="text-xs text-slate-500 mt-1">Pilih anggota komunitas untuk dijadikan admin.</p>
+            </div>
+
+            <div id="memberListForAdmin" class="max-h-60 overflow-y-auto space-y-2">
+                <div class="text-center py-4 text-slate-400 text-sm">
+                    <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat anggota...
+                </div>
+            </div>
+
+            <button onclick="closeAddAdminModal()" class="mt-4 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL DETAIL PESERTA KAMPANYE -->
+    <!-- ============================================ -->
+    <div id="participantModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-3xl w-full p-6 md:p-8 relative shadow-2xl modal-enter max-h-[90vh] overflow-y-auto">
+            <button onclick="closeParticipantModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Peserta</span>
+                <h3 id="participantModalTitle" class="text-xl font-black text-slate-800 mt-1">Daftar Peserta</h3>
+                <p id="participantModalSubtitle" class="text-xs text-slate-500 mt-1">Kampanye: Nama Kampanye</p>
+            </div>
+
+            <div id="participantListContainer" class="space-y-3">
+                <div class="text-center py-8 text-slate-400 text-sm">
+                    <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat peserta...
+                </div>
+            </div>
+
+            <div class="mt-4 flex flex-col sm:flex-row gap-3">
+                <button onclick="sendNotificationToAllParticipants()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2">
+                    <i class="fa-regular fa-paper-plane"></i> Kirim Notifikasi ke Semua Peserta
+                </button>
+                <button onclick="closeParticipantModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-sm transition">
+                    Tutup
+                </button>
+            </div>
+
+            <div id="participantMessage" class="mt-3 text-sm text-center hidden"></div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        let allCommunities = [];
+        let currentFilter = 'all';
+        let currentSearch = '';
+        let currentUser = null;
+        let currentCommunityId = null;
+        let currentTab = 'campaigns';
+        let currentCommunityTab = 'my';
+        let currentParticipantCampaignId = null;
+        let currentParticipantCampaignTitle = '';
+        let currentUserRole = null;
+
+        // ============================================
+        // CEK LOGIN
+        // ============================================
+        async function checkAuth() {
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (session) {
+                    currentUser = session.user;
+                }
+                return session;
+            } catch (err) {
+                console.error('Auth check error:', err);
+                return null;
+            }
+        }
+
+        // ============================================
+        // CEK AKSES PROYEK BUKU
+        // ============================================
+        async function checkProjectAccess(e) {
+            if (e) e.preventDefault();
+            
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('member_level')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error) {
+                    console.error('Error checking level:', error);
+                    window.location.href = 'projects.html';
+                    return;
+                }
+
+                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
+                if (allowedLevels.includes(profile.member_level)) {
+                    window.location.href = 'projects.html';
+                } else {
+                    showProjectAccessDenied(profile.member_level || 'Tamu');
+                }
+            } catch (err) {
+                console.error('Error checking access:', err);
+                window.location.href = 'projects.html';
+            }
+        }
+
+        function showProjectAccessDenied(currentLevel) {
+            let modal = document.getElementById('projectAccessModal');
+            if (modal) modal.remove();
+
+            const modalHtml = `
+                <div id="projectAccessModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+                        <button onclick="closeProjectAccessModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        <div class="text-center mb-4">
+                            <span class="text-amber-500 text-4xl block mb-2">🔒</span>
+                            <h3 class="text-xl font-black text-slate-800">Akses Dibatasi</h3>
+                            <p class="text-sm text-slate-500 mt-1">Fitur Proyek Buku hanya untuk member level tertentu.</p>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-4 border border-amber-200 mb-4">
+                            <p class="text-sm text-slate-600">Level Anda saat ini: <strong class="text-amber-700">${currentLevel || 'Tamu'}</strong></p>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">Anda perlu mencapai level:</p>
+                        <ul class="space-y-2 text-sm mb-4">
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">✍️</span>
+                                <div>
+                                    <strong>Penulis</strong>
+                                    <p class="text-xs text-slate-500">5+ karya dipublikasikan • 3+ kali mentoring</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">📚</span>
+                                <div>
+                                    <strong>Penulis Profesional</strong>
+                                    <p class="text-xs text-slate-500">20+ karya • 1+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">🌟</span>
+                                <div>
+                                    <strong>Mentor</strong>
+                                    <p class="text-xs text-slate-500">50+ karya • 3+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                        </ul>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button onclick="closeProjectAccessModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
+                                Tutup
+                            </button>
+                            <button onclick="closeProjectAccessModal(); window.location.href='dashboard.html'" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
+                                <i class="fa-regular fa-circle-question mr-1"></i> Lihat Syarat Level
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeProjectAccessModal() {
+            const modal = document.getElementById('projectAccessModal');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // ============================================
+        // 1. SWITCH COMMUNITY TAB
+        // ============================================
+        function switchCommunityTab(tab) {
+            currentCommunityTab = tab;
+
+            document.getElementById('tabMyCommunities').className = tab === 'my' ?
+                'tab-btn active px-6 py-3 text-sm font-semibold transition bg-emerald-600 text-white' :
+                'tab-btn px-6 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 transition';
+
+            document.getElementById('tabPublicCommunities').className = tab === 'public' ?
+                'tab-btn active px-6 py-3 text-sm font-semibold transition bg-emerald-600 text-white' :
+                'tab-btn px-6 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 transition';
+
+            document.getElementById('myCommunitiesContainer').className = tab === 'my' ? 'p-4' : 'p-4 hidden';
+            document.getElementById('publicCommunitiesContainer').className = tab === 'public' ? 'p-4' : 'p-4 hidden';
+
+            if (tab === 'my') {
+                loadMyCommunities();
+            } else {
+                loadPublicCommunities();
+            }
+        }
+
+        // ============================================
+        // 2. LOAD MY COMMUNITIES
+        // ============================================
+        async function loadMyCommunities() {
+            const container = document.getElementById('myCommunityGrid');
+            
+            try {
+                await checkAuth();
+                if (!currentUser) {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center py-12 text-slate-400 text-sm">
+                            <i class="fa-regular fa-user text-3xl block mb-2"></i>
+                            Silakan login untuk melihat komunitas Anda.
+                            <a href="login.html" class="block mt-2 text-emerald-600 hover:text-emerald-700 font-semibold">Login</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const { data: memberships, error: membershipError } = await _supabase
+                    .from('yata_community_members')
+                    .select('community_id, role')
+                    .eq('user_id', currentUser.id);
+
+                if (membershipError) throw membershipError;
+
+                if (!memberships || memberships.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full bg-white rounded-2xl p-12 text-center border border-emerald-100/60 shadow-sm">
+                            <i class="fa-regular fa-users-slash text-5xl text-slate-300 block mb-4"></i>
+                            <p class="text-slate-500 text-sm">Anda belum memiliki komunitas.</p>
+                            <button onclick="openCreateCommunity()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                                <i class="fa-solid fa-plus mr-1"></i> Daftarkan Komunitas
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const communityIds = memberships.map(m => m.community_id);
+                const roleMap = {};
+                memberships.forEach(m => {
+                    roleMap[m.community_id] = m.role;
+                });
+
+                const { data: communities, error } = await _supabase
+                    .from('yata_communities')
+                    .select('*')
+                    .in('id', communityIds)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                renderMyCommunities(communities || [], roleMap);
+
+            } catch (err) {
+                console.error('Load my communities error:', err);
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-red-400 text-sm">
+                        Gagal memuat komunitas: ${err.message}
+                        <button onclick="loadMyCommunities()" class="block mt-2 text-emerald-600 hover:text-emerald-700 font-semibold">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 3. LOAD PUBLIC COMMUNITIES
+        // ============================================
+        async function loadPublicCommunities() {
+            const container = document.getElementById('publicCommunityGrid');
+            
+            try {
+                await checkAuth();
+
+                let query = _supabase
+                    .from('yata_communities')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (currentUser) {
+                    const { data: memberships } = await _supabase
+                        .from('yata_community_members')
+                        .select('community_id')
+                        .eq('user_id', currentUser.id);
+
+                    if (memberships && memberships.length > 0) {
+                        const myCommunityIds = memberships.map(m => m.community_id);
+                        query = query.not('id', 'in', `(${myCommunityIds.join(',')})`);
+                    }
+                }
+
+                const { data: communities, error } = await query;
+
+                if (error) throw error;
+
+                let joinedIds = new Set();
+                let roleMap = {};
+                if (currentUser) {
+                    const { data: memberships } = await _supabase
+                        .from('yata_community_members')
+                        .select('community_id, role')
+                        .eq('user_id', currentUser.id);
+                    
+                    if (memberships) {
+                        memberships.forEach(m => {
+                            joinedIds.add(m.community_id);
+                            roleMap[m.community_id] = m.role;
+                        });
+                    }
+                }
+
+                renderPublicCommunities(communities || [], joinedIds, roleMap);
+
+            } catch (err) {
+                console.error('Load public communities error:', err);
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-red-400 text-sm">
+                        Gagal memuat komunitas: ${err.message}
+                        <button onclick="loadPublicCommunities()" class="block mt-2 text-emerald-600 hover:text-emerald-700 font-semibold">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 4. RENDER MY COMMUNITIES
+        // ============================================
+        function renderMyCommunities(communities, roleMap) {
+            const container = document.getElementById('myCommunityGrid');
+
+            if (communities.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full bg-white rounded-2xl p-12 text-center border border-emerald-100/60 shadow-sm">
+                        <i class="fa-regular fa-users-slash text-5xl text-slate-300 block mb-4"></i>
+                        <p class="text-slate-500 text-sm">Anda belum memiliki komunitas.</p>
+                        <button onclick="openCreateCommunity()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                            <i class="fa-solid fa-plus mr-1"></i> Daftarkan Komunitas
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            const categoryIcons = {
+                'sekolah': '🏫',
+                'daerah': '📍',
+                'hobi': '🎯',
+                'profesi': '💼',
+                'umum': '🌍'
+            };
+
+            const statusLabels = {
+                'pending': '⏳ Menunggu Verifikasi',
+                'pre_active': '📋 Menunggu 10 Anggota',
+                'active': '✅ Aktif',
+                'rejected': '❌ Ditolak'
+            };
+
+            const statusClasses = {
+                'pending': 'status-pending',
+                'pre_active': 'status-pre-active',
+                'active': 'status-active',
+                'rejected': 'status-rejected'
+            };
+
+            container.innerHTML = communities.map(c => {
+                const role = roleMap[c.id] || 'member';
+                const roleLabel = role === 'admin' ? '🛡️ Admin' : '👤 Member';
+                
+                return `
+                    <div class="community-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm hover:shadow-md ${c.status === 'rejected' ? 'opacity-60' : ''}" onclick="openCommunityDetail('${c.id}')" data-community-id="${c.id}">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-2xl">${categoryIcons[c.category] || '🌍'}</span>
+                                    <h3 class="font-bold text-slate-800 text-base truncate">${c.name}</h3>
+                                    <span class="status-badge ${statusClasses[c.status] || 'status-pending'}">${statusLabels[c.status] || '⏳ Menunggu'}</span>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-0.5">${c.category || 'Umum'} • ${c.member_count || 0} anggota</p>
+                                <p class="text-sm text-slate-500 mt-2 line-clamp-2">${c.description || 'Tidak ada deskripsi.'}</p>
+                                <p class="text-xs font-semibold text-emerald-600 mt-1">${roleLabel}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+                            <span class="text-xs text-slate-400">
+                                <i class="fa-regular fa-calendar mr-1"></i> ${new Date(c.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                            <button onclick="event.stopPropagation(); openCommunityDetail('${c.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-1.5 rounded-xl text-xs transition">
+                                <i class="fa-regular fa-eye mr-1"></i> ${role === 'admin' ? 'Kelola' : 'Lihat'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============================================
+        // 5. RENDER PUBLIC COMMUNITIES
+        // ============================================
+        function renderPublicCommunities(communities, joinedIds, roleMap) {
+            const container = document.getElementById('publicCommunityGrid');
+
+            let filtered = communities;
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(c => c.category === currentFilter);
+            }
+
+            if (currentSearch.trim()) {
+                const query = currentSearch.toLowerCase().trim();
+                filtered = filtered.filter(c =>
+                    c.name.toLowerCase().includes(query) ||
+                    (c.description && c.description.toLowerCase().includes(query))
+                );
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full bg-white rounded-2xl p-12 text-center border border-emerald-100/60 shadow-sm">
+                        <i class="fa-regular fa-folder-open text-5xl text-slate-300 block mb-4"></i>
+                        <p class="text-slate-500 text-sm">${communities.length === 0 ? 'Belum ada komunitas publik.' : 'Tidak ada komunitas yang cocok dengan filter ini.'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const categoryIcons = {
+                'sekolah': '🏫',
+                'daerah': '📍',
+                'hobi': '🎯',
+                'profesi': '💼',
+                'umum': '🌍'
+            };
+
+            const statusLabels = {
+                'pending': '⏳ Menunggu Verifikasi',
+                'pre_active': '📋 Menunggu 10 Anggota',
+                'active': '✅ Aktif',
+                'rejected': '❌ Ditolak'
+            };
+
+            const statusClasses = {
+                'pending': 'status-pending',
+                'pre_active': 'status-pre-active',
+                'active': 'status-active',
+                'rejected': 'status-rejected'
+            };
+
+            container.innerHTML = filtered.map(c => {
+                const isJoined = joinedIds ? joinedIds.has(c.id) : false;
+                const role = roleMap[c.id] || null;
+                const canJoin = c.status === 'active' || c.status === 'pre_active';
+                const isPending = c.status === 'pending' || c.status === 'rejected';
+                const roleLabel = role === 'admin' ? '🛡️ Admin' : isJoined ? '👤 Member' : '';
+
+                return `
+                    <div class="community-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm hover:shadow-md ${c.status === 'rejected' ? 'opacity-60' : ''}" onclick="openCommunityDetail('${c.id}')" data-community-id="${c.id}">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-2xl">${categoryIcons[c.category] || '🌍'}</span>
+                                    <h3 class="font-bold text-slate-800 text-base truncate">${c.name}</h3>
+                                    <span class="status-badge ${statusClasses[c.status] || 'status-pending'}">${statusLabels[c.status] || '⏳ Menunggu'}</span>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-0.5">${c.category || 'Umum'} • ${c.member_count || 0} anggota</p>
+                                <p class="text-sm text-slate-500 mt-2 line-clamp-2">${c.description || 'Tidak ada deskripsi.'}</p>
+                                ${roleLabel ? `<p class="text-xs font-semibold text-emerald-600 mt-1">${roleLabel}</p>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+                            <span class="text-xs text-slate-400">
+                                <i class="fa-regular fa-calendar mr-1"></i> ${new Date(c.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                            <button onclick="event.stopPropagation(); openCommunityDetail('${c.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-1.5 rounded-xl text-xs transition">
+                                <i class="fa-regular fa-eye mr-1"></i> Lihat Detail
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============================================
+        // 6. FILTER & SEARCH
+        // ============================================
+        function filterCommunity(filter) {
+            currentFilter = filter;
+
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.className = 'filter-btn px-4 py-2 rounded-full text-xs font-bold transition text-slate-600 bg-transparent';
+            });
+
+            const idMap = {
+                'all': 'filterAll',
+                'sekolah': 'filterSekolah',
+                'daerah': 'filterDaerah',
+                'hobi': 'filterHobi',
+                'profesi': 'filterProfesi',
+                'umum': 'filterUmum'
+            };
+
+            const activeBtn = document.getElementById(idMap[filter]);
+            if (activeBtn) {
+                activeBtn.className = 'filter-btn px-4 py-2 rounded-full text-xs font-bold transition bg-emerald-600 text-white';
+            }
+
+            if (currentCommunityTab === 'my') {
+                loadMyCommunities();
+            } else {
+                loadPublicCommunities();
+            }
+        }
+
+        function searchCommunity() {
+            const input = document.getElementById('searchCommunity');
+            currentSearch = input.value;
+            
+            if (currentCommunityTab === 'my') {
+                loadMyCommunities();
+            } else {
+                loadPublicCommunities();
+            }
+        }
+
+        // ============================================
+        // 7. CREATE COMMUNITY
+        // ============================================
+        function openCreateCommunity() {
+            if (!currentUser) {
+                showError('Silakan login terlebih dahulu untuk mendaftarkan komunitas.', 'Info');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+            document.getElementById('createCommunityModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCreateCommunity() {
+            document.getElementById('createCommunityModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.getElementById('communityName').addEventListener('input', async function() {
+            const name = this.value.trim();
+            const slug = name
+                .toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-');
+            document.getElementById('communitySlug').value = slug;
+
+            const statusEl = document.getElementById('nameAvailability');
+            if (name.length > 2) {
+                const { data, error } = await _supabase
+                    .from('yata_communities')
+                    .select('slug')
+                    .eq('slug', slug)
+                    .maybeSingle();
+
+                if (!error && data) {
+                    statusEl.innerHTML = '❌ Nama komunitas sudah digunakan. Silakan gunakan nama lain.';
+                    statusEl.className = 'text-xs text-red-500 mt-1';
+                } else {
+                    statusEl.innerHTML = '✅ Nama komunitas tersedia!';
+                    statusEl.className = 'text-xs text-emerald-600 mt-1';
+                }
+            } else {
+                statusEl.innerHTML = '🔍 Nama akan dicek ketersediaannya (minimal 3 karakter)';
+                statusEl.className = 'text-xs text-slate-400 mt-1';
+            }
+        });
+
+        document.getElementById('createCommunityForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!currentUser) {
+                showError('Silakan login terlebih dahulu.', 'Info');
+                return;
+            }
+
+            const name = document.getElementById('communityName').value.trim();
+            const slug = document.getElementById('communitySlug').value.trim().toLowerCase();
+            const description = document.getElementById('communityDescription').value.trim();
+            const category = document.getElementById('communityCategory').value;
+            const portfolio = document.getElementById('communityPortfolio').value.trim();
+            const establishedDate = document.getElementById('communityEstablished').value;
+            const memberCount = parseInt(document.getElementById('communityMembers').value) || 0;
+
+            if (!name) { showError('Nama komunitas wajib diisi.', 'Validasi Gagal'); return; }
+            if (!slug) { showError('Slug wajib diisi.', 'Validasi Gagal'); return; }
+            if (!/^[a-z0-9-]+$/.test(slug)) { showError('Slug hanya boleh huruf kecil, angka, dan tanda hubung (-).', 'Validasi Gagal'); return; }
+            if (!portfolio) { showError('Portofolio/proposal wajib diisi.', 'Validasi Gagal'); return; }
+            if (!establishedDate) { showError('Tanggal berdiri wajib diisi.', 'Validasi Gagal'); return; }
+            if (memberCount < 10) { showError('Minimal 10 anggota.', 'Validasi Gagal'); return; }
+
+            const established = new Date(establishedDate);
+            const now = new Date();
+            const diffMonths = (now.getFullYear() - established.getFullYear()) * 12 + (now.getMonth() - established.getMonth());
+            if (diffMonths < 3) {
+                showError('Komunitas minimal sudah berjalan 3 bulan.', 'Validasi Gagal');
+                return;
+            }
+
+            const { data: existing, error: checkError } = await _supabase
+                .from('yata_communities')
+                .select('slug')
+                .eq('slug', slug)
+                .maybeSingle();
+
+            if (checkError) {
+                console.error('Check error:', checkError);
+                showError('Terjadi kesalahan saat mengecek nama komunitas.', 'Error');
+                return;
+            }
+
+            if (existing) {
+                showError('❌ Nama komunitas sudah digunakan. Silakan gunakan nama lain.', 'Error');
+                return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim Verifikasi...';
+
+            try {
+                const { data, error } = await _supabase
+                    .from('yata_communities')
+                    .insert([{
+                        name: name,
+                        slug: slug,
+                        description: description,
+                        category: category,
+                        leader_id: currentUser.id,
+                        member_count: 1,
+                        is_public: true,
+                        status: 'pending',
+                        established_date: establishedDate,
+                        min_members: memberCount,
+                        portfolio_url: portfolio
+                    }])
+                    .select()
+                    .single();
+
+                if (error) {
+                    if (error.code === '23505') {
+                        showError('❌ Nama komunitas sudah digunakan. Silakan gunakan nama lain.', 'Error');
+                    } else {
+                        showError('Gagal mengirim verifikasi: ' + error.message, 'Error');
+                    }
+                    return;
+                }
+
+                await _supabase
+                    .from('yata_community_members')
+                    .insert([{
+                        community_id: data.id,
+                        user_id: currentUser.id,
+                        role: 'admin'
+                    }]);
+
+                showError('✅ Komunitas "' + name + '" berhasil dikirim untuk verifikasi! Tim YATA akan memproses dalam 1x24 jam.', 'Sukses');
+                closeCreateCommunity();
+                this.reset();
+                
+                if (currentCommunityTab === 'my') {
+                    loadMyCommunities();
+                } else {
+                    loadPublicCommunities();
+                }
+
+            } catch (err) {
+                console.error('Create community error:', err);
+                showError('Terjadi kesalahan: ' + err.message, 'Error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-1"></i> Kirim Verifikasi';
+            }
+        });
+
+        // ============================================
+        // 8. TOGGLE JOIN / LEAVE
+        // ============================================
+        async function toggleJoin(communityId) {
+            if (!currentUser) {
+                showError('Silakan login terlebih dahulu untuk bergabung ke komunitas.', 'Info');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+
+            const community = allCommunities.find(c => c.id === communityId);
+            if (!community) return;
+
+            if (community.status === 'pending') {
+                showError('⏳ Komunitas ini masih menunggu verifikasi. Belum bisa bergabung.', 'Info');
+                return;
+            }
+            if (community.status === 'rejected') {
+                showError('❌ Komunitas ini ditolak. Tidak bisa bergabung.', 'Info');
+                return;
+            }
+
+            try {
+                const { data: existing, error: checkError } = await _supabase
+                    .from('yata_community_members')
+                    .select('*')
+                    .eq('community_id', communityId)
+                    .eq('user_id', currentUser.id)
+                    .maybeSingle();
+
+                if (checkError) throw checkError;
+
+                const { data: commData, error: fetchError } = await _supabase
+                    .from('yata_communities')
+                    .select('member_count, status, min_members')
+                    .eq('id', communityId)
+                    .single();
+
+                if (fetchError) throw fetchError;
+
+                let newMemberCount = commData.member_count || 0;
+
+                if (existing) {
+                    const { error } = await _supabase
+                        .from('yata_community_members')
+                        .delete()
+                        .eq('community_id', communityId)
+                        .eq('user_id', currentUser.id);
+
+                    if (error) throw error;
+
+                    newMemberCount = Math.max(0, newMemberCount - 1);
+
+                    const { error: updateError } = await _supabase
+                        .from('yata_communities')
+                        .update({ member_count: newMemberCount })
+                        .eq('id', communityId);
+
+                    if (updateError) throw updateError;
+
+                    showError('✅ Berhasil keluar dari komunitas.', 'Sukses');
+
+                } else {
+                    const { error } = await _supabase
+                        .from('yata_community_members')
+                        .insert([{
+                            community_id: communityId,
+                            user_id: currentUser.id
+                        }]);
+
+                    if (error) throw error;
+
+                    newMemberCount = newMemberCount + 1;
+
+                    const { error: updateError } = await _supabase
+                        .from('yata_communities')
+                        .update({ member_count: newMemberCount })
+                        .eq('id', communityId);
+
+                    if (updateError) throw updateError;
+
+                    showError('✅ Berhasil bergabung ke komunitas!', 'Sukses');
+
+                    if (commData.status === 'pre_active' && 
+                        newMemberCount >= (commData.min_members || 10)) {
+                        
+                        const { error: activateError } = await _supabase
+                            .from('yata_communities')
+                            .update({ status: 'active' })
+                            .eq('id', communityId);
+
+                        if (!activateError) {
+                            showError('🎉 Selamat! Komunitas ini sudah mencapai 10 anggota dan sekarang aktif!', 'Sukses');
+                        }
+                    }
+                }
+
+                if (currentCommunityTab === 'my') {
+                    loadMyCommunities();
+                } else {
+                    loadPublicCommunities();
+                }
+
+            } catch (err) {
+                console.error('Toggle join error:', err);
+                showError('Gagal mengubah keanggotaan: ' + err.message, 'Error');
+            }
+        }
+
+        // ============================================
+        // 9. COMMUNITY DETAIL
+        // ============================================
+        async function openCommunityDetail(communityId) {
+            currentCommunityId = communityId;
+            document.getElementById('communityDetailModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+
+            try {
+                const { data: community, error } = await _supabase
+                    .from('yata_communities')
+                    .select('*')
+                    .eq('id', communityId)
+                    .single();
+
+                if (error) throw error;
+
+                const categoryIcons = {
+                    'sekolah': '🏫',
+                    'daerah': '📍',
+                    'hobi': '🎯',
+                    'profesi': '💼',
+                    'umum': '🌍'
+                };
+
+                const statusLabels = {
+                    'pending': '⏳ Menunggu Verifikasi',
+                    'pre_active': '📋 Menunggu 10 Anggota',
+                    'active': '✅ Aktif',
+                    'rejected': '❌ Ditolak'
+                };
+
+                const statusClasses = {
+                    'pending': 'status-pending',
+                    'pre_active': 'status-pre-active',
+                    'active': 'status-active',
+                    'rejected': 'status-rejected'
+                };
+
+                document.getElementById('detailCommunityIcon').textContent = categoryIcons[community.category] || '🌍';
+                document.getElementById('detailCommunityName').textContent = community.name;
+                document.getElementById('detailStatusBadge').textContent = statusLabels[community.status] || '⏳ Menunggu';
+                document.getElementById('detailStatusBadge').className = `status-badge ${statusClasses[community.status] || 'status-pending'}`;
+                document.getElementById('detailCommunityLeader').textContent = 'Dipimpin oleh Admin';
+                document.getElementById('detailCommunityDesc').textContent = community.description || 'Tidak ada deskripsi.';
+                document.getElementById('detailMemberCount').textContent = community.member_count || 0;
+                document.getElementById('detailCreatedAt').textContent = new Date(community.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                document.getElementById('detailCategory').textContent = community.category || 'Umum';
+
+                const statusText = document.getElementById('detailStatusText');
+                if (community.status === 'pending') {
+                    statusText.textContent = '⏳ Menunggu Verifikasi Tim YATA';
+                    statusText.className = 'text-xs text-yellow-600';
+                } else if (community.status === 'pre_active') {
+                    statusText.textContent = `📋 Menunggu ${community.min_members || 10} anggota (${community.member_count || 0}/${community.min_members || 10})`;
+                    statusText.className = 'text-xs text-blue-600';
+                } else if (community.status === 'active') {
+                    statusText.textContent = '✅ Aktif dan siap untuk kampanye!';
+                    statusText.className = 'text-xs text-emerald-600';
+                } else if (community.status === 'rejected') {
+                    statusText.textContent = '❌ Ditolak oleh Tim YATA';
+                    statusText.className = 'text-xs text-red-600';
+                }
+
+                const rejectEl = document.getElementById('detailRejectionReason');
+                if (community.status === 'rejected' && community.rejection_reason) {
+                    rejectEl.textContent = '❌ Alasan penolakan: ' + community.rejection_reason;
+                    rejectEl.className = 'mt-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 block';
+                } else {
+                    rejectEl.className = 'hidden';
+                }
+
+                let isJoined = false;
+                let isAdmin = false;
+                currentUserRole = null;
+
+                if (currentUser) {
+                    const { data: membership } = await _supabase
+                        .from('yata_community_members')
+                        .select('role')
+                        .eq('community_id', communityId)
+                        .eq('user_id', currentUser.id)
+                        .maybeSingle();
+                    
+                    if (membership) {
+                        isJoined = true;
+                        isAdmin = membership.role === 'admin';
+                        currentUserRole = membership.role;
+                    }
+                }
+
+                const roleEl = document.getElementById('detailUserRole');
+                if (currentUserRole === 'admin') {
+                    roleEl.innerHTML = '<span class="text-emerald-600">🛡️ Anda adalah admin komunitas ini</span>';
+                    roleEl.className = 'mt-2 text-xs font-semibold';
+                } else if (currentUserRole === 'member') {
+                    roleEl.innerHTML = '<span class="text-blue-600">👤 Anda adalah anggota komunitas ini</span>';
+                    roleEl.className = 'mt-2 text-xs font-semibold';
+                } else {
+                    roleEl.innerHTML = '';
+                    roleEl.className = 'hidden';
+                }
+
+                const joinBtn = document.getElementById('detailJoinBtn');
+                const canJoin = community.status === 'active' || community.status === 'pre_active';
+
+                if (community.status === 'pending' || community.status === 'rejected') {
+                    joinBtn.style.display = 'none';
+                } else {
+                    joinBtn.style.display = 'block';
+                    if (isJoined) {
+                        joinBtn.textContent = '✅ Bergabung';
+                        joinBtn.className = 'px-4 py-2 rounded-xl text-sm font-semibold transition bg-slate-100 text-slate-600';
+                    } else {
+                        joinBtn.textContent = '➕ Bergabung';
+                        joinBtn.className = 'px-4 py-2 rounded-xl text-sm font-semibold transition bg-emerald-600 text-white hover:bg-emerald-700';
+                    }
+                    joinBtn.disabled = !canJoin;
+                }
+
+                const adminOnlyEls = document.querySelectorAll('.admin-only');
+                if (isAdmin) {
+                    adminOnlyEls.forEach(el => {
+                        el.style.display = 'block';
+                    });
+                    document.getElementById('btnCreateCampaign').style.display = 'inline-block';
+                } else {
+                    adminOnlyEls.forEach(el => {
+                        el.style.display = 'none';
+                    });
+                    document.getElementById('btnCreateCampaign').style.display = 'none';
+                }
+
+                window._isAdmin = isAdmin;
+                window._communityId = communityId;
+
+                await loadCampaigns(communityId, isAdmin);
+                await loadMembers(communityId);
+                await loadAdmins(communityId, isAdmin);
+                
+                if (isAdmin) {
+                    await loadManageCampaigns(communityId);
+                }
+                
+                switchDetailTab('campaigns');
+
+            } catch (err) {
+                console.error('Load community detail error:', err);
+                showError('Gagal memuat detail komunitas.', 'Error');
+                closeCommunityDetail();
+            }
+        }
+
+        function closeCommunityDetail() {
+            document.getElementById('communityDetailModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentCommunityId = null;
+            currentUserRole = null;
+        }
+
+        async function toggleJoinFromDetail() {
+            if (!currentCommunityId) return;
+            await toggleJoin(currentCommunityId);
+            await openCommunityDetail(currentCommunityId);
+            
+            if (currentCommunityTab === 'my') {
+                loadMyCommunities();
+            } else {
+                loadPublicCommunities();
+            }
+        }
+
+        // ============================================
+        // 10. TAB SWITCH (DETAIL)
+        // ============================================
+        function switchDetailTab(tab) {
+            currentTab = tab;
+
+            document.getElementById('tabCampaigns').className = tab === 'campaigns' ?
+                'py-3 text-sm font-semibold text-emerald-600 border-b-2 border-emerald-600 transition' :
+                'py-3 text-sm font-medium text-slate-500 hover:text-emerald-600 transition';
+
+            document.getElementById('tabMembers').className = tab === 'members' ?
+                'py-3 text-sm font-semibold text-emerald-600 border-b-2 border-emerald-600 transition' :
+                'py-3 text-sm font-medium text-slate-500 hover:text-emerald-600 transition';
+
+            document.getElementById('tabAdmins').className = tab === 'admins' ?
+                'py-3 text-sm font-semibold text-emerald-600 border-b-2 border-emerald-600 transition' :
+                'py-3 text-sm font-medium text-slate-500 hover:text-emerald-600 transition';
+
+            const manageTab = document.getElementById('tabManage');
+            if (window._isAdmin) {
+                manageTab.className = tab === 'manage' ?
+                    'py-3 text-sm font-semibold text-emerald-600 border-b-2 border-emerald-600 transition whitespace-nowrap' :
+                    'py-3 text-sm font-medium text-slate-500 hover:text-emerald-600 transition whitespace-nowrap';
+                manageTab.style.display = 'block';
+            } else {
+                manageTab.style.display = 'none';
+            }
+
+            document.getElementById('tabContentCampaigns').className = tab === 'campaigns' ? '' : 'hidden';
+            document.getElementById('tabContentMembers').className = tab === 'members' ? '' : 'hidden';
+            document.getElementById('tabContentAdmins').className = tab === 'admins' ? '' : 'hidden';
+            
+            const manageContent = document.getElementById('tabContentManage');
+            if (tab === 'manage' && window._isAdmin) {
+                manageContent.className = 'admin-only';
+                manageContent.style.display = 'block';
+                loadManageCampaigns(window._communityId);
+            } else {
+                manageContent.className = 'admin-only hidden';
+                manageContent.style.display = 'none';
+            }
+        }
+
+        // ============================================
+        // 11. LOAD CAMPAIGNS (DETAIL)
+        // ============================================
+        async function loadCampaigns(communityId, isAdmin) {
+            const container = document.getElementById('campaignList');
+            try {
+                const { data: campaigns, error } = await _supabase
+                    .from('yata_community_campaigns')
+                    .select('*')
+                    .eq('community_id', communityId)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                // Ambil data creator terpisah
+                if (campaigns && campaigns.length > 0) {
+                    const creatorIds = [...new Set(campaigns.map(c => c.creator_id).filter(id => id))];
+                    
+                    let creatorMap = {};
+                    if (creatorIds.length > 0) {
+                        const { data: creators, error: creatorError } = await _supabase
+                            .from('yata_profiles')
+                            .select('id, full_name')
+                            .in('id', creatorIds);
+                        
+                        if (!creatorError && creators) {
+                            creators.forEach(c => {
+                                creatorMap[c.id] = c;
+                            });
+                        }
+                    }
+                    
+                    campaigns.forEach(c => {
+                        c.creator = creatorMap[c.creator_id] || null;
+                    });
+                }
+
+                if (!campaigns || campaigns.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-slate-400 text-sm bg-slate-50 rounded-xl">
+                            <i class="fa-regular fa-flag text-2xl block mb-2"></i>
+                            Belum ada kampanye di komunitas ini.
+                            ${isAdmin ? '<p class="text-xs text-emerald-600 mt-1">Klik "Buat Kampanye" untuk memulai.</p>' : ''}
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = campaigns.map(c => {
+                    const isVerified = c.verification_status === 'approved';
+                    const isPending = c.verification_status === 'pending';
+                    const isRejected = c.verification_status === 'rejected';
+
+                    return `
+                        <div class="campaign-card bg-slate-50 rounded-xl p-4 border border-slate-200 ${!isVerified ? 'opacity-60' : ''}">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <h4 class="font-bold text-slate-800 text-sm">${c.title}</h4>
+                                        ${isVerified ? '<span class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">✅ Terverifikasi</span>' : ''}
+                                        ${isPending ? '<span class="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">⏳ Menunggu Verifikasi</span>' : ''}
+                                        ${isRejected ? '<span class="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">❌ Ditolak</span>' : ''}
+                                    </div>
+                                    <p class="text-xs text-slate-500">Dibuat oleh ${c.creator?.full_name || 'User'} • ${new Date(c.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</p>
+                                    <p class="text-sm text-slate-600 mt-1">${c.description || 'Tidak ada deskripsi.'}</p>
+                                    ${c.goal ? `<p class="text-xs text-emerald-600 mt-1 font-semibold">🎯 ${c.goal}</p>` : ''}
+                                </div>
+                                <span class="text-xs px-2.5 py-0.5 rounded-full ${c.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">
+                                    ${c.status === 'active' ? 'Aktif' : 'Selesai'}
+                                </span>
+                            </div>
+                            ${c.target_progress > 0 && isVerified ? `
+                                <div class="mt-3">
+                                    <div class="flex justify-between text-xs text-slate-500 mb-1">
+                                        <span>Progress</span>
+                                        <span>${c.current_progress || 0}/${c.target_progress}</span>
+                                    </div>
+                                    <div class="w-full bg-slate-200 rounded-full h-1.5">
+                                        <div class="bg-emerald-600 h-1.5 rounded-full progress-bar" style="width: ${Math.min(((c.current_progress || 0) / (c.target_progress || 1)) * 100, 100)}%;"></div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${isVerified ? `
+                                <div class="mt-2 flex gap-2">
+                                    <button onclick="supportCampaign('${c.id}')" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-3 py-1 rounded-full transition">
+                                        <i class="fa-regular fa-thumbs-up mr-1"></i> Dukung
+                                    </button>
+                                </div>
+                            ` : ''}
+                            ${isRejected && c.rejection_reason ? `
+                                <p class="text-xs text-red-500 mt-2">❌ ${c.rejection_reason}</p>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error('Load campaigns error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-6 text-red-400 text-sm">
+                        <i class="fa-solid fa-circle-exclamation mr-1"></i>
+                        Gagal memuat kampanye.
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 12. LOAD MEMBERS
+        // ============================================
+        async function loadMembers(communityId) {
+            const container = document.getElementById('memberList');
+            try {
+                const { data: members, error } = await _supabase
+                    .from('yata_community_members')
+                    .select('*, profile:user_id(full_name, member_level, avatar_url)')
+                    .eq('community_id', communityId)
+                    .limit(20);
+
+                if (error) throw error;
+
+                if (!members || members.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-slate-400 text-sm col-span-full">
+                            Belum ada anggota.
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = members.map(m => `
+                    <div class="bg-slate-50 rounded-xl p-3 flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
+                            ${m.profile?.full_name?.charAt(0) || '?'}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-slate-800 truncate">${m.profile?.full_name || 'User'}</p>
+                            <p class="text-xs text-slate-400">${m.role || 'Member'}</p>
+                        </div>
+                        ${m.role === 'admin' ? '<span class="admin-badge">🛡️ Admin</span>' : ''}
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                console.error('Load members error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-6 text-red-400 text-sm col-span-full">
+                        Gagal memuat anggota.
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 13. LOAD ADMINS
+        // ============================================
+        async function loadAdmins(communityId, isAdmin) {
+            const container = document.getElementById('adminList');
+            const countEl = document.getElementById('adminCount');
+            
+            try {
+                const { data: admins, error } = await _supabase
+                    .from('yata_community_members')
+                    .select('*, profile:user_id(full_name, email, avatar_url)')
+                    .eq('community_id', communityId)
+                    .eq('role', 'admin');
+
+                if (error) throw error;
+
+                const adminList = admins || [];
+                countEl.textContent = `${adminList.length} / 5 admin`;
+
+                if (adminList.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-slate-400 text-sm col-span-full">
+                            Belum ada admin.
+                        </div>
+                    `;
+                    return;
+                }
+
+                const currentUserId = currentUser?.id;
+
+                container.innerHTML = adminList.map(a => {
+                    const isSelf = a.user_id === currentUserId;
+                    const canRemove = isAdmin && !isSelf && adminList.length > 1;
+
+                    return `
+                        <div class="bg-slate-50 rounded-xl p-3 flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
+                                ${a.profile?.full_name?.charAt(0) || '?'}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-slate-800 truncate">${a.profile?.full_name || 'User'}</p>
+                                <p class="text-xs text-slate-400">${a.profile?.email || '-'}</p>
+                            </div>
+                            <span class="admin-badge">🛡️ Admin</span>
+                            ${canRemove ? `
+                                <button onclick="removeAdmin('${a.user_id}')" class="text-xs text-red-500 hover:text-red-600 transition" title="Cabut admin">
+                                    <i class="fa-regular fa-trash-can"></i>
+                                </button>
+                            ` : ''}
+                            ${isSelf ? '<span class="text-xs text-slate-400">(Anda)</span>' : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                if (isAdmin && adminList.length < 5) {
+                    const addBtn = document.getElementById('btnAddAdmin');
+                    if (addBtn) {
+                        addBtn.style.display = 'inline-block';
+                    }
+                    container.innerHTML += `
+                        <div class="col-span-full mt-3">
+                            <button onclick="openAddAdminModal()" class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-user-plus"></i> Tambah Admin
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    const addBtn = document.getElementById('btnAddAdmin');
+                    if (addBtn) {
+                        addBtn.style.display = 'none';
+                    }
+                }
+
+            } catch (err) {
+                console.error('Load admins error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-6 text-red-400 text-sm col-span-full">
+                        Gagal memuat admin.
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 14. OPEN ADD ADMIN MODAL
+        // ============================================
+        async function openAddAdminModal() {
+            if (!window._isAdmin) {
+                showError('Anda tidak memiliki izin untuk menambah admin.', 'Akses Ditolak');
+                return;
+            }
+
+            const container = document.getElementById('memberListForAdmin');
+            container.innerHTML = '<div class="text-center py-4 text-slate-400 text-sm"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat anggota...</div>';
+            
+            document.getElementById('addAdminModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+
+            try {
+                const { data: members, error } = await _supabase
+                    .from('yata_community_members')
+                    .select('*, profile:user_id(full_name, email)')
+                    .eq('community_id', window._communityId)
+                    .neq('role', 'admin');
+
+                if (error) throw error;
+
+                if (!members || members.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-4 text-slate-400 text-sm">
+                            Semua anggota sudah menjadi admin.
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = members.map(m => `
+                    <div class="flex items-center justify-between px-3 py-2 hover:bg-slate-50 rounded-xl transition">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-800">${m.profile?.full_name || 'User'}</p>
+                            <p class="text-xs text-slate-400">${m.profile?.email || '-'}</p>
+                        </div>
+                        <button onclick="makeAdmin('${m.user_id}')" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-3 py-1 rounded-full transition">
+                            Jadikan Admin
+                        </button>
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                console.error('Load members for admin error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-4 text-red-400 text-sm">
+                        Gagal memuat anggota.
+                    </div>
+                `;
+            }
+        }
+
+        function closeAddAdminModal() {
+            document.getElementById('addAdminModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // ============================================
+        // 15. MAKE ADMIN & REMOVE ADMIN
+        // ============================================
+        async function makeAdmin(userId) {
+            if (!window._isAdmin) {
+                showError('Anda tidak memiliki izin untuk menambah admin.', 'Akses Ditolak');
+                return;
+            }
+
+            if (!confirm('Jadikan user ini sebagai admin komunitas?')) return;
+
+            try {
+                const { error } = await _supabase
+                    .from('yata_community_members')
+                    .update({ role: 'admin' })
+                    .eq('community_id', window._communityId)
+                    .eq('user_id', userId);
+
+                if (error) throw error;
+
+                showError('✅ User berhasil dijadikan admin!', 'Sukses');
+                closeAddAdminModal();
+                await openCommunityDetail(window._communityId);
+
+            } catch (err) {
+                console.error('Make admin error:', err);
+                showError('Gagal menjadikan admin: ' + err.message, 'Error');
+            }
+        }
+
+        async function removeAdmin(userId) {
+            if (!window._isAdmin) {
+                showError('Anda tidak memiliki izin untuk mencabut admin.', 'Akses Ditolak');
+                return;
+            }
+
+            if (!confirm('Cabut status admin dari user ini?')) return;
+
+            try {
+                const { error } = await _supabase
+                    .from('yata_community_members')
+                    .update({ role: 'member' })
+                    .eq('community_id', window._communityId)
+                    .eq('user_id', userId)
+                    .eq('role', 'admin');
+
+                if (error) throw error;
+
+                showError('✅ Status admin berhasil dicabut.', 'Sukses');
+                await openCommunityDetail(window._communityId);
+
+            } catch (err) {
+                console.error('Remove admin error:', err);
+                showError('Gagal mencabut admin: ' + err.message, 'Error');
+            }
+        }
+
+        // ============================================
+        // 16. SUPPORT CAMPAIGN
+        // ============================================
+        async function supportCampaign(campaignId) {
+            if (!currentUser) {
+                showError('Silakan login terlebih dahulu untuk mendukung kampanye.', 'Info');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+
+            const rateCheck = checkRateLimit('campaign');
+            if (!rateCheck.allowed) {
+                showError(rateCheck.message, '⏳ Terlalu Cepat');
+                return;
+            }
+
+            try {
+                const { error } = await _supabase
+                    .from('yata_campaign_supporters')
+                    .insert([{
+                        campaign_id: campaignId,
+                        user_id: currentUser.id,
+                        type: 'donation',
+                        amount: 1
+                    }]);
+
+                if (error) {
+                    if (error.code === '23505') {
+                        showError('Anda sudah mendukung kampanye ini!', 'Info');
+                    } else {
+                        showError('Gagal mendukung kampanye: ' + error.message, 'Error');
+                    }
+                    return;
+                }
+
+                saveRateLimit('campaign');
+                showError('✅ Terima kasih telah mendukung kampanye!', 'Sukses');
+                if (currentCommunityId) {
+                    await loadCampaigns(currentCommunityId, window._isAdmin);
+                }
+
+            } catch (err) {
+                console.error('Support campaign error:', err);
+                showError('Terjadi kesalahan: ' + err.message, 'Error');
+            }
+        }
+
+        // ============================================
+        // 17. KIRIM NOTIFIKASI KE SEMUA MEMBER KOMUNITAS
+        // ============================================
+        async function notifyCommunityMembers(communityId, campaignTitle, campaignId) {
+            try {
+                const { data: members, error } = await _supabase
+                    .from('yata_community_members')
+                    .select('user_id')
+                    .eq('community_id', communityId);
+
+                if (error) throw error;
+                if (!members || members.length === 0) return;
+
+                const { data: community } = await _supabase
+                    .from('yata_communities')
+                    .select('name')
+                    .eq('id', communityId)
+                    .single();
+
+                const communityName = community?.name || 'Komunitas';
+
+                const notifContent = `📢 Kampanye baru "${campaignTitle}" telah dibuat di komunitas ${communityName}. Klik untuk lihat detail!`;
+
+                const { data: notifData, error: notifError } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: '📢 Kampanye Baru di Komunitas!',
+                        content: notifContent,
+                        type: 'campaign',
+                        target_audience: 'member'
+                    }])
+                    .select()
+                    .single();
+
+                if (notifError) throw notifError;
+
+                const memberIds = members.map(m => m.user_id);
+                
+                const chunkSize = 100;
+                for (let i = 0; i < memberIds.length; i += chunkSize) {
+                    const chunk = memberIds.slice(i, i + chunkSize);
+                    const entries = chunk.map(userId => ({
+                        notification_id: notifData.id,
+                        user_id: userId,
+                        is_read: false
+                    }));
+                    
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert(entries);
+                }
+
+                console.log(`✅ Notifikasi kampanye dikirim ke ${memberIds.length} member`);
+
+            } catch (err) {
+                console.error('Notify members error:', err);
+            }
+        }
+
+        // ============================================
+        // 18. CREATE CAMPAIGN (HANYA ADMIN)
+        // ============================================
+        function openCreateCampaign() {
+            if (!currentUser) {
+                showError('Silakan login terlebih dahulu untuk membuat kampanye.', 'Info');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+
+            if (!window._isAdmin) {
+                showError('⚠️ Hanya admin komunitas yang bisa membuat kampanye.', 'Akses Ditolak');
+                return;
+            }
+
+            if (!currentCommunityId) {
+                showError('Silakan buka detail komunitas terlebih dahulu.', 'Info');
+                return;
+            }
+
+            const community = allCommunities.find(c => c.id === currentCommunityId);
+            if (community && community.status !== 'active') {
+                showError('⏳ Komunitas belum aktif. Pastikan komunitas sudah diverifikasi dan memiliki minimal 10 anggota.', 'Info');
+                return;
+            }
+
+            document.getElementById('createCampaignModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCreateCampaign() {
+            document.getElementById('createCampaignModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.getElementById('campaignTitle').addEventListener('input', function() {
+            const slug = this.value
+                .toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-');
+            document.getElementById('campaignSlug').value = slug;
+        });
+
+        document.getElementById('createCampaignForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!currentUser) {
+                showError('Silakan login terlebih dahulu.', 'Info');
+                return;
+            }
+
+            if (!window._isAdmin) {
+                showError('⚠️ Hanya admin komunitas yang bisa membuat kampanye.', 'Akses Ditolak');
+                return;
+            }
+
+            const title = document.getElementById('campaignTitle').value.trim();
+            const slug = document.getElementById('campaignSlug').value.trim().toLowerCase();
+            const description = document.getElementById('campaignDescription').value.trim();
+            const goal = document.getElementById('campaignGoal').value.trim();
+            const target = parseInt(document.getElementById('campaignTarget').value) || 0;
+            const maxParticipants = parseInt(document.getElementById('campaignMaxParticipants').value) || 0;
+            const eventDate = document.getElementById('campaignEventDate').value || null;
+            const eventLocation = document.getElementById('campaignEventLocation').value.trim() || null;
+            const contact = document.getElementById('campaignContact').value.trim() || null;
+
+            if (!title) { showError('Judul kampanye wajib diisi.', 'Validasi Gagal'); return; }
+            if (!slug) { showError('Slug wajib diisi.', 'Validasi Gagal'); return; }
+            if (!/^[a-z0-9-]+$/.test(slug)) { showError('Slug hanya boleh huruf kecil, angka, dan tanda hubung (-).', 'Validasi Gagal'); return; }
+            if (!description) { showError('Deskripsi kampanye wajib diisi.', 'Validasi Gagal'); return; }
+
+            const forbiddenWords = ['donasi', 'uang', 'dana', 'sumbangan', 'transfer', 'bayar', 'ratusan', 'jutaan', 'rupiah'];
+            const lowerDesc = description.toLowerCase();
+            for (const word of forbiddenWords) {
+                if (lowerDesc.includes(word)) {
+                    showError('❌ Kampanye dilarang mengandung unsur pengumpulan dana. Hanya untuk agenda, program, atau event komunitas.', 'Validasi Gagal');
+                    return;
+                }
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim Verifikasi...';
+
+            try {
+                const { data: campaignData, error } = await _supabase
+                    .from('yata_community_campaigns')
+                    .insert([{
+                        community_id: currentCommunityId,
+                        creator_id: currentUser.id,
+                        title: title,
+                        slug: slug,
+                        description: description,
+                        goal: goal,
+                        target_progress: target,
+                        max_participants: maxParticipants,
+                        event_date: eventDate,
+                        event_location: eventLocation,
+                        contact: contact,
+                        status: 'active',
+                        verification_status: 'pending'
+                    }])
+                    .select()
+                    .single();
+
+                if (error) {
+                    if (error.code === '23505') {
+                        showError('Slug sudah digunakan. Silakan gunakan slug lain.', 'Error');
+                    } else {
+                        showError('Gagal membuat kampanye: ' + error.message, 'Error');
+                    }
+                    return;
+                }
+
+                await notifyCommunityMembers(currentCommunityId, title, campaignData.id);
+
+                showError('✅ Kampanye "' + title + '" berhasil dikirim untuk verifikasi! Tim YATA akan memproses dalam 1x24 jam.', 'Sukses');
+                closeCreateCampaign();
+                this.reset();
+
+                if (currentCommunityId) {
+                    await loadCampaigns(currentCommunityId, window._isAdmin);
+                }
+
+            } catch (err) {
+                console.error('Create campaign error:', err);
+                showError('Terjadi kesalahan: ' + err.message, 'Error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-1"></i> Kirim Verifikasi';
+            }
+        });
+
+        // ============================================
+        // 19. LOAD MANAGE CAMPAIGNS (HANYA ADMIN)
+        // ============================================
+        async function loadManageCampaigns(communityId) {
+            if (!window._isAdmin) {
+                document.getElementById('manageCampaignList').innerHTML = `
+                    <div class="text-center py-8 text-slate-400 text-sm">
+                        <i class="fa-solid fa-lock text-2xl block mb-2"></i>
+                        Hanya admin yang dapat mengelola kampanye.
+                    </div>
+                `;
+                return;
+            }
+
+            const container = document.getElementById('manageCampaignList');
+            const countEl = document.getElementById('manageCampaignCount');
+            
+            try {
+                const { data: campaigns, error } = await _supabase
+                    .from('yata_community_campaigns')
+                    .select('*')
+                    .eq('community_id', communityId)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                // Ambil data creator terpisah
+                if (campaigns && campaigns.length > 0) {
+                    const creatorIds = [...new Set(campaigns.map(c => c.creator_id).filter(id => id))];
+                    
+                    let creatorMap = {};
+                    if (creatorIds.length > 0) {
+                        const { data: creators, error: creatorError } = await _supabase
+                            .from('yata_profiles')
+                            .select('id, full_name')
+                            .in('id', creatorIds);
+                        
+                        if (!creatorError && creators) {
+                            creators.forEach(c => {
+                                creatorMap[c.id] = c;
+                            });
+                        }
+                    }
+                    
+                    campaigns.forEach(c => {
+                        c.creator = creatorMap[c.creator_id] || null;
+                    });
+                }
+
+                if (!campaigns || campaigns.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-slate-400 text-sm bg-slate-50 rounded-xl">
+                            <i class="fa-regular fa-flag text-2xl block mb-2"></i>
+                            Belum ada kampanye di komunitas ini.
+                        </div>
+                    `;
+                    countEl.textContent = '0 kampanye';
+                    return;
+                }
+
+                countEl.textContent = `${campaigns.length} kampanye`;
+
+                const campaignIds = campaigns.map(c => c.id);
+                const { data: participants, error: participantError } = await _supabase
+                    .from('yata_campaign_participants')
+                    .select('campaign_id')
+                    .in('campaign_id', campaignIds);
+
+                const participantCount = {};
+                if (!participantError && participants) {
+                    participants.forEach(p => {
+                        participantCount[p.campaign_id] = (participantCount[p.campaign_id] || 0) + 1;
+                    });
+                }
+
+                container.innerHTML = campaigns.map(c => {
+                    const count = participantCount[c.id] || 0;
+                    const isApproved = c.verification_status === 'approved';
+                    
+                    return `
+                        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <h4 class="font-bold text-slate-800 text-sm">${c.title}</h4>
+                                        <span class="text-xs px-2 py-0.5 rounded-full ${isApproved ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}">
+                                            ${isApproved ? '✅ Terverifikasi' : '⏳ Menunggu'}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-slate-500">Dibuat oleh ${c.creator?.full_name || 'User'} • ${new Date(c.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                    ${c.event_date ? `<p class="text-xs text-slate-400">📅 ${new Date(c.event_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>` : ''}
+                                    <div class="flex items-center gap-3 mt-1 text-xs text-slate-400">
+                                        <span><i class="fa-regular fa-user"></i> ${count} peserta</span>
+                                        ${c.max_participants > 0 ? `<span>/${c.max_participants} max</span>` : ''}
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    <button onclick="viewParticipants('${c.id}', '${c.title.replace(/'/g, "\\'")}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition">
+                                        <i class="fa-regular fa-eye mr-1"></i> Lihat Peserta
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error('Load manage campaigns error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-8 text-red-400 text-sm">
+                        Gagal memuat kampanye.
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 20. VIEW PARTICIPANTS
+        // ============================================
+        async function viewParticipants(campaignId, campaignTitle) {
+            currentParticipantCampaignId = campaignId;
+            currentParticipantCampaignTitle = campaignTitle;
+
+            document.getElementById('participantModalTitle').textContent = 'Daftar Peserta';
+            document.getElementById('participantModalSubtitle').textContent = `Kampanye: ${campaignTitle}`;
+            document.getElementById('participantMessage').className = 'text-sm text-center hidden';
+            document.getElementById('participantModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+
+            const container = document.getElementById('participantListContainer');
+            container.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat peserta...</div>';
+
+            try {
+                const { data: participants, error } = await _supabase
+                    .from('yata_campaign_participants')
+                    .select('*, profile:user_id(full_name, email)')
+                    .eq('campaign_id', campaignId)
+                    .order('registered_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!participants || participants.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-slate-400 text-sm bg-slate-50 rounded-xl">
+                            <i class="fa-regular fa-user-slash text-2xl block mb-2"></i>
+                            Belum ada peserta yang mendaftar.
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-slate-50 text-left">
+                                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">No</th>
+                                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">Nama</th>
+                                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">Email</th>
+                                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">WA</th>
+                                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">Alasan</th>
+                                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${participants.map((p, index) => `
+                                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                                        <td class="px-3 py-2 text-xs text-slate-400">${index + 1}</td>
+                                        <td class="px-3 py-2 text-xs font-medium text-slate-700">${p.profile?.full_name || 'User'}</td>
+                                        <td class="px-3 py-2 text-xs text-slate-500">${p.profile?.email || '-'}</td>
+                                        <td class="px-3 py-2 text-xs text-slate-500">${p.phone || '-'}</td>
+                                        <td class="px-3 py-2 text-xs text-slate-500 max-w-[150px] truncate">${p.reason || '-'}</td>
+                                        <td class="px-3 py-2 text-xs">
+                                            <button onclick="sendMessageToParticipant('${p.user_id}', '${p.profile?.full_name || 'User'}')" class="text-emerald-600 hover:text-emerald-700 font-semibold">
+                                                <i class="fa-regular fa-envelope mr-1"></i> Kirim Pesan
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+            } catch (err) {
+                console.error('View participants error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-8 text-red-400 text-sm">
+                        Gagal memuat peserta: ${err.message}
+                    </div>
+                `;
+            }
+        }
+
+        function closeParticipantModal() {
+            document.getElementById('participantModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentParticipantCampaignId = null;
+        }
+
+        // ============================================
+        // 21. SEND NOTIFICATION TO ALL PARTICIPANTS
+        // ============================================
+        async function sendNotificationToAllParticipants() {
+            if (!currentParticipantCampaignId) {
+                showError('Tidak ada kampanye yang dipilih.', 'Error');
+                return;
+            }
+
+            const msg = document.getElementById('participantMessage');
+            msg.className = 'text-sm text-center hidden';
+
+            if (!confirm('Kirim notifikasi ke semua peserta kampanye ini?')) return;
+
+            const btn = document.querySelector('#participantModal .flex-1.bg-emerald-600');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+
+            try {
+                const { data: participants, error } = await _supabase
+                    .from('yata_campaign_participants')
+                    .select('user_id')
+                    .eq('campaign_id', currentParticipantCampaignId);
+
+                if (error) throw error;
+
+                if (!participants || participants.length === 0) {
+                    showParticipantMessage('Tidak ada peserta untuk dikirim notifikasi.', 'error');
+                    return;
+                }
+
+                const { data: campaign } = await _supabase
+                    .from('yata_community_campaigns')
+                    .select('title')
+                    .eq('id', currentParticipantCampaignId)
+                    .single();
+
+                const campaignTitle = campaign?.title || 'Kampanye';
+                const notifContent = `📢 Pengumuman dari admin komunitas untuk kampanye "${campaignTitle}".`;
+
+                for (const p of participants) {
+                    const { data: notifData } = await _supabase
+                        .from('yata_notifications')
+                        .insert([{
+                            title: '📢 Pengumuman Kampanye',
+                            content: notifContent,
+                            type: 'campaign'
+                        }])
+                        .select()
+                        .single();
+
+                    if (notifData) {
+                        await _supabase
+                            .from('yata_user_notifications')
+                            .insert([{
+                                notification_id: notifData.id,
+                                user_id: p.user_id,
+                                is_read: false
+                            }]);
+                    }
+                }
+
+                showParticipantMessage(`✅ Notifikasi berhasil dikirim ke ${participants.length} peserta!`, 'success');
+
+            } catch (err) {
+                console.error('Send notification error:', err);
+                showParticipantMessage('❌ Gagal mengirim notifikasi: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-regular fa-paper-plane"></i> Kirim Notifikasi ke Semua Peserta';
+            }
+        }
+
+        function showParticipantMessage(text, type) {
+            const msg = document.getElementById('participantMessage');
+            msg.textContent = text;
+            msg.className = `text-sm text-center ${type === 'success' ? 'text-emerald-600' : 'text-red-600'} block`;
+        }
+
+        // ============================================
+        // 22. SEND MESSAGE TO SINGLE PARTICIPANT
+        // ============================================
+        async function sendMessageToParticipant(userId, userName) {
+            if (!window._isAdmin) {
+                showError('Hanya admin yang dapat mengirim pesan.', 'Akses Ditolak');
+                return;
+            }
+
+            const message = prompt(`Kirim pesan ke ${userName}:\n\nMasukkan pesan yang ingin dikirim:`);
+            if (!message || message.trim() === '') return;
+
+            try {
+                const { data: notifData } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: '📩 Pesan dari Admin Komunitas',
+                        content: message.trim(),
+                        type: 'info'
+                    }])
+                    .select()
+                    .single();
+
+                if (notifData) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+                }
+
+                showError('✅ Pesan berhasil dikirim ke ' + userName + '!', 'Sukses');
+
+            } catch (err) {
+                console.error('Send message error:', err);
+                showError('Gagal mengirim pesan: ' + err.message, 'Error');
+            }
+        }
+
+        // ============================================
+        // 23. LOGOUT
+        // ============================================
+        async function handleLogout() {
+            if (confirm('Yakin ingin keluar?')) {
+                try {
+                    const { error } = await _supabase.auth.signOut();
+                    if (!error) {
+                        window.location.href = 'login.html';
+                    } else {
+                        console.error('Logout error:', error);
+                    }
+                } catch (err) {
+                    console.error('Logout error:', err);
+                }
+            }
+        }
+
+        // ============================================
+        // 24. EVENT LISTENERS
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth().then(() => {
+                switchCommunityTab('my');
+            });
+
+            document.getElementById('btnLogout').addEventListener('click', handleLogout);
+            document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);
+
+            document.getElementById('mobileMenuButton').addEventListener('click', function() {
+                document.getElementById('mobileMenu').classList.toggle('hidden');
+            });
+
+            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(el => {
+                el.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
+            });
+
+            document.addEventListener('click', function(e) {
+                const modal = document.getElementById('projectAccessModal');
+                if (modal && e.target === modal) {
+                    closeProjectAccessModal();
+                }
+            });
+
+            document.getElementById('addAdminModal').addEventListener('click', function(e) {
+                if (e.target === this) closeAddAdminModal();
+            });
+
+            document.getElementById('participantModal').addEventListener('click', function(e) {
+                if (e.target === this) closeParticipantModal();
+            });
+        });
+    </script>
+
+</body>
+</html>

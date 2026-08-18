@@ -1,0 +1,2260 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard — YATA</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6EE7B7',
+                        primaryDark: '#065F46',
+                        sage: '#A3E4D7',
+                        cream: '#FEF3C7',
+                        mint: '#B2F2BB',
+                        gold: '#D4AF37',
+                        platinum: '#E5E4E2',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    
+    <!-- ✅ HTML2CANVAS UNTUK DOWNLOAD KTA -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #065F46; color: white; }
+        .sidebar-link.active i { color: white; }
+        .sidebar-link:hover:not(.active) { background-color: #e2e8f0; }
+        .modal-enter { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .benefit-list li {
+            position: relative;
+            padding-left: 20px;
+        }
+        .benefit-list li::before {
+            content: '✅';
+            position: absolute;
+            left: 0;
+            color: #065F46;
+        }
+        .benefit-list-exclusive li::before {
+            color: #D4AF37;
+        }
+        
+        /* ============================================ */
+        /* KTA CARD DESIGN - PROFESIONAL & ELEGAN */
+        /* ============================================ */
+        .kta-card {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            border-radius: 20px;
+            padding: 28px 24px 24px;
+            position: relative;
+            overflow: hidden;
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+            cursor: default;
+            font-family: 'Inter', sans-serif;
+        }
+        .kta-card:hover {
+            transform: scale(1.01);
+        }
+        .kta-card .kta-bg-pattern {
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            opacity: 0.08;
+            pointer-events: none;
+        }
+        .kta-card .kta-bg-pattern-2 {
+            position: absolute;
+            bottom: -40px;
+            left: -40px;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            opacity: 0.06;
+            pointer-events: none;
+        }
+        .kta-card .kta-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            position: relative;
+            z-index: 2;
+        }
+        .kta-card .kta-brand {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 3px;
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+        .kta-card .kta-title {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            opacity: 0.6;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+        .kta-card .kta-badge-icon {
+            font-size: 32px;
+            opacity: 0.95;
+            line-height: 1;
+        }
+        .kta-card .kta-name {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            margin-top: 12px;
+            position: relative;
+            z-index: 2;
+        }
+        .kta-card .kta-level {
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0.8;
+            margin-top: 2px;
+            position: relative;
+            z-index: 2;
+        }
+        .kta-card .kta-divider {
+            margin: 14px 0 12px;
+            height: 1px;
+            opacity: 0.15;
+            position: relative;
+            z-index: 2;
+        }
+        .kta-card .kta-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            position: relative;
+            z-index: 2;
+        }
+        .kta-card .kta-footer .label {
+            font-size: 7px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            opacity: 0.5;
+            font-weight: 700;
+        }
+        .kta-card .kta-footer .value {
+            font-size: 12px;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+        }
+        .kta-card .kta-footer .valid-date {
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        /* Level Themes */
+        .kta-tamu {
+            background: linear-gradient(145deg, #D1FAE5 0%, #A7F3D0 100%);
+            color: #064E3B;
+        }
+        .kta-tamu .kta-divider { background: #064E3B; }
+        .kta-tamu .kta-bg-pattern { background: #064E3B; }
+        .kta-tamu .kta-bg-pattern-2 { background: #064E3B; }
+        
+        .kta-penulis {
+            background: linear-gradient(145deg, #065F46 0%, #0D9488 100%);
+            color: #FFFFFF;
+        }
+        .kta-penulis .kta-divider { background: #FFFFFF; }
+        .kta-penulis .kta-bg-pattern { background: #FFFFFF; }
+        .kta-penulis .kta-bg-pattern-2 { background: #FFFFFF; }
+        .kta-penulis .kta-brand { color: #A7F3D0; }
+        .kta-penulis .kta-title { color: #A7F3D0; }
+        
+        .kta-profesional {
+            background: linear-gradient(145deg, #92400E 0%, #D4AF37 100%);
+            color: #FFFFFF;
+        }
+        .kta-profesional .kta-divider { background: #FFFFFF; }
+        .kta-profesional .kta-bg-pattern { background: #FFFFFF; }
+        .kta-profesional .kta-bg-pattern-2 { background: #FFFFFF; }
+        .kta-profesional .kta-brand { color: #FDE68A; }
+        .kta-profesional .kta-title { color: #FDE68A; }
+        
+        .kta-mentor {
+            background: linear-gradient(145deg, #374151 0%, #9CA3AF 50%, #E5E4E2 100%);
+            color: #1F2937;
+        }
+        .kta-mentor .kta-divider { background: #1F2937; }
+        .kta-mentor .kta-bg-pattern { background: #1F2937; }
+        .kta-mentor .kta-bg-pattern-2 { background: #1F2937; }
+        .kta-mentor .kta-brand { color: #6B7280; }
+        .kta-mentor .kta-title { color: #6B7280; }
+
+        /* KTA SMALL (di dashboard) */
+        .kta-small {
+            max-width: 320px;
+            margin: 0 auto;
+            border-radius: 16px;
+            padding: 20px 18px 16px;
+            position: relative;
+            overflow: hidden;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+        .kta-small:hover { transform: scale(1.02); }
+        .kta-small .kta-brand-sm {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            opacity: 0.6;
+            text-transform: uppercase;
+        }
+        .kta-small .kta-title-sm {
+            font-size: 10px;
+            font-weight: 600;
+            opacity: 0.5;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .kta-small .kta-badge-sm {
+            font-size: 24px;
+        }
+        .kta-small .kta-name-sm {
+            font-size: 16px;
+            font-weight: 800;
+            margin-top: 6px;
+        }
+        .kta-small .kta-level-sm {
+            font-size: 11px;
+            font-weight: 600;
+            opacity: 0.7;
+        }
+        .kta-small .kta-footer-sm {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.15);
+        }
+        .kta-small .kta-footer-sm .label {
+            font-size: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.5;
+            font-weight: 700;
+        }
+        .kta-small .kta-footer-sm .value {
+            font-size: 9px;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.5px;
+        }
+
+        .notif-dropdown {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .notif-dropdown::-webkit-scrollbar {
+            width: 4px;
+        }
+        .notif-dropdown::-webkit-scrollbar-thumb {
+            background: #D1D5DB;
+            border-radius: 9999px;
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .line-clamp-1 {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .notif-item {
+            transition: all 0.2s ease;
+        }
+        .notif-item:hover {
+            background-color: #f1f5f9;
+        }
+        .notif-unread {
+            border-left: 4px solid #065F46;
+            background-color: #f0fdf4;
+        }
+        .notif-read {
+            border-left: 4px solid #e2e8f0;
+            opacity: 0.7;
+        }
+        #notifModalContent {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 450px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.8;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 12px;
+            font-family: inherit;
+            color: #1e293b;
+        }
+        #notifModalContent pre {
+            font-family: inherit;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            font-size: 14px;
+            line-height: 1.8;
+            color: #1e293b;
+        }
+        #notifModalContent::-webkit-scrollbar {
+            width: 4px;
+        }
+        #notifModalContent::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 9999px;
+        }
+        #notifModalContent::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 9999px;
+        }
+        .share-kta-btn:hover {
+            transform: scale(1.05);
+        }
+        .download-btn {
+            transition: all 0.3s ease;
+        }
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(6, 95, 70, 0.3);
+        }
+        .download-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- SIDEBAR -->
+    <!-- ============================================ -->
+    <aside class="fixed top-0 left-0 z-40 w-64 h-screen bg-white border-r border-emerald-100/60 hidden md:block">
+        <div class="flex flex-col h-full">
+            <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
+                <a href="dashboard.html" class="flex items-center space-x-2 group">
+                    <div class="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/30">Y</div>
+                    <span class="text-xl font-extrabold text-emerald-800">YATA</span>
+                </a>
+            </div>
+
+            <!-- SIDEBAR NAVIGATION - DENGAN MENU JELAJAHI YATA -->
+            <nav class="flex-1 px-4 py-6 space-y-1">
+                <!-- 🌟 Menuju Jelajahi YATA -->
+                <a href="explore.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-amber-600 hover:text-amber-700 rounded-xl transition">
+                    <i class="fa-solid fa-compass w-5 text-amber-500"></i> Menuju Jelajahi YATA
+                </a>
+
+                <!-- Beranda -->
+                <a href="dashboard.html" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-sm font-semibold text-emerald-800 rounded-xl transition">
+                    <i class="fa-solid fa-house w-5 text-emerald-600"></i> Beranda
+                </a>
+
+                <!-- Tulis -->
+                <a href="write.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-pen w-5"></i> Tulis
+                </a>
+
+                <!-- Proyek Buku -->
+                <a href="#" onclick="checkProjectAccess(event)" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book w-5"></i> Proyek Buku
+                </a>
+
+                <!-- Perpustakaan -->
+                <a href="library.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book-open w-5"></i> Perpustakaan
+                </a>
+
+                <!-- Komunitas + Kampanye -->
+                <div class="space-y-0.5">
+                    <a href="community.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                        <i class="fa-solid fa-users w-5"></i> Komunitas
+                    </a>
+                    <a href="campaigns.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition pl-10 text-xs opacity-75">
+                        <i class="fa-solid fa-flag w-5 text-slate-400"></i> Lihat Kampanye
+                    </a>
+                </div>
+
+                <!-- Mentoring -->
+                <a href="mentoring.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring
+                </a>
+
+                <!-- Profil -->
+                <a href="profile.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-user w-5"></i> Profil
+                </a>
+            </nav>
+            <!-- END SIDEBAR NAVIGATION -->
+
+            <div class="p-4 border-t border-emerald-100/60">
+                <button id="btnLogout" class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition text-left">
+                    <i class="fa-solid fa-right-from-bracket w-5"></i> Keluar
+                </button>
+                <p class="text-xs text-slate-400 text-center mt-4">YATA v1.0 • Beta</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ============================================ -->
+    <!-- MOBILE HEADER -->
+    <!-- ============================================ -->
+    <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
+        <div class="flex items-center justify-between px-4 h-16">
+            <a href="dashboard.html" class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black">Y</div>
+                <span class="text-lg font-extrabold text-emerald-800">YATA</span>
+            </a>
+            <div class="flex items-center gap-2">
+                <div class="relative">
+                    <button onclick="toggleNotificationDropdown()" class="relative text-slate-600 hover:text-emerald-600 transition p-2">
+                        <i class="fa-regular fa-bell text-xl"></i>
+                        <span id="notifBadgeMobile" class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center hidden">0</span>
+                    </button>
+                </div>
+                <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="mobileMenu" class="hidden bg-white border-t border-emerald-100/60 px-4 py-4 space-y-2">
+            <!-- 🌟 Menuju Jelajahi YATA -->
+            <a href="explore.html" class="block px-4 py-2.5 text-amber-600 font-semibold hover:bg-amber-50 rounded-xl">
+                <i class="fa-solid fa-compass mr-2 text-amber-500"></i> Menuju Jelajahi YATA
+            </a>
+            <a href="dashboard.html" class="block px-4 py-2.5 bg-emerald-50 text-emerald-800 font-semibold rounded-xl">Beranda</a>
+            <a href="write.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Tulis</a>
+            <a href="#" onclick="checkProjectAccess(event)" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Proyek Buku</a>
+            <a href="library.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Perpustakaan</a>
+            <a href="community.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Komunitas</a>
+            <a href="campaigns.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl pl-6 text-xs opacity-75">
+                <i class="fa-solid fa-flag mr-1 text-slate-400"></i> Lihat Kampanye
+            </a>
+            <a href="mentoring.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Mentoring</a>
+            <a href="profile.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Profil</a>
+            <hr class="my-2 border-emerald-100" />
+            <button onclick="openContactModal()" class="block w-full text-left px-4 py-2.5 text-emerald-600 hover:bg-emerald-50 rounded-xl font-medium">Hubungi Tim</button>
+            <button id="btnLogoutMobile" class="block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
+        </div>
+    </header>
+
+    <!-- ============================================ -->
+    <!-- KONTEN UTAMA (SAMA SEPERTI SEBELUMNYA) -->
+    <!-- ============================================ -->
+    <main class="md:ml-64 pt-4 md:pt-8 min-h-screen bg-slate-50/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+            <!-- Header Profil + Tombol Hubungi Tim -->
+            <div id="profileHeader" class="bg-white rounded-3xl p-6 border border-emerald-100/60 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div id="avatarPlaceholder" class="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-2xl font-bold border-2 border-emerald-200">?</div>
+                    <div>
+                        <h2 id="userFullName" class="text-xl font-bold text-slate-800">Memuat...</h2>
+                        <div class="flex items-center gap-2 text-sm">
+                            <span id="userLevel" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                                <span id="levelIcon">🌱</span> 
+                                <span id="levelName">Tamu</span>
+                            </span>
+                            <span class="text-slate-400">•</span>
+                            <span id="userJoinDate" class="text-slate-500 text-xs">Memuat...</span>
+                            <button onclick="openLevelModal()" class="text-slate-400 hover:text-emerald-600 transition text-xs ml-1" title="Lihat detail level">
+                                <i class="fa-regular fa-circle-question"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="relative hidden sm:block">
+                        <button onclick="toggleNotificationDropdown()" class="relative text-slate-600 hover:text-emerald-600 transition p-2">
+                            <i class="fa-regular fa-bell text-xl"></i>
+                            <span id="notifBadge" class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center hidden">0</span>
+                        </button>
+                        <div id="notifDropdown" class="notif-dropdown hidden absolute right-0 mt-2 w-80 md:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 z-50">
+                            <div class="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between z-10 rounded-t-2xl">
+                                <h4 class="font-bold text-slate-800 text-sm">Notifikasi</h4>
+                                <button onclick="markAllRead()" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold">Tandai semua dibaca</button>
+                            </div>
+                            <div id="notifList" class="divide-y divide-slate-100">
+                                <div class="text-center py-6 text-slate-400 text-sm">
+                                    <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat...
+                                </div>
+                            </div>
+                            <div class="sticky bottom-0 bg-white border-t border-slate-200 px-4 py-2 text-center rounded-b-2xl">
+                                <button onclick="openAllNotifications()" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold">Lihat semua notifikasi</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <a href="write.html" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition shadow-sm shadow-emerald-500/20 flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Buat Tulisan
+                    </a>
+                    <button onclick="openContactModal()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2.5 rounded-xl text-sm transition flex items-center gap-2">
+                        <i class="fa-regular fa-envelope"></i> Hubungi Tim
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistik -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                <div class="bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-slate-500">Total Karya</span>
+                        <i class="fa-solid fa-pen-fancy text-emerald-600 text-xl"></i>
+                    </div>
+                    <p id="statTotalWritings" class="text-3xl font-black text-slate-800 mt-2">0</p>
+                    <span id="statWritingsDetail" class="text-xs text-emerald-600 font-semibold">-</span>
+                </div>
+                <div class="bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-slate-500">Pembaca</span>
+                        <i class="fa-solid fa-eye text-emerald-600 text-xl"></i>
+                    </div>
+                    <p id="statTotalReads" class="text-3xl font-black text-slate-800 mt-2">0</p>
+                    <span id="statReadsDetail" class="text-xs text-emerald-600 font-semibold">-</span>
+                </div>
+                <div class="bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-slate-500">Total Like</span>
+                        <i class="fa-solid fa-heart text-emerald-600 text-xl"></i>
+                    </div>
+                    <p id="statTotalLikes" class="text-3xl font-black text-slate-800 mt-2">0</p>
+                    <span id="statLikesDetail" class="text-xs text-emerald-600 font-semibold">-</span>
+                </div>
+                <div class="bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-slate-500">Peringkat</span>
+                        <i class="fa-solid fa-trophy text-yellow-500 text-xl"></i>
+                    </div>
+                    <p id="statRank" class="text-3xl font-black text-slate-800 mt-2">#-</p>
+                    <span id="statRankDetail" class="text-xs text-slate-500 font-semibold">dari penulis</span>
+                </div>
+            </div>
+
+            <!-- KTA & Karya Terbaru -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-emerald-100/60 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-800 text-lg">Karya Terbaru</h3>
+                        <a href="library.html" class="text-xs font-semibold text-emerald-600 hover:underline">Lihat semua</a>
+                    </div>
+                    <div id="recentWritings" class="space-y-4">
+                        <div class="text-center py-8 text-slate-400 text-sm"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat karya...</div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="bg-gradient-to-br from-emerald-900 to-emerald-700 rounded-2xl p-6 text-white shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-bold text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-flag-checkered text-yellow-400"></i> Level Anda
+                            </h4>
+                            <button onclick="openLevelModal()" class="text-white/60 hover:text-white transition text-xs">
+                                <i class="fa-regular fa-circle-question"></i> Detail
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-3 mt-2">
+                            <span id="levelBigIcon" class="text-4xl">🌱</span>
+                            <div>
+                                <p id="levelBigName" class="text-2xl font-black text-yellow-300">Tamu</p>
+                                <p id="levelBigDesc" class="text-xs text-white/60">Masih belajar dan menemukan gaya menulis</p>
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-white/10">
+                            <div class="flex justify-between text-xs">
+                                <span>Progress ke level berikutnya</span>
+                                <span id="levelProgressText">0%</span>
+                            </div>
+                            <div class="w-full bg-white/20 rounded-full h-1.5 mt-1">
+                                <div id="levelProgressBar" class="bg-yellow-400 h-1.5 rounded-full" style="width: 0%;"></div>
+                            </div>
+                            <p id="levelNextInfo" class="text-xs text-white/60 mt-1">Tulis 5 karya untuk naik ke level Penulis</p>
+                        </div>
+                    </div>
+
+                    <!-- KTA CARD -->
+                    <div id="ktaCardContainer" class="rounded-2xl shadow-sm">
+                        <div class="text-center py-6 text-slate-400 text-sm">
+                            <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat KTA...
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm">
+                        <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-lightbulb text-yellow-500"></i> Tips Hari Ini
+                        </h4>
+                        <p class="text-xs text-slate-600 mt-2 leading-relaxed">"Jangan takut menulis jelek. Setiap penulis hebat dulunya juga pemula. Yang penting mulai dulu!"</p>
+                        <div class="mt-3 flex items-center gap-2 text-xs text-emerald-600">
+                            <i class="fa-regular fa-clock"></i> 
+                            <span>Diperbarui hari ini</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Proyek Buku Terbaru -->
+            <div class="mt-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-book text-emerald-600"></i> Proyek Buku Terbaru
+                    </h3>
+                    <a href="#" onclick="checkProjectAccess(event)" class="text-xs font-semibold text-emerald-600 hover:underline flex items-center gap-1">
+                        Lihat semua <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+                <div id="recentProjects" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="col-span-full text-center py-8 text-slate-400 text-sm">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat proyek...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kampanye dari Komunitas Saya -->
+            <div class="mt-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-flag text-emerald-600"></i> Kampanye dari Komunitas Saya
+                    </h3>
+                    <a href="campaigns.html" class="text-xs font-semibold text-emerald-600 hover:underline flex items-center gap-1">
+                        Lihat semua <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+                <div id="myCommunityCampaigns" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="col-span-full text-center py-8 text-slate-400 text-sm">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat kampanye...
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ============================================ -->
+    <!-- MODAL-MODAL (SAMA SEPERTI SEBELUMNYA) -->
+    <!-- ============================================ -->
+    <!-- Modal Level -->
+    <div id="levelModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 relative shadow-2xl modal-enter max-h-[90vh] overflow-y-auto">
+            <button onclick="closeLevelModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Sistem Level</span>
+                <h3 class="text-2xl font-black text-slate-800 mt-1">Perjalanan Literasi YATA</h3>
+                <p class="text-sm text-slate-500 mt-1">Setiap level mencerminkan dedikasi dan kontribusi Anda.</p>
+            </div>
+            <div class="space-y-4">
+                <!-- Level Tamu -->
+                <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">🌱</span>
+                        <div>
+                            <h4 class="font-bold text-slate-800">Tamu</h4>
+                            <p class="text-xs text-slate-500">Pendaftar baru, masih belajar dan menemukan gaya menulis.</p>
+                        </div>
+                        <span class="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">Level Awal</span>
+                    </div>
+                    <div class="mt-2 pl-12">
+                        <p class="text-xs font-semibold text-emerald-700">🎁 Benefit:</p>
+                        <ul class="benefit-list text-xs text-slate-600 space-y-0.5 mt-1">
+                            <li>Berkesempatan jadi penulis & mentor</li>
+                            <li>Bisa menulis karya yang dapat diakses publik atau menyimpan draft</li>
+                            <li>Bergabung di komunitas</li>
+                            <li>Mengikuti event literasi dan mentoring gratis</li>
+                            <li>Fitur AI write generate, integrasi KBBI V dan PUEBI</li>
+                            <li><strong>KTA & ID Anggota</strong> (YATA-T-XXXXX)</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- Level Penulis -->
+                <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">✍️</span>
+                        <div>
+                            <h4 class="font-bold text-slate-800">Penulis</h4>
+                            <p class="text-xs text-slate-500">Mulai produktif dan aktif belajar.</p>
+                        </div>
+                        <span class="ml-auto text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-semibold">Syarat:</span>
+                    </div>
+                    <div class="mt-1 pl-12 text-xs text-slate-600 space-y-0.5">
+                        <div>✅ 5+ karya dipublikasikan</div>
+                        <div>✅ 3+ kali mengikuti mentoring</div>
+                    </div>
+                    <div class="mt-2 pl-12">
+                        <p class="text-xs font-semibold text-emerald-700">🎁 Benefit Tambahan:</p>
+                        <ul class="benefit-list text-xs text-slate-600 space-y-0.5 mt-1">
+                            <li>Semua benefit Tamu</li>
+                            <li>Karya bisa tampil di "Karya Pilihan"</li>
+                            <li>Akses ke ruang penulis eksklusif</li>
+                            <li>Prioritas untuk mentoring</li>
+                            <li>Badge "Penulis Aktif" di profil</li>
+                            <li>Merchandise YATA</li>
+                            <li><strong>KTA & ID Anggota</strong> (YATA-P-XXXXX)</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- Level Penulis Profesional -->
+                <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">📚</span>
+                        <div>
+                            <h4 class="font-bold text-slate-800">Penulis Profesional</h4>
+                            <p class="text-xs text-slate-500">Penulis mapan dengan portofolio kuat.</p>
+                        </div>
+                        <span class="ml-auto text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-semibold">Syarat:</span>
+                    </div>
+                    <div class="mt-1 pl-12 text-xs text-slate-600 space-y-0.5">
+                        <div>✅ 20+ karya di YATA</div>
+                        <div>✅ 1+ buku diterbitkan (ISBN / QRCBN)</div>
+                        <div>✅ 5+ kali mentoring</div>
+                        <div>✅ 1+ kali pembicara internal YATA</div>
+                    </div>
+                    <div class="mt-2 pl-12">
+                        <p class="text-xs font-semibold text-emerald-700">🎁 Benefit Tambahan:</p>
+                        <ul class="benefit-list text-xs text-slate-600 space-y-0.5 mt-1">
+                            <li>Semua benefit Penulis</li>
+                            <li>Karya otomatis masuk kurasi penerbitan</li>
+                            <li>Konsultasi 1-on-1 dengan editor/mentor</li>
+                            <li>Diskon penerbitan buku (50%)</li>
+                            <li>Akses ke program YATA</li>
+                            <li>Badge "Penulis Profesional" di profil</li>
+                            <li>Diundang sebagai pembicara internal YATA</li>
+                            <li><strong>KTA & ID Anggota</strong> (YATA-PP-XXXXX)</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- Level Mentor -->
+                <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">🌟</span>
+                        <div>
+                            <h4 class="font-bold text-slate-800">Mentor</h4>
+                            <p class="text-xs text-slate-500">Puncak karir literasi, menginspirasi orang lain.</p>
+                        </div>
+                        <span class="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">Level Tertinggi</span>
+                    </div>
+                    <div class="mt-1 pl-12 text-xs text-slate-600 space-y-0.5">
+                        <div>✅ 50+ karya di YATA</div>
+                        <div>✅ 3+ buku diterbitkan (ISBN / QRCBN)</div>
+                        <div>✅ 5+ kali mentoring selesai</div>
+                        <div>✅ 3+ kali pembicara eksternal</div>
+                        <div>✅ 5+ kali pembicara internal YATA</div>
+                    </div>
+                    <div class="mt-2 pl-12">
+                        <p class="text-xs font-semibold text-amber-700">🎁 Benefit Eksklusif:</p>
+                        <ul class="benefit-list benefit-list-exclusive text-xs text-slate-600 space-y-0.5 mt-1">
+                            <li>Semua benefit Penulis Profesional</li>
+                            <li>Karya dipromosikan di banner utama (1 minggu)</li>
+                            <li>Konsultasi gratis dengan penerbit</li>
+                            <li>Diskon penerbitan buku (70%)</li>
+                            <li>Menjadi pembicara eksternal YATA</li>
+                            <li>Badge "Mentor" eksklusif di profil</li>
+                            <li>Akses ke program "Mentor" (membimbing penulis lain)</li>
+                            <li>Certified mentor/penulis YATA</li>
+                            <li><strong>KTA & ID Anggota</strong> (YATA-M-XXXXX)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 text-center">
+                <button onclick="closeLevelModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Notifikasi Detail -->
+    <div id="notifModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeNotifModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Detail Notifikasi</span>
+                <h3 id="notifModalTitle" class="text-xl font-black text-slate-800 mt-1">Judul Notifikasi</h3>
+                <p id="notifModalTime" class="text-xs text-slate-400 mt-1">Dikirim beberapa saat lalu</p>
+            </div>
+            <div id="notifModalContent" class="bg-slate-50 rounded-xl p-5 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap max-h-[450px] overflow-y-auto">
+                Isi notifikasi akan ditampilkan di sini.
+            </div>
+            <div class="mt-6 flex items-center justify-between">
+                <span id="notifModalStatus" class="text-xs font-semibold text-slate-400">Status: Belum dibaca</span>
+                <button onclick="closeNotifModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal KTA -->
+    <div id="ktaModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeKtaModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl z-10">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Kartu Tanda Anggota</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">KTA YATA</h3>
+                <p class="text-xs text-slate-500 mt-1">Identitas resmi anggota YATA</p>
+            </div>
+            <div class="flex justify-center">
+                <div id="ktaPreview" class="kta-card kta-tamu" style="max-width:360px;width:100%;">
+                    <div class="kta-bg-pattern"></div>
+                    <div class="kta-bg-pattern-2"></div>
+                    <div>
+                        <div class="kta-header">
+                            <div>
+                                <p class="kta-brand">YATA</p>
+                                <p class="kta-title">Kartu Tanda Anggota</p>
+                            </div>
+                            <span id="ktaLevelIcon" class="kta-badge-icon">🌱</span>
+                        </div>
+                        <p id="ktaMemberName" class="kta-name">Nama Member</p>
+                        <p id="ktaLevelName" class="kta-level">Tamu</p>
+                    </div>
+                    <div>
+                        <div class="kta-divider"></div>
+                        <div class="kta-footer">
+                            <div>
+                                <p class="label">ID Anggota</p>
+                                <p id="ktaMemberId" class="value">YATA-T-00001</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="label">Berlaku Hingga</p>
+                                <p id="ktaValidUntil" class="valid-date">31 Des 2027</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 space-y-3">
+                <button onclick="downloadKTA()" id="downloadKtaBtn" class="download-btn w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-download"></i> Unduh KTA (PNG)
+                </button>
+                <button onclick="sendKTAViaEmail()" id="sendKtaEmailBtn" class="download-btn w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2">
+                    <i class="fa-regular fa-envelope"></i> Kirim ke Email
+                </button>
+                <p class="text-xs text-slate-400 text-center">
+                    <i class="fa-regular fa-envelope mr-1"></i> KTA akan dikirimkan ke email Anda.
+                </p>
+                <button onclick="closeKtaModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-xl transition text-sm">
+                    Tutup
+                </button>
+            </div>
+            <div id="ktaMessage" class="mt-3 text-sm text-center hidden"></div>
+        </div>
+    </div>
+
+    <!-- Modal Contact -->
+    <div id="contactModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeContactModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Pusat Bantuan</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Hubungi Tim YATA</h3>
+                <p class="text-xs text-slate-500 mt-1">Kami akan merespons dalam 1x24 jam.</p>
+            </div>
+            <form id="contactForm" class="space-y-4">
+                <div>
+                    <label for="contactCategory" class="block text-xs font-semibold text-slate-700 mb-1">Kategori <span class="text-red-500">*</span></label>
+                    <select id="contactCategory" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white">
+                        <option value="question">❓ Pertanyaan</option>
+                        <option value="suggestion">💡 Saran</option>
+                        <option value="technical">🛠️ Masalah Teknis</option>
+                        <option value="collaboration">🤝 Kerja Sama</option>
+                        <option value="report">📢 Laporan</option>
+                        <option value="other">📝 Lainnya</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="contactSubject" class="block text-xs font-semibold text-slate-700 mb-1">Subjek <span class="text-red-500">*</span></label>
+                    <input type="text" id="contactSubject" placeholder="Masukkan subjek pesan" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+                <div>
+                    <label for="contactMessage" class="block text-xs font-semibold text-slate-700 mb-1">Pesan <span class="text-red-500">*</span></label>
+                    <textarea id="contactMessage" rows="4" placeholder="Tulis pesan Anda di sini..." required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
+                </div>
+                <div>
+                    <label for="contactAttachment" class="block text-xs font-semibold text-slate-700 mb-1">Lampiran (opsional)</label>
+                    <input type="file" id="contactAttachment" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" class="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm file:mr-2 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
+                    <p class="text-xs text-slate-400 mt-1">Maksimal 5MB (JPG, PNG, PDF, DOC)</p>
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-regular fa-paper-plane mr-1"></i> Kirim Pesan
+                </button>
+            </form>
+            <div id="contactSuccess" class="hidden text-center py-4">
+                <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fa-solid fa-check text-emerald-600 text-2xl"></i>
+                </div>
+                <h4 class="font-bold text-slate-800">✅ Pesan Terkirim!</h4>
+                <p class="text-sm text-slate-500 mt-1">Tim YATA akan merespons pesan Anda secepatnya.</p>
+                <button onclick="closeContactModal()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT (SAMA SEPERTI SEBELUMNYA) -->
+    <!-- ============================================ -->
+    <script>
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        let currentUserData = null;
+        let currentLevelKey = 'tamu';
+        let allNotifications = [];
+        let unreadCount = 0;
+        let currentModalNotifId = null;
+        let isDownloadingKTA = false;
+
+        const LEVELS = {
+            tamu: { name: 'Tamu', icon: '🌱', description: 'Masih belajar dan menemukan gaya menulis.', ktaClass: 'kta-tamu', idPrefix: 'YATA-T', minWritings: 0, minMentoring: 0, minBooks: 0, minSpeakerInternal: 0, minSpeakerExternal: 0, nextLevel: 'penulis', nextRequirements: { writings: 5, mentoring: 3 } },
+            penulis: { name: 'Penulis', icon: '✍️', description: 'Mulai produktif dan aktif belajar.', ktaClass: 'kta-penulis', idPrefix: 'YATA-P', minWritings: 5, minMentoring: 3, minBooks: 0, minSpeakerInternal: 0, minSpeakerExternal: 0, nextLevel: 'penulis_profesional', nextRequirements: { writings: 20, mentoring: 5, books: 1, speakerInternal: 1 } },
+            penulis_profesional: { name: 'Penulis Profesional', icon: '📚', description: 'Penulis mapan dengan portofolio kuat.', ktaClass: 'kta-profesional', idPrefix: 'YATA-PP', minWritings: 20, minMentoring: 5, minBooks: 1, minSpeakerInternal: 1, minSpeakerExternal: 0, nextLevel: 'mentor', nextRequirements: { writings: 50, mentoring: 5, books: 3, speakerInternal: 5, speakerExternal: 3 } },
+            mentor: { name: 'Mentor', icon: '🌟', description: 'Puncak karir literasi, menginspirasi orang lain.', ktaClass: 'kta-mentor', idPrefix: 'YATA-M', minWritings: 50, minMentoring: 5, minBooks: 3, minSpeakerInternal: 5, minSpeakerExternal: 3, nextLevel: null, nextRequirements: null }
+        };
+
+        const LEVEL_DESCRIPTIONS = {
+            'Tamu': 'Masih belajar dan menemukan gaya menulis.',
+            'Penulis': 'Mulai produktif dan aktif belajar.',
+            'Penulis Profesional': 'Penulis mapan dengan portofolio kuat.',
+            'Mentor': 'Puncak karir literasi, menginspirasi orang lain.'
+        };
+
+        const LEVEL_ICONS = {
+            'Tamu': '🌱',
+            'Penulis': '✍️',
+            'Penulis Profesional': '📚',
+            'Mentor': '🌟'
+        };
+
+        const KTA_CLASSES = {
+            'Tamu': 'kta-tamu',
+            'Penulis': 'kta-penulis',
+            'Penulis Profesional': 'kta-profesional',
+            'Mentor': 'kta-mentor'
+        };
+
+        // ============================================
+        // TIME AGO
+        // ============================================
+        function timeAgo(date) {
+            const now = new Date();
+            const past = new Date(date);
+            const diff = Math.floor((now - past) / 1000);
+            if (diff < 10) return 'baru saja';
+            if (diff < 60) return Math.floor(diff) + ' detik lalu';
+            if (diff < 3600) {
+                const minutes = Math.floor(diff / 60);
+                return minutes + ' menit lalu';
+            }
+            if (diff < 86400) {
+                const hours = Math.floor(diff / 3600);
+                return hours + ' jam lalu';
+            }
+            if (diff < 604800) {
+                const days = Math.floor(diff / 86400);
+                return days + ' hari lalu';
+            }
+            if (diff < 2592000) {
+                const weeks = Math.floor(diff / 604800);
+                return weeks + ' minggu lalu';
+            }
+            return past.toLocaleDateString('id-ID', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric' 
+            });
+        }
+
+        // ============================================
+        // 1. CEK LOGIN & ROLE
+        // ============================================
+        async function checkAuth() {
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return null;
+                }
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('role')
+                    .eq('id', session.user.id)
+                    .single();
+                if (error) {
+                    console.error('Profile error:', error);
+                    return session;
+                }
+                if (profile.role === 'admin') {
+                    window.location.href = 'admin.html';
+                    return null;
+                }
+                return session;
+            } catch (err) {
+                console.error('Auth check error:', err);
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
+
+        // ============================================
+        // 2. CEK AKSES PROYEK BUKU
+        // ============================================
+        async function checkProjectAccess(e) {
+            if (e) e.preventDefault();
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('member_level')
+                    .eq('id', session.user.id)
+                    .single();
+                if (error) {
+                    console.error('Error checking level:', error);
+                    window.location.href = 'projects.html';
+                    return;
+                }
+                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
+                if (allowedLevels.includes(profile.member_level)) {
+                    window.location.href = 'projects.html';
+                } else {
+                    showProjectAccessDenied(profile.member_level || 'Tamu');
+                }
+            } catch (err) {
+                console.error('Error checking access:', err);
+                window.location.href = 'projects.html';
+            }
+        }
+
+        function showProjectAccessDenied(currentLevel) {
+            let modal = document.getElementById('projectAccessModal');
+            if (modal) modal.remove();
+            const modalHtml = `
+                <div id="projectAccessModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+                        <button onclick="closeProjectAccessModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        <div class="text-center mb-4">
+                            <span class="text-amber-500 text-4xl block mb-2">🔒</span>
+                            <h3 class="text-xl font-black text-slate-800">Akses Dibatasi</h3>
+                            <p class="text-sm text-slate-500 mt-1">Fitur Proyek Buku hanya untuk member level tertentu.</p>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-4 border border-amber-200 mb-4">
+                            <p class="text-sm text-slate-600">Level Anda saat ini: <strong class="text-amber-700">${currentLevel || 'Tamu'}</strong></p>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">Anda perlu mencapai level:</p>
+                        <ul class="space-y-2 text-sm mb-4">
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">✍️</span>
+                                <div>
+                                    <strong>Penulis</strong>
+                                    <p class="text-xs text-slate-500">5+ karya dipublikasikan • 3+ kali mentoring</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">📚</span>
+                                <div>
+                                    <strong>Penulis Profesional</strong>
+                                    <p class="text-xs text-slate-500">20+ karya • 1+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">🌟</span>
+                                <div>
+                                    <strong>Mentor</strong>
+                                    <p class="text-xs text-slate-500">50+ karya • 3+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                        </ul>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button onclick="closeProjectAccessModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
+                                Tutup
+                            </button>
+                            <button onclick="closeProjectAccessModal(); window.location.href='dashboard.html'" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
+                                <i class="fa-regular fa-circle-question mr-1"></i> Lihat Syarat Level
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeProjectAccessModal() {
+            const modal = document.getElementById('projectAccessModal');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // ============================================
+        // 3. LOAD USER DATA
+        // ============================================
+        async function loadUserData() {
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error) {
+                    console.error('Profile error:', error);
+                    showError('Gagal memuat profil. Silakan refresh halaman.', 'Error');
+                    return;
+                }
+
+                const { data: writings, error: writingsError } = await _supabase
+                    .from('yata_writings')
+                    .select('id, status, views, likes')
+                    .eq('author_id', session.user.id);
+
+                if (writingsError) {
+                    console.error('Writings error:', writingsError);
+                }
+
+                const totalWritings = writings ? writings.length : 0;
+                const totalPublished = writings ? writings.filter(w => w.status === 'published').length : 0;
+                const totalDrafts = writings ? writings.filter(w => w.status === 'draft').length : 0;
+                const totalViews = writings ? writings.reduce((sum, w) => sum + (w.views || 0), 0) : 0;
+                const totalLikes = writings ? writings.reduce((sum, w) => sum + (w.likes || 0), 0) : 0;
+
+                const levelKey = calculateLevel(totalPublished, 0, 0, 0, 0);
+                currentLevelKey = levelKey;
+                const level = LEVELS[levelKey];
+
+                // Generate member_id jika belum ada
+                if (!profile.member_id) {
+                    try {
+                        const levelMap = {
+                            'Tamu': 'tamu',
+                            'Penulis': 'penulis',
+                            'Penulis Profesional': 'penulis_profesional',
+                            'Mentor': 'mentor'
+                        };
+                        let levelKeyForId = levelMap[profile.member_level] || 'tamu';
+                        
+                        const now = new Date();
+                        const tanggal = String(now.getDate()).padStart(2, '0');
+                        const bulan = String(now.getMonth() + 1).padStart(2, '0');
+                        const tahun = String(now.getFullYear()).slice(-2);
+                        const timestamp = String(Date.now()).slice(-4);
+                        
+                        const prefixMap = {
+                            'tamu': 'YATA-T',
+                            'penulis': 'YATA-P',
+                            'penulis_profesional': 'YATA-PP',
+                            'mentor': 'YATA-M'
+                        };
+                        const prefix = prefixMap[levelKeyForId] || 'YATA-T';
+                        const newMemberId = `${prefix}-${timestamp}${tanggal}${bulan}${tahun}`;
+                        
+                        const { error: updateError } = await _supabase
+                            .from('yata_profiles')
+                            .update({ member_id: newMemberId })
+                            .eq('id', session.user.id);
+                        
+                        if (!updateError) {
+                            profile.member_id = newMemberId;
+                            console.log('✅ Member ID generated:', newMemberId);
+                        } else {
+                            console.error('Update member_id error:', updateError);
+                            profile.member_id = `${prefix}-${timestamp}${tanggal}${bulan}${tahun}`;
+                        }
+                    } catch (err) {
+                        console.error('Generate member_id error:', err);
+                        const now = new Date();
+                        const timestamp = String(Date.now()).slice(-4);
+                        profile.member_id = `YATA-T-${timestamp}`;
+                    }
+                }
+
+                // Ambil level dari database
+                const displayLevel = profile.member_level || 'Tamu';
+                const displayIcon = LEVEL_ICONS[displayLevel] || '🌱';
+                const displayDescription = LEVEL_DESCRIPTIONS[displayLevel] || LEVEL_DESCRIPTIONS['Tamu'];
+
+                // Tampilkan data ke UI
+                document.getElementById('userFullName').textContent = profile.full_name || 'Pengguna';
+                document.getElementById('levelIcon').textContent = displayIcon;
+                document.getElementById('levelName').textContent = displayLevel;
+                document.getElementById('levelBigIcon').textContent = displayIcon;
+                document.getElementById('levelBigName').textContent = displayLevel;
+                document.getElementById('levelBigDesc').textContent = displayDescription;
+
+                const avatar = document.getElementById('avatarPlaceholder');
+                avatar.textContent = profile.full_name ? profile.full_name.charAt(0).toUpperCase() : '?';
+
+                const joinDate = new Date(profile.created_at);
+                document.getElementById('userJoinDate').textContent = `Bergabung ${joinDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`;
+
+                // Progress Level
+                if (displayLevel === 'Mentor') {
+                    document.getElementById('levelProgressBar').style.width = '100%';
+                    document.getElementById('levelProgressText').textContent = '100%';
+                    document.getElementById('levelNextInfo').textContent = '🏆 Anda sudah di level tertinggi!';
+                } else {
+                    const progress = getLevelProgress(levelKey, totalPublished, 0, 0, 0, 0);
+                    document.getElementById('levelProgressBar').style.width = progress.progress + '%';
+                    document.getElementById('levelProgressText').textContent = progress.progress + '%';
+                    document.getElementById('levelNextInfo').textContent = progress.text;
+                }
+
+                // Statistik
+                document.getElementById('statTotalWritings').textContent = totalWritings;
+                document.getElementById('statWritingsDetail').textContent = 
+                    `${totalPublished} Published, ${totalDrafts} Draft`;
+                document.getElementById('statTotalReads').textContent = totalViews;
+                document.getElementById('statReadsDetail').textContent = `dari ${totalWritings} karya`;
+                document.getElementById('statTotalLikes').textContent = totalLikes;
+                document.getElementById('statLikesDetail').textContent = `dari ${totalWritings} karya`;
+
+                if (totalViews > 0) {
+                    const { data: allWriters } = await _supabase
+                        .from('yata_writings')
+                        .select('author_id, views');
+
+                    if (allWriters) {
+                        const viewsMap = {};
+                        allWriters.forEach(w => {
+                            viewsMap[w.author_id] = (viewsMap[w.author_id] || 0) + (w.views || 0);
+                        });
+                        const sorted = Object.entries(viewsMap).sort((a, b) => b[1] - a[1]);
+                        const rank = sorted.findIndex(([id]) => id === session.user.id) + 1;
+                        if (rank > 0) {
+                            document.getElementById('statRank').textContent = `#${rank}`;
+                            document.getElementById('statRankDetail').textContent = `dari ${sorted.length} penulis aktif`;
+                        }
+                    }
+                }
+
+                renderKTA(profile);
+
+                await loadRecentWritings(session.user.id);
+                await loadRecentProjects(session.user.id);
+                await loadNotifications();
+                await loadMyCommunityCampaigns();
+
+            } catch (err) {
+                console.error('Load data error:', err);
+                showError('Terjadi kesalahan saat memuat dashboard.', 'Error');
+            }
+        }
+
+        // ============================================
+        // 4. RENDER KTA
+        // ============================================
+        function renderKTA(user) {
+            const container = document.getElementById('ktaCardContainer');
+            
+            const displayLevel = user?.member_level || 'Tamu';
+            const icon = LEVEL_ICONS[displayLevel] || '🌱';
+            const ktaClass = KTA_CLASSES[displayLevel] || 'kta-tamu';
+            const memberId = user?.member_id || formatMemberId();
+            const validDate = getKTAValidDate();
+
+            container.innerHTML = `
+                <div class="kta-small ${ktaClass}" onclick="openKtaModal()">
+                    <div class="kta-bg-pattern" style="position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;background:currentColor;opacity:0.05;pointer-events:none;"></div>
+                    <div>
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:2;">
+                            <div>
+                                <p class="kta-brand-sm">YATA</p>
+                                <p class="kta-title-sm">Kartu Tanda Anggota</p>
+                            </div>
+                            <span class="kta-badge-sm">${icon}</span>
+                        </div>
+                        <p class="kta-name-sm">${user?.full_name || 'Member'}</p>
+                        <p class="kta-level-sm">${displayLevel}</p>
+                    </div>
+                    <div class="kta-footer-sm">
+                        <div>
+                            <p class="label">ID Anggota</p>
+                            <p class="value">${memberId}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="label">Berlaku</p>
+                            <p style="font-size:10px;font-weight:600;">${validDate}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2 flex justify-end gap-2">
+                    <button onclick="openKtaModal()" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1">
+                        <i class="fa-regular fa-eye"></i> Lihat Detail
+                    </button>
+                    <button onclick="shareKTA()" class="share-kta-btn text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1">
+                        <i class="fa-regular fa-share-from-square"></i> Bagikan
+                    </button>
+                </div>
+            `;
+
+            currentUserData = { ...user, displayLevel, memberId, validDate };
+        }
+
+        // ============================================
+        // 5. SHARE KTA
+        // ============================================
+        function shareKTA() {
+            if (!currentUserData) return;
+            const url = window.location.origin + '/profile.html';
+            const title = `KTA YATA - ${currentUserData.full_name || 'Member'}`;
+            openShareDialog(title, url, 'KTA');
+        }
+
+        // ============================================
+        // 6. OPEN KTA MODAL
+        // ============================================
+        function openKtaModal() {
+            if (!currentUserData) return;
+            const { full_name, displayLevel, memberId, validDate } = currentUserData;
+            const icon = LEVEL_ICONS[displayLevel] || '🌱';
+            const ktaClass = KTA_CLASSES[displayLevel] || 'kta-tamu';
+
+            document.getElementById('ktaMemberName').textContent = full_name || 'Member';
+            document.getElementById('ktaLevelName').textContent = displayLevel;
+            document.getElementById('ktaMemberId').textContent = memberId;
+            document.getElementById('ktaLevelIcon').textContent = icon;
+
+            const preview = document.getElementById('ktaPreview');
+            preview.className = `kta-card ${ktaClass}`;
+            preview.style.maxWidth = '360px';
+            preview.style.width = '100%';
+
+            document.getElementById('ktaValidUntil').textContent = validDate || getKTAValidDate();
+
+            document.getElementById('ktaMessage').className = 'text-sm text-center hidden';
+            document.getElementById('downloadKtaBtn').disabled = false;
+            document.getElementById('downloadKtaBtn').innerHTML = '<i class="fa-solid fa-download"></i> Unduh KTA (PNG)';
+            document.getElementById('sendKtaEmailBtn').disabled = false;
+            document.getElementById('sendKtaEmailBtn').innerHTML = '<i class="fa-regular fa-envelope"></i> Kirim ke Email';
+
+            document.getElementById('ktaModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeKtaModal() {
+            document.getElementById('ktaModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            document.getElementById('ktaMessage').className = 'text-sm text-center hidden';
+        }
+
+        // ============================================
+        // 7. DOWNLOAD KTA
+        // ============================================
+        async function downloadKTA() {
+            if (isDownloadingKTA) return;
+            
+            const element = document.getElementById('ktaPreview');
+            if (!element) {
+                showKtaMessage('KTA tidak ditemukan.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('downloadKtaBtn');
+            isDownloadingKTA = true;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memproses...';
+            showKtaMessage('', '');
+
+            try {
+                const canvas = await html2canvas(element, {
+                    scale: 3,
+                    backgroundColor: null,
+                    allowTaint: true,
+                    useCORS: true,
+                    logging: false,
+                    width: element.scrollWidth,
+                    height: element.scrollHeight,
+                    windowWidth: element.scrollWidth,
+                    windowHeight: element.scrollHeight,
+                });
+
+                const link = document.createElement('a');
+                const name = currentUserData?.full_name || 'Member';
+                link.download = `KTA_YATA_${name.replace(/\s/g, '_')}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                showKtaMessage('✅ KTA berhasil diunduh!', 'success');
+                
+                try {
+                    const session = await checkAuth();
+                    if (session) {
+                        await _supabase
+                            .from('yata_activity_logs')
+                            .insert([{
+                                user_id: session.user.id,
+                                action: 'download_kta',
+                                details: { timestamp: new Date().toISOString() }
+                            }]);
+                    }
+                } catch (logErr) {
+                    console.error('Log activity error:', logErr);
+                }
+
+            } catch (err) {
+                console.error('Download KTA error:', err);
+                showKtaMessage('❌ Gagal mengunduh KTA. Silakan coba screenshot manual.', 'error');
+            } finally {
+                isDownloadingKTA = false;
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-download"></i> Unduh KTA (PNG)';
+            }
+        }
+
+        // ============================================
+        // 8. SEND KTA VIA EMAIL
+        // ============================================
+        async function sendKTAViaEmail() {
+            const btn = document.getElementById('sendKtaEmailBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+            showKtaMessage('', '');
+
+            try {
+                const session = await checkAuth();
+                if (!session) {
+                    showKtaMessage('Silakan login terlebih dahulu.', 'error');
+                    return;
+                }
+
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('email')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error) throw error;
+
+                const notifContent = `📧 KTA Anda telah dikirim ke email ${profile.email || 'Anda'}. Silakan cek kotak masuk (termasuk spam).`;
+
+                const { data: notifData } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: '📧 KTA Dikirim ke Email',
+                        content: notifContent,
+                        type: 'info'
+                    }])
+                    .select()
+                    .single();
+
+                if (notifData) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: session.user.id,
+                            is_read: false
+                        }]);
+                }
+
+                await _supabase
+                    .from('yata_activity_logs')
+                    .insert([{
+                        user_id: session.user.id,
+                        action: 'send_kta_email',
+                        details: { email: profile.email, timestamp: new Date().toISOString() }
+                    }]);
+
+                showKtaMessage(`✅ KTA telah dikirim ke email ${profile.email || 'Anda'}! Cek kotak masuk (termasuk spam).`, 'success');
+
+            } catch (err) {
+                console.error('Send KTA email error:', err);
+                showKtaMessage('❌ Gagal mengirim KTA ke email: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-regular fa-envelope"></i> Kirim ke Email';
+            }
+        }
+
+        function showKtaMessage(text, type) {
+            const msg = document.getElementById('ktaMessage');
+            msg.textContent = text;
+            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
+                type === 'success' ? 'text-emerald-600' :
+                type === 'error' ? 'text-red-600' :
+                ''
+            }`;
+        }
+
+        // ============================================
+        // 9. CALCULATE LEVEL
+        // ============================================
+        function calculateLevel(writings, mentoring, books, speakerInternal, speakerExternal) {
+            const totalWritings = writings || 0;
+            const totalMentoring = mentoring || 0;
+            const totalBooks = books || 0;
+            const totalSpeakerInternal = speakerInternal || 0;
+            const totalSpeakerExternal = speakerExternal || 0;
+
+            if (totalWritings >= 50 && totalMentoring >= 5 && totalBooks >= 3 && 
+                totalSpeakerInternal >= 5 && totalSpeakerExternal >= 3) {
+                return 'mentor';
+            }
+            if (totalWritings >= 20 && totalMentoring >= 5 && totalBooks >= 1 && 
+                totalSpeakerInternal >= 1) {
+                return 'penulis_profesional';
+            }
+            if (totalWritings >= 5 && totalMentoring >= 3) {
+                return 'penulis';
+            }
+            return 'tamu';
+        }
+
+        function getLevelProgress(levelKey, writings, mentoring, books, speakerInternal, speakerExternal) {
+            const level = LEVELS[levelKey];
+            if (!level || !level.nextLevel) return { progress: 100, text: 'Level Tertinggi!' };
+
+            const req = level.nextRequirements;
+
+            let achieved = 0;
+            let total = 0;
+
+            if (req.writings) {
+                total += req.writings;
+                achieved += Math.min(writings || 0, req.writings);
+            }
+            if (req.mentoring) {
+                total += req.mentoring;
+                achieved += Math.min(mentoring || 0, req.mentoring);
+            }
+            if (req.books) {
+                total += req.books;
+                achieved += Math.min(books || 0, req.books);
+            }
+            if (req.speakerInternal) {
+                total += req.speakerInternal;
+                achieved += Math.min(speakerInternal || 0, req.speakerInternal);
+            }
+            if (req.speakerExternal) {
+                total += req.speakerExternal;
+                achieved += Math.min(speakerExternal || 0, req.speakerExternal);
+            }
+
+            const progress = total > 0 ? Math.round((achieved / total) * 100) : 0;
+
+            let details = [];
+            if (req.writings) details.push(`${Math.min(writings || 0, req.writings)}/${req.writings} karya`);
+            if (req.mentoring) details.push(`${Math.min(mentoring || 0, req.mentoring)}/${req.mentoring} mentoring`);
+            if (req.books) details.push(`${Math.min(books || 0, req.books)}/${req.books} buku (ISBN/QRCBN)`);
+            if (req.speakerInternal) details.push(`${Math.min(speakerInternal || 0, req.speakerInternal)}/${req.speakerInternal} speaker internal`);
+            if (req.speakerExternal) details.push(`${Math.min(speakerExternal || 0, req.speakerExternal)}/${req.speakerExternal} speaker eksternal`);
+
+            return {
+                progress: Math.min(progress, 100),
+                text: `Butuh: ${details.join(', ')}`,
+                nextLevelName: LEVELS[level.nextLevel].name,
+                nextLevelIcon: LEVELS[level.nextLevel].icon
+            };
+        }
+
+        // ============================================
+        // 10. LOAD RECENT WRITINGS
+        // ============================================
+        async function loadRecentWritings(userId) {
+            const container = document.getElementById('recentWritings');
+            try {
+                const { data: writings, error } = await _supabase
+                    .from('yata_writings')
+                    .select('*')
+                    .eq('author_id', userId)
+                    .order('created_at', { ascending: false })
+                    .limit(3);
+
+                if (error) throw error;
+
+                if (!writings || writings.length === 0) {
+                    container.innerHTML = `<div class="text-center py-8 text-slate-400 text-sm"><i class="fa-regular fa-file-lines text-2xl block mb-2"></i>Belum ada karya. Yuk, mulai menulis!</div>`;
+                    return;
+                }
+
+                container.innerHTML = writings.map(w => `
+                            <div class="flex items-start gap-4 pb-4 border-b border-slate-100">
+                                <div class="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 text-xl flex-shrink-0">
+                                    ${w.category === 'puisi' ? '📝' : w.category === 'cerpen' ? '📖' : w.category === 'esai' ? '📄' : w.category === 'resensi' ? '📚' : '✍️'}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-bold text-slate-800 text-sm">${w.title}</h4>
+                                    <p class="text-xs text-slate-500 line-clamp-1">${w.content ? w.content.substring(0, 80) + '...' : 'Tidak ada konten'}</p>
+                                    <div class="flex items-center gap-3 mt-1 text-xs text-slate-400">
+                                        <span><i class="fa-regular fa-eye mr-1"></i> ${w.views || 0}</span>
+                                        <span><i class="fa-regular fa-heart mr-1"></i> ${w.likes || 0}</span>
+                                        <span class="${w.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'} px-2 py-0.5 rounded-full">${w.status === 'published' ? 'Published' : 'Draft'}</span>
+                                    </div>
+                                </div>
+                                <span class="text-xs text-slate-400 flex-shrink-0">${new Date(w.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
+                            </div>
+                        `).join('');
+
+            } catch (err) {
+                console.error('Recent writings error:', err);
+                container.innerHTML = `<div class="text-center py-8 text-red-400 text-sm"><i class="fa-solid fa-circle-exclamation text-xl block mb-2"></i>Gagal memuat karya.</div>`;
+            }
+        }
+
+        // ============================================
+        // 11. LOAD RECENT PROJECTS
+        // ============================================
+        async function loadRecentProjects(userId) {
+            const container = document.getElementById('recentProjects');
+            try {
+                const { data: projects, error } = await _supabase
+                    .from('yata_book_projects')
+                    .select('*')
+                    .eq('author_id', userId)
+                    .order('created_at', { ascending: false })
+                    .limit(2);
+
+                if (error) throw error;
+
+                if (!projects || projects.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full bg-white rounded-2xl p-6 text-center border border-emerald-100/60 shadow-sm">
+                            <i class="fa-regular fa-bookmark text-3xl text-slate-300 block mb-2"></i>
+                            <p class="text-slate-500 text-sm">Belum ada proyek buku.</p>
+                            <a href="#" onclick="checkProjectAccess(event)" class="inline-block mt-2 text-emerald-600 hover:text-emerald-700 text-sm font-semibold">
+                                Buat proyek buku sekarang
+                            </a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const statusLabels = {
+                    draft: '📝 Draft',
+                    review: '⏳ Review',
+                    editing: '✏️ Editing',
+                    layout: '📐 Layout',
+                    isbn_submission: '📖 ISBN/QRCBN',
+                    published: '✅ Terbit'
+                };
+
+                const statusClasses = {
+                    draft: 'bg-slate-100 text-slate-600',
+                    review: 'bg-yellow-100 text-yellow-700',
+                    editing: 'bg-blue-100 text-blue-700',
+                    layout: 'bg-indigo-100 text-indigo-700',
+                    isbn_submission: 'bg-pink-100 text-pink-700',
+                    published: 'bg-emerald-100 text-emerald-700'
+                };
+
+                container.innerHTML = projects.map(p => `
+                    <div class="bg-white rounded-2xl p-4 border border-emerald-100/60 shadow-sm hover:shadow-md transition">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h4 class="font-bold text-slate-800 text-sm truncate">${p.title}</h4>
+                                    <span class="text-xs px-2 py-0.5 rounded-full ${statusClasses[p.status] || 'bg-slate-100 text-slate-600'}">${statusLabels[p.status] || p.status}</span>
+                                </div>
+                                <p class="text-xs text-slate-500 mt-1">${p.total_chapters || 0} chapter • ${new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</p>
+                                <p class="text-xs text-slate-400 mt-1 line-clamp-1">${p.synopsis || 'Tidak ada sinopsis'}</p>
+                            </div>
+                            <a href="#" onclick="checkProjectAccess(event)" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-3 py-1.5 rounded-xl text-xs transition flex-shrink-0 ml-2">
+                                <i class="fa-regular fa-pen-to-square mr-1"></i> Lanjutkan
+                            </a>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                console.error('Load recent projects error:', err);
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-6 text-red-400 text-sm">
+                        Gagal memuat proyek buku.
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 12. LOAD KAMPANYE DARI KOMUNITAS SAYA
+        // ============================================
+        async function loadMyCommunityCampaigns() {
+            const container = document.getElementById('myCommunityCampaigns');
+            
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const { data: memberships, error: membershipError } = await _supabase
+                    .from('yata_community_members')
+                    .select('community_id')
+                    .eq('user_id', session.user.id);
+
+                if (membershipError) throw membershipError;
+                if (!memberships || memberships.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full bg-white rounded-2xl p-8 text-center border border-emerald-100/60 shadow-sm">
+                            <i class="fa-regular fa-flag text-3xl text-slate-300 block mb-2"></i>
+                            <p class="text-slate-500 text-sm">Bergabunglah dengan komunitas untuk melihat kampanye.</p>
+                            <a href="community.html" class="inline-block mt-2 text-emerald-600 hover:text-emerald-700 text-sm font-semibold">
+                                Cari Komunitas <i class="fa-solid fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const communityIds = memberships.map(m => m.community_id);
+
+                const { data: campaigns, error } = await _supabase
+                    .from('yata_community_campaigns')
+                    .select('*')
+                    .in('community_id', communityIds)
+                    .eq('verification_status', 'approved')
+                    .eq('status', 'active')
+                    .order('created_at', { ascending: false })
+                    .limit(4);
+
+                if (error) throw error;
+
+                // Ambil data community & creator
+                if (campaigns && campaigns.length > 0) {
+                    const commIds = [...new Set(campaigns.map(c => c.community_id).filter(id => id))];
+                    const creatorIds = [...new Set(campaigns.map(c => c.creator_id).filter(id => id))];
+                    
+                    let communityMap = {};
+                    let creatorMap = {};
+                    
+                    if (commIds.length > 0) {
+                        const { data: communities, error: commError } = await _supabase
+                            .from('yata_communities')
+                            .select('id, name')
+                            .in('id', commIds);
+                        
+                        if (!commError && communities) {
+                            communities.forEach(c => {
+                                communityMap[c.id] = c;
+                            });
+                        }
+                    }
+                    
+                    if (creatorIds.length > 0) {
+                        const { data: creators, error: creatorError } = await _supabase
+                            .from('yata_profiles')
+                            .select('id, full_name')
+                            .in('id', creatorIds);
+                        
+                        if (!creatorError && creators) {
+                            creators.forEach(c => {
+                                creatorMap[c.id] = c;
+                            });
+                        }
+                    }
+                    
+                    campaigns.forEach(c => {
+                        c.community = communityMap[c.community_id] || null;
+                        c.creator = creatorMap[c.creator_id] || null;
+                    });
+                }
+
+                if (!campaigns || campaigns.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full bg-white rounded-2xl p-8 text-center border border-emerald-100/60 shadow-sm">
+                            <i class="fa-regular fa-flag text-3xl text-slate-300 block mb-2"></i>
+                            <p class="text-slate-500 text-sm">Belum ada kampanye aktif dari komunitas Anda.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const campaignIds = campaigns.map(c => c.id);
+                
+                const { data: supporters, error: supportError } = await _supabase
+                    .from('yata_campaign_supporters')
+                    .select('campaign_id')
+                    .in('campaign_id', campaignIds);
+
+                const supportCount = {};
+                if (!supportError && supporters) {
+                    supporters.forEach(s => {
+                        supportCount[s.campaign_id] = (supportCount[s.campaign_id] || 0) + 1;
+                    });
+                }
+
+                const { data: participants, error: participantError } = await _supabase
+                    .from('yata_campaign_participants')
+                    .select('campaign_id')
+                    .in('campaign_id', campaignIds);
+
+                const participantCount = {};
+                if (!participantError && participants) {
+                    participants.forEach(p => {
+                        participantCount[p.campaign_id] = (participantCount[p.campaign_id] || 0) + 1;
+                    });
+                }
+
+                container.innerHTML = campaigns.map(c => {
+                    const supporters = supportCount[c.id] || 0;
+                    const participants = participantCount[c.id] || 0;
+                    const progress = c.target_progress > 0 
+                        ? Math.min(((c.current_progress || 0) / c.target_progress) * 100, 100) 
+                        : 0;
+
+                    return `
+                        <div class="bg-white rounded-2xl p-4 border border-emerald-100/60 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-start gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 text-lg flex-shrink-0">🎯</div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <h4 class="font-bold text-slate-800 text-sm truncate">${c.title}</h4>
+                                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">✅ Aktif</span>
+                                    </div>
+                                    <p class="text-xs text-slate-500">${c.community?.name || 'Komunitas'} • ${c.creator?.full_name || 'User'}</p>
+                                    <p class="text-xs text-slate-400 mt-1 line-clamp-1">${c.description || 'Tidak ada deskripsi'}</p>
+                                    ${c.target_progress > 0 ? `
+                                        <div class="mt-2">
+                                            <div class="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                                                <span>Progress</span>
+                                                <span>${c.current_progress || 0}/${c.target_progress}</span>
+                                            </div>
+                                            <div class="w-full bg-slate-200 rounded-full h-1.5">
+                                                <div class="bg-emerald-600 h-1.5 rounded-full" style="width: ${progress}%;"></div>
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                    <div class="mt-2 flex items-center gap-3 text-[10px] text-slate-400">
+                                        <span><i class="fa-regular fa-heart"></i> ${supporters}</span>
+                                        <span><i class="fa-regular fa-user"></i> ${participants} peserta</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3 pt-3 border-t border-slate-100 flex justify-end">
+                                <a href="campaigns.html" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition">
+                                    Lihat Detail <i class="fa-solid fa-arrow-right ml-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error('Load my community campaigns error:', err);
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-6 text-red-400 text-sm">
+                        Gagal memuat kampanye.
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 13. LOAD NOTIFICATIONS
+        // ============================================
+        async function loadNotifications() {
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const { data: notifications, error } = await _supabase
+                    .from('yata_notifications')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+
+                if (error) throw error;
+
+                const { data: userNotifs, error: userError } = await _supabase
+                    .from('yata_user_notifications')
+                    .select('notification_id, is_read')
+                    .eq('user_id', session.user.id);
+
+                if (userError) throw userError;
+
+                const readMap = {};
+                userNotifs.forEach(un => {
+                    readMap[un.notification_id] = un.is_read;
+                });
+
+                allNotifications = (notifications || []).map(n => ({
+                    ...n,
+                    is_read: readMap[n.id] || false
+                }));
+
+                unreadCount = allNotifications.filter(n => !n.is_read).length;
+                updateNotifBadge();
+                renderNotificationDropdown();
+
+            } catch (err) {
+                console.error('Load notifications error:', err);
+            }
+        }
+
+        // ============================================
+        // 14. NOTIFICATION FUNCTIONS
+        // ============================================
+        function renderNotificationDropdown() {
+            const container = document.getElementById('notifList');
+            
+            if (allNotifications.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-400 text-sm">
+                        <i class="fa-regular fa-bell text-3xl block mb-2"></i>
+                        Tidak ada notifikasi
+                    </div>
+                `;
+                return;
+            }
+
+            const typeColors = {
+                info: 'text-blue-500 bg-blue-50',
+                warning: 'text-yellow-500 bg-yellow-50',
+                success: 'text-emerald-500 bg-emerald-50',
+                event: 'text-purple-500 bg-purple-50',
+                campaign: 'text-orange-500 bg-orange-50',
+                publishing: 'text-rose-500 bg-rose-50'
+            };
+
+            const typeIcons = {
+                info: 'fa-circle-info',
+                warning: 'fa-triangle-exclamation',
+                success: 'fa-circle-check',
+                event: 'fa-calendar-check',
+                campaign: 'fa-flag',
+                publishing: 'fa-book'
+            };
+
+            container.innerHTML = allNotifications.slice(0, 5).map(n => `
+                <div class="notif-item px-4 py-3 hover:bg-slate-50 transition ${!n.is_read ? 'notif-unread' : 'notif-read'} cursor-pointer" 
+                     onclick="openNotifDetailFromDashboard('${n.id}')">
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full ${typeColors[n.type] || 'bg-slate-100 text-slate-500'} flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid ${typeIcons[n.type] || 'fa-bell'} text-xs"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-slate-800">${n.title}</p>
+                            <p class="text-xs text-slate-500 line-clamp-2">${n.content}</p>
+                            <p class="text-[10px] text-slate-400 mt-1">${timeAgo(n.created_at)}</p>
+                        </div>
+                        ${!n.is_read ? '<span class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 mt-1"></span>' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function openNotifDetailFromDashboard(notificationId) {
+            try {
+                const { data: freshNotif, error } = await _supabase
+                    .from('yata_notifications')
+                    .select('*')
+                    .eq('id', notificationId)
+                    .single();
+                    
+                if (error || !freshNotif) {
+                    window.location.href = 'notifications.html';
+                    return;
+                }
+
+                await markAsRead(notificationId);
+                window.location.href = `notifications.html?open=${notificationId}&t=${Date.now()}`;
+                
+            } catch (err) {
+                console.error('Open notification error:', err);
+                window.location.href = 'notifications.html';
+            }
+        }
+
+        async function markAsRead(notificationId) {
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const { error } = await _supabase
+                    .from('yata_user_notifications')
+                    .upsert({
+                        notification_id: notificationId,
+                        user_id: session.user.id,
+                        is_read: true,
+                        read_at: new Date().toISOString()
+                    }, {
+                        onConflict: 'notification_id, user_id'
+                    });
+
+                if (error) {
+                    console.error('Upsert error:', error);
+                    throw error;
+                }
+
+                const notif = allNotifications.find(n => n.id === notificationId);
+                if (notif) {
+                    notif.is_read = true;
+                }
+
+                updateNotifBadge();
+                renderNotificationDropdown();
+
+            } catch (err) {
+                console.error('Mark as read error:', err);
+            }
+        }
+
+        async function markAllRead() {
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const unreadNotifs = allNotifications.filter(n => !n.is_read);
+                if (unreadNotifs.length === 0) {
+                    showError('Semua notifikasi sudah dibaca.', 'Info');
+                    return;
+                }
+
+                if (!confirm(`Tandai ${unreadNotifs.length} notifikasi sebagai dibaca?`)) return;
+
+                for (const n of unreadNotifs) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .upsert({
+                            notification_id: n.id,
+                            user_id: session.user.id,
+                            is_read: true,
+                            read_at: new Date().toISOString()
+                        }, {
+                            onConflict: 'notification_id, user_id'
+                        });
+                }
+
+                allNotifications.forEach(n => n.is_read = true);
+                unreadCount = 0;
+                updateNotifBadge();
+                renderNotificationDropdown();
+                showError('✅ Semua notifikasi ditandai sebagai dibaca!', 'Sukses');
+
+            } catch (err) {
+                console.error('Mark all read error:', err);
+                showError('Gagal menandai semua notifikasi: ' + err.message, 'Error');
+            }
+        }
+
+        function updateNotifBadge() {
+            const badge = document.getElementById('notifBadge');
+            const badgeMobile = document.getElementById('notifBadgeMobile');
+            const count = unreadCount > 99 ? '99+' : unreadCount;
+
+            if (unreadCount > 0) {
+                if (badge) { badge.textContent = count; badge.classList.remove('hidden'); }
+                if (badgeMobile) { badgeMobile.textContent = count; badgeMobile.classList.remove('hidden'); }
+            } else {
+                if (badge) badge.classList.add('hidden');
+                if (badgeMobile) badgeMobile.classList.add('hidden');
+            }
+        }
+
+        function toggleNotificationDropdown() {
+            const dropdown = document.getElementById('notifDropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('hidden');
+                if (!dropdown.classList.contains('hidden')) {
+                    loadNotifications();
+                }
+            }
+        }
+
+        function openAllNotifications() {
+            window.location.href = 'notifications.html';
+        }
+
+        function closeNotifModal() {
+            document.getElementById('notifModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentModalNotifId = null;
+        }
+
+        // ============================================
+        // 15. MODAL FUNCTIONS
+        // ============================================
+        function openLevelModal() {
+            document.getElementById('levelModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLevelModal() {
+            document.getElementById('levelModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // ============================================
+        // 16. CONTACT FORM
+        // ============================================
+        function openContactModal() {
+            document.getElementById('contactModal').classList.remove('hidden');
+            document.getElementById('contactForm').classList.remove('hidden');
+            document.getElementById('contactSuccess').classList.add('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeContactModal() {
+            document.getElementById('contactModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            document.getElementById('contactForm').reset();
+        }
+
+        document.getElementById('contactForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const category = document.getElementById('contactCategory').value;
+            const subject = document.getElementById('contactSubject').value.trim();
+            const message = document.getElementById('contactMessage').value.trim();
+
+            if (!subject || !message) {
+                showError('Harap isi semua kolom yang wajib.', 'Validasi Gagal');
+                return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const { error } = await _supabase
+                    .from('yata_messages')
+                    .insert([{
+                        user_id: session.user.id,
+                        category: category,
+                        subject: subject,
+                        message: message,
+                        status: 'sent'
+                    }]);
+
+                if (error) throw error;
+
+                document.getElementById('contactForm').classList.add('hidden');
+                document.getElementById('contactSuccess').classList.remove('hidden');
+                showError('✅ Pesan berhasil dikirim! Tim YATA akan merespons secepatnya.', 'Sukses');
+
+            } catch (err) {
+                console.error('Send message error:', err);
+                showError('❌ Gagal mengirim pesan: ' + err.message, 'Error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Pesan';
+            }
+        });
+
+        // ============================================
+        // 17. LOGOUT
+        // ============================================
+        async function handleLogout() {
+            if (confirm('Yakin ingin keluar?')) {
+                try {
+                    const { error } = await _supabase.auth.signOut();
+                    if (!error) {
+                        window.location.href = 'login.html';
+                    } else {
+                        console.error('Logout error:', error);
+                    }
+                } catch (err) {
+                    console.error('Logout error:', err);
+                }
+            }
+        }
+
+        // ============================================
+        // 18. EVENT LISTENERS
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUserData();
+
+            document.getElementById('btnLogout').addEventListener('click', handleLogout);
+            document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);
+
+            document.getElementById('mobileMenuButton').addEventListener('click', function() {
+                document.getElementById('mobileMenu').classList.toggle('hidden');
+            });
+
+            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(el => {
+                el.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
+            });
+
+            document.getElementById('levelModal').addEventListener('click', function(e) {
+                if (e.target === this) closeLevelModal();
+            });
+
+            document.getElementById('ktaModal').addEventListener('click', function(e) {
+                if (e.target === this) closeKtaModal();
+            });
+
+            document.getElementById('notifModal').addEventListener('click', function(e) {
+                if (e.target === this) closeNotifModal();
+            });
+
+            document.getElementById('contactModal').addEventListener('click', function(e) {
+                if (e.target === this) closeContactModal();
+            });
+
+            document.addEventListener('click', function(e) {
+                const modal = document.getElementById('projectAccessModal');
+                if (modal && e.target === modal) {
+                    closeProjectAccessModal();
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>

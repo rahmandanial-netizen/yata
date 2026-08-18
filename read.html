@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Baca Karya — YATA</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6EE7B7',
+                        primaryDark: '#065F46',
+                        sage: '#A3E4D7',
+                        cream: '#FEF3C7',
+                        mint: '#B2F2BB',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #065F46; color: white; }
+        .sidebar-link.active i { color: white; }
+        .sidebar-link:hover:not(.active) { background-color: #e2e8f0; }
+        .content-text {
+            white-space: pre-wrap;
+            line-height: 1.8;
+            font-size: 15px;
+        }
+        .content-text p {
+            margin-bottom: 1em;
+        }
+        .like-btn.liked {
+            color: #ef4444;
+        }
+        .like-btn.liked i {
+            font-weight: 900;
+        }
+        .comment-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .comment-item {
+            transition: background 0.2s;
+        }
+        .comment-item:hover {
+            background-color: #f8fafc;
+        }
+        .share-btn:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- SIDEBAR (NAVIGASI PUBLIK) -->
+    <!-- ============================================ -->
+    <aside class="fixed top-0 left-0 z-40 w-64 h-screen bg-white border-r border-emerald-100/60 hidden md:block">
+        <div class="flex flex-col h-full">
+            <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
+                <a href="explore.html" class="flex items-center space-x-2 group">
+                    <div class="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/30">Y</div>
+                    <span class="text-xl font-extrabold text-emerald-800">YATA</span>
+                    <span class="text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 ml-1">Publik</span>
+                </a>
+            </div>
+
+            <nav class="flex-1 px-4 py-6 space-y-1">
+                <a href="explore.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-house w-5"></i> Beranda
+                </a>
+                <a href="feed.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book-open w-5"></i> Feed
+                </a>
+                <a href="campaigns.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-flag w-5"></i> Kampanye
+                </a>
+                <a href="login.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-emerald-600 rounded-xl transition">
+                    <i class="fa-solid fa-arrow-right-to-bracket w-5"></i> Masuk
+                </a>
+                <a href="register.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-emerald-600 rounded-xl transition">
+                    <i class="fa-solid fa-user-plus w-5"></i> Daftar
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-emerald-100/60">
+                <p class="text-xs text-slate-400 text-center">YATA v1.0 • Beta</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ============================================ -->
+    <!-- MOBILE HEADER -->
+    <!-- ============================================ -->
+    <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
+        <div class="flex items-center justify-between px-4 h-16">
+            <a href="explore.html" class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black">Y</div>
+                <span class="text-lg font-extrabold text-emerald-800">YATA</span>
+            </a>
+            <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+
+        <div id="mobileMenu" class="hidden bg-white border-t border-emerald-100/60 px-4 py-4 space-y-2">
+            <a href="explore.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Beranda</a>
+            <a href="feed.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Feed</a>
+            <a href="campaigns.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kampanye</a>
+            <a href="login.html" class="block px-4 py-2.5 text-emerald-600 font-semibold hover:bg-emerald-50 rounded-xl">Masuk</a>
+            <a href="register.html" class="block px-4 py-2.5 text-emerald-600 font-semibold hover:bg-emerald-50 rounded-xl">Daftar</a>
+            <hr class="my-2 border-emerald-100" />
+            <button id="btnLogout" class="block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
+        </div>
+    </header>
+
+    <!-- ============================================ -->
+    <!-- KONTEN UTAMA -->
+    <!-- ============================================ -->
+    <main class="pt-20 min-h-screen bg-slate-50/50">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+            <!-- Loading State -->
+            <div id="loadingState" class="text-center py-20">
+                <i class="fa-solid fa-spinner fa-spin text-4xl text-emerald-600 mb-4 block"></i>
+                <p class="text-slate-500 text-sm">Memuat karya...</p>
+            </div>
+
+            <!-- Konten -->
+            <div id="contentContainer" class="hidden">
+
+                <!-- Header Karya -->
+                <div class="bg-white rounded-3xl p-6 border border-emerald-100/60 shadow-sm mb-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 flex-wrap mb-2">
+                                <span id="writingStatus" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-700">Published</span>
+                                <span id="writingCategory" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-600">Cerpen</span>
+                            </div>
+                            <h1 id="writingTitle" class="text-3xl font-black text-slate-800 mb-2">Judul Karya</h1>
+                            <div class="flex items-center gap-3 text-sm text-slate-500">
+                                <span><i class="fa-regular fa-user mr-1"></i> <span id="writingAuthor">Penulis</span></span>
+                                <span>•</span>
+                                <span><i class="fa-regular fa-calendar mr-1"></i> <span id="writingDate">1 Jan 2026</span></span>
+                                <span>•</span>
+                                <span><i class="fa-regular fa-clock mr-1"></i> <span id="writingWordCount">0</span> kata</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <button id="likeBtn" class="like-btn text-slate-400 hover:text-red-500 transition text-xl p-2 hover:bg-red-50 rounded-full">
+                                <i class="fa-regular fa-heart"></i>
+                            </button>
+                            <span id="likeCount" class="text-sm font-semibold text-slate-600 min-w-[20px]">0</span>
+                            <button onclick="shareWriting()" class="share-btn text-slate-400 hover:text-emerald-600 transition text-xl p-2 hover:bg-emerald-50 rounded-full" title="Bagikan karya ini">
+                                <i class="fa-regular fa-share-from-square"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Konten -->
+                <div class="bg-white rounded-3xl p-8 border border-emerald-100/60 shadow-sm">
+                    <div id="writingContent" class="content-text text-slate-700 leading-relaxed">
+                        Konten karya akan ditampilkan di sini...
+                    </div>
+                </div>
+
+                <!-- Footer Info & Aksi -->
+                <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-4 text-sm text-slate-400">
+                        <span><i class="fa-regular fa-eye mr-1"></i> <span id="viewCount">0</span> dibaca</span>
+                        <span><i class="fa-regular fa-heart mr-1"></i> <span id="footerLikeCount">0</span> menyukai</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <a href="explore.html" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition flex items-center gap-2">
+                            <i class="fa-solid fa-arrow-left"></i> Kembali ke Jelajahi
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Profil Penulis Ringkas -->
+                <div class="mt-8 bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm">
+                    <div class="flex items-center gap-4">
+                        <div id="authorAvatar" class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-lg">?</div>
+                        <div>
+                            <p class="font-bold text-slate-800 text-sm" id="authorName">Penulis</p>
+                            <p class="text-xs text-slate-400" id="authorLevel">🌱 Tamu</p>
+                        </div>
+                        <div class="ml-auto text-right text-xs text-slate-400">
+                            <p id="authorTotalWritings">0 karya</p>
+                            <p id="authorTotalViews">0 pembaca</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================================ -->
+                <!-- BAGIAN KOMENTAR -->
+                <!-- ============================================ -->
+                <div class="mt-10 bg-white rounded-3xl p-6 border border-emerald-100/60 shadow-sm">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-regular fa-comment-dots text-emerald-600"></i> Komentar
+                            <span id="commentCount" class="text-sm font-normal text-slate-400 bg-slate-100 px-2.5 py-0.5 rounded-full">0</span>
+                        </h3>
+                    </div>
+
+                    <!-- Form Tambah Komentar -->
+                    <div class="mb-6">
+                        <div class="flex items-start gap-3">
+                            <div id="commentAvatar" class="comment-avatar bg-emerald-100 text-emerald-700">?</div>
+                            <div class="flex-1">
+                                <textarea
+                                    id="commentInput"
+                                    placeholder="Tulis komentar..."
+                                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"
+                                    rows="2"
+                                ></textarea>
+                                <div class="flex justify-end mt-2">
+                                    <button
+                                        id="submitCommentBtn"
+                                        class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <i class="fa-regular fa-paper-plane mr-1"></i> Kirim
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Daftar Komentar -->
+                    <div id="commentsList" class="space-y-4 divide-y divide-slate-100">
+                        <div class="text-center py-6 text-slate-400 text-sm">
+                            <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat komentar...
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+        // ✅ Gunakan _supabase konsisten
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        let currentWriting = null;
+        let currentUser = null;
+        let hasLiked = false;
+        let writingId = null;
+
+        // ============================================
+        // 1. AMBIL ID KARYA DARI URL
+        // ============================================
+        function getWritingId() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('id');
+        }
+
+        // ============================================
+        // 2. CEK LOGIN (TANPA REDIRECT!)
+        // ============================================
+        async function checkAuth() {
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (session) {
+                    currentUser = session.user;
+                    updateCommentAvatar();
+                }
+                return session;
+            } catch (err) {
+                console.error('Auth check error:', err);
+                return null;
+            }
+        }
+
+        // ============================================
+        // 3. UPDATE AVATAR KOMENTAR
+        // ============================================
+        function updateCommentAvatar() {
+            const avatar = document.getElementById('commentAvatar');
+            if (currentUser && avatar) {
+                const name = currentUser.user_metadata?.full_name || currentUser.email || 'User';
+                avatar.textContent = name.charAt(0).toUpperCase();
+            }
+        }
+
+        // ============================================
+        // 4. LOAD KARYA
+        // ============================================
+        async function loadWriting() {
+            writingId = getWritingId();
+            if (!writingId) {
+                showError('ID karya tidak ditemukan.', 'Error');
+                window.location.href = 'explore.html';
+                return;
+            }
+
+            try {
+                await checkAuth();
+
+                const { data: writing, error } = await _supabase
+                    .from('yata_writings')
+                    .select('*, profiles:author_id(full_name, username, member_level)')
+                    .eq('id', writingId)
+                    .single();
+
+                if (error) {
+                    console.error('Load writing error:', error);
+                    if (error.code === 'PGRST116') {
+                        showError('Karya tidak ditemukan.', 'Error');
+                    } else {
+                        showError('Gagal memuat karya: ' + error.message, 'Error');
+                    }
+                    window.location.href = 'explore.html';
+                    return;
+                }
+
+                currentWriting = writing;
+
+                await _supabase
+                    .from('yata_writings')
+                    .update({ views: (writing.views || 0) + 1 })
+                    .eq('id', writingId);
+
+                await checkLikeStatus(writingId);
+
+                renderWriting(writing);
+                await loadComments(writingId);
+
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('contentContainer').classList.remove('hidden');
+
+            } catch (err) {
+                console.error('Load writing error:', err);
+                showError('Terjadi kesalahan saat memuat karya.', 'Error');
+                window.location.href = 'explore.html';
+            }
+        }
+
+        // ============================================
+        // 5. CEK LIKE STATUS
+        // ============================================
+        async function checkLikeStatus(writingId) {
+            try {
+                if (!currentUser) return;
+                const { data, error } = await _supabase
+                    .from('yata_likes')
+                    .select('*')
+                    .eq('writing_id', writingId)
+                    .eq('user_id', currentUser.id)
+                    .maybeSingle();
+
+                if (!error && data) {
+                    hasLiked = true;
+                    document.getElementById('likeBtn').classList.add('liked');
+                    document.getElementById('likeBtn').innerHTML = '<i class="fa-solid fa-heart"></i>';
+                } else {
+                    hasLiked = false;
+                    document.getElementById('likeBtn').classList.remove('liked');
+                    document.getElementById('likeBtn').innerHTML = '<i class="fa-regular fa-heart"></i>';
+                }
+            } catch (err) {
+                console.error('Check like error:', err);
+            }
+        }
+
+        // ============================================
+        // 6. RENDER KARYA
+        // ============================================
+        function renderWriting(writing) {
+            document.getElementById('writingTitle').textContent = writing.title;
+            document.getElementById('writingAuthor').textContent = writing.profiles?.full_name || 'Penulis';
+            document.getElementById('writingDate').textContent = new Date(writing.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            document.getElementById('writingWordCount').textContent = writing.word_count || 0;
+            document.getElementById('writingStatus').textContent = writing.status === 'published' ? '📖 Published' : '✏️ Draft';
+            document.getElementById('writingStatus').className = `text-xs px-2.5 py-0.5 rounded-full font-semibold ${writing.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`;
+            document.getElementById('writingCategory').textContent = writing.category || 'Umum';
+            document.getElementById('viewCount').textContent = writing.views || 0;
+            document.getElementById('likeCount').textContent = writing.likes || 0;
+            document.getElementById('footerLikeCount').textContent = writing.likes || 0;
+
+            const content = writing.content || 'Tidak ada konten.';
+            const paragraphs = content.split('\n').filter(p => p.trim() !== '');
+            document.getElementById('writingContent').innerHTML = paragraphs.map(p => `<p>${p}</p>`).join('');
+
+            const authorName = writing.profiles?.full_name || 'Penulis';
+            const authorLevel = writing.profiles?.member_level || 'Tamu';
+            const avatar = authorName.charAt(0).toUpperCase();
+            document.getElementById('authorAvatar').textContent = avatar;
+            document.getElementById('authorName').textContent = authorName;
+            document.getElementById('authorLevel').textContent = getLevelIcon(authorLevel) + ' ' + authorLevel;
+
+            loadAuthorStats(writing.author_id);
+        }
+
+        // ============================================
+        // 7. GET LEVEL ICON
+        // ============================================
+        function getLevelIcon(level) {
+            const icons = {
+                'Tamu': '🌱',
+                'Penulis': '✍️',
+                'Penulis Profesional': '📚',
+                'Mentor': '🌟'
+            };
+            return icons[level] || '🌱';
+        }
+
+        // ============================================
+        // 8. LOAD AUTHOR STATS
+        // ============================================
+        async function loadAuthorStats(authorId) {
+            try {
+                const { count, error } = await _supabase
+                    .from('yata_writings')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('author_id', authorId);
+
+                if (!error) {
+                    document.getElementById('authorTotalWritings').textContent = (count || 0) + ' karya';
+                }
+
+                const { data, error: viewsError } = await _supabase
+                    .from('yata_writings')
+                    .select('views')
+                    .eq('author_id', authorId);
+
+                if (!viewsError && data) {
+                    const totalViews = data.reduce((sum, w) => sum + (w.views || 0), 0);
+                    document.getElementById('authorTotalViews').textContent = totalViews + ' pembaca';
+                }
+            } catch (err) {
+                console.error('Author stats error:', err);
+            }
+        }
+
+        // ============================================
+        // 9. LIKE / UNLIKE (TANPA LOGIN - PAKAI GUEST)
+        // ============================================
+        document.getElementById('likeBtn').addEventListener('click', async function() {
+            const rateCheck = checkRateLimit('like');
+            if (!rateCheck.allowed) {
+                showError(rateCheck.message, '⏳ Terlalu Cepat');
+                return;
+            }
+
+            if (!currentWriting) {
+                showError('Karya tidak ditemukan.', 'Error');
+                return;
+            }
+
+            const writingId = currentWriting.id;
+
+            try {
+                let userId = currentUser?.id || getGuestId();
+
+                const { data: existing, error: checkError } = await _supabase
+                    .from('yata_likes')
+                    .select('*')
+                    .eq('writing_id', writingId)
+                    .eq('user_id', userId)
+                    .maybeSingle();
+
+                if (checkError) throw checkError;
+
+                let newLikes = currentWriting.likes || 0;
+
+                if (hasLiked) {
+                    const { error } = await _supabase
+                        .from('yata_likes')
+                        .delete()
+                        .eq('writing_id', writingId)
+                        .eq('user_id', userId);
+
+                    if (error) throw error;
+
+                    newLikes = Math.max(0, newLikes - 1);
+                    hasLiked = false;
+                    currentWriting.likes = newLikes;
+                    this.classList.remove('liked');
+                    this.innerHTML = '<i class="fa-regular fa-heart"></i>';
+
+                } else {
+                    if (!currentUser) {
+                        await ensureGuestProfile(userId);
+                    }
+
+                    const { error } = await _supabase
+                        .from('yata_likes')
+                        .insert([{
+                            writing_id: writingId,
+                            user_id: userId
+                        }]);
+
+                    if (error) throw error;
+
+                    newLikes = newLikes + 1;
+                    hasLiked = true;
+                    currentWriting.likes = newLikes;
+                    this.classList.add('liked');
+                    this.innerHTML = '<i class="fa-solid fa-heart"></i>';
+                }
+
+                saveRateLimit('like');
+
+                const { error: updateError } = await _supabase
+                    .from('yata_writings')
+                    .update({ likes: newLikes })
+                    .eq('id', writingId);
+
+                if (updateError) throw updateError;
+
+                document.getElementById('likeCount').textContent = newLikes;
+                document.getElementById('footerLikeCount').textContent = newLikes;
+
+            } catch (err) {
+                handleSupabaseError(err, 'Menyukai karya');
+            }
+        });
+
+        // ============================================
+        // 10. SHARE WRITING
+        // ============================================
+        function shareWriting() {
+            if (!currentWriting) return;
+            const url = window.location.href;
+            const title = currentWriting.title || 'Karya di YATA';
+            openShareDialog(title, url, 'karya');
+        }
+
+        // ============================================
+        // 11. KOMENTAR - LOAD
+        // ============================================
+        async function loadComments(writingId) {
+            const container = document.getElementById('commentsList');
+            const countEl = document.getElementById('commentCount');
+
+            try {
+                const result = await fetchWithErrorHandling(
+                    _supabase.from('yata_comments')
+                        .select(`
+                            *,
+                            profiles:user_id(full_name, member_level)
+                        `)
+                        .eq('writing_id', writingId)
+                        .order('created_at', { ascending: false }),
+                    'Memuat komentar'
+                );
+
+                if (result.error) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-red-400 text-sm">
+                            <i class="fa-solid fa-circle-exclamation mr-1"></i>
+                            Gagal memuat komentar.
+                            <button onclick="loadComments('${writingId}')" class="text-emerald-600 hover:underline block mt-2">
+                                Coba lagi
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const comments = result.data || [];
+                countEl.textContent = comments.length;
+
+                if (comments.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-slate-400 text-sm">
+                            <i class="fa-regular fa-comment-dots text-2xl block mb-2"></i>
+                            Belum ada komentar. Jadilah yang pertama!
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = comments.map(c => {
+                    const name = c.profiles?.full_name || 'User';
+                    const level = c.profiles?.member_level || 'Tamu';
+                    const avatar = name.charAt(0).toUpperCase();
+                    const isOwner = currentUser && c.user_id === currentUser.id;
+
+                    return `
+                        <div class="comment-item py-4 first:pt-0 last:pb-0">
+                            <div class="flex items-start gap-3">
+                                <div class="comment-avatar bg-emerald-100 text-emerald-700 flex-shrink-0">${avatar}</div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-bold text-slate-800 text-sm">${name}</span>
+                                        <span class="text-xs text-slate-400">${getLevelIcon(level)} ${level}</span>
+                                        <span class="text-xs text-slate-400">•</span>
+                                        <span class="text-xs text-slate-400">${timeAgo(c.created_at)}</span>
+                                    </div>
+                                    <p class="text-sm text-slate-700 mt-1">${c.content}</p>
+                                    ${isOwner ? `
+                                        <button onclick="deleteComment('${c.id}')" class="text-xs text-red-400 hover:text-red-600 transition mt-1">
+                                            <i class="fa-regular fa-trash-can mr-1"></i> Hapus
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                handleSupabaseError(err, 'Memuat komentar');
+            }
+        }
+
+        // ============================================
+        // 12. KOMENTAR - TAMBAH (TANPA LOGIN)
+        // ============================================
+        document.getElementById('submitCommentBtn').addEventListener('click', async function() {
+            const rateCheck = checkRateLimit('comment');
+            if (!rateCheck.allowed) {
+                showError(rateCheck.message, '⏳ Terlalu Cepat');
+                return;
+            }
+
+            const input = document.getElementById('commentInput');
+            const content = input.value.trim();
+
+            if (!content) {
+                showError('Silakan tulis komentar terlebih dahulu.', 'Info');
+                return;
+            }
+
+            if (!currentWriting) {
+                showError('Karya tidak ditemukan.', 'Error');
+                return;
+            }
+
+            let userId = currentUser?.id || getGuestId();
+
+            this.disabled = true;
+            this.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+
+            try {
+                if (!currentUser) {
+                    await ensureGuestProfile(userId);
+                }
+
+                const result = await fetchWithErrorHandling(
+                    _supabase.from('yata_comments').insert([{
+                        writing_id: currentWriting.id,
+                        user_id: userId,
+                        content: content
+                    }]),
+                    'Mengirim komentar'
+                );
+
+                if (result.error) {
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim';
+                    return;
+                }
+
+                saveRateLimit('comment');
+
+                input.value = '';
+                showError('✅ Komentar berhasil dikirim!', 'Sukses');
+                await loadComments(currentWriting.id);
+
+            } catch (err) {
+                handleSupabaseError(err, 'Mengirim komentar');
+            } finally {
+                this.disabled = false;
+                this.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim';
+            }
+        });
+
+        document.getElementById('commentInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('submitCommentBtn').click();
+            }
+        });
+
+        // ============================================
+        // 13. KOMENTAR - HAPUS
+        // ============================================
+        async function deleteComment(commentId) {
+            if (!confirm('Yakin ingin menghapus komentar ini?')) return;
+
+            try {
+                const result = await fetchWithErrorHandling(
+                    _supabase.from('yata_comments').delete().eq('id', commentId),
+                    'Menghapus komentar'
+                );
+
+                if (result.error) return;
+
+                showError('✅ Komentar berhasil dihapus.', 'Sukses');
+                await loadComments(currentWriting.id);
+
+            } catch (err) {
+                handleSupabaseError(err, 'Menghapus komentar');
+            }
+        }
+
+        // ============================================
+        // 14. LOGOUT
+        // ============================================
+        async function handleLogout() {
+            if (confirm('Yakin ingin keluar?')) {
+                try {
+                    const { error } = await _supabase.auth.signOut();
+                    if (!error) {
+                        window.location.href = 'login.html';
+                    } else {
+                        console.error('Logout error:', error);
+                    }
+                } catch (err) {
+                    console.error('Logout error:', err);
+                }
+            }
+        }
+
+        // ============================================
+        // 15. EVENT LISTENERS
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadWriting();
+
+            document.getElementById('btnLogout').addEventListener('click', handleLogout);
+
+            document.getElementById('mobileMenuButton').addEventListener('click', function() {
+                document.getElementById('mobileMenu').classList.toggle('hidden');
+            });
+
+            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(el => {
+                el.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
+            });
+        });
+    </script>
+
+</body>
+</html>

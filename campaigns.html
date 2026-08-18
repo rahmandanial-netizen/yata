@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kampanye — YATA</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6EE7B7',
+                        primaryDark: '#065F46',
+                        sage: '#A3E4D7',
+                        cream: '#FEF3C7',
+                        mint: '#B2F2BB',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .campaign-card {
+            transition: all 0.3s ease;
+        }
+        .campaign-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px -12px rgba(6, 95, 70, 0.2);
+        }
+        .progress-bar {
+            transition: width 1s ease-in-out;
+        }
+        .filter-btn.active {
+            background-color: #065F46;
+            color: white;
+        }
+        .filter-btn:not(.active):hover {
+            background-color: #f1f5f9;
+        }
+        .status-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            display: inline-block;
+        }
+        .status-approved { background-color: #D1FAE5; color: #065F46; }
+        .status-pending { background-color: #FEF3C7; color: #92400E; }
+        .status-rejected { background-color: #FEE2E2; color: #991B1B; }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .nav-link-jelajahi {
+            color: #F59E0B;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .nav-link-jelajahi:hover {
+            color: #D97706;
+        }
+        .nav-link-jelajahi::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #F59E0B;
+            transition: width 0.3s ease;
+        }
+        .nav-link-jelajahi:hover::after {
+            width: 100%;
+        }
+        .btn-daftar-komunitas {
+            background: #065F46;
+            color: white;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(6, 95, 70, 0.35);
+        }
+        .btn-daftar-komunitas:hover {
+            background: #0D9488;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(6, 95, 70, 0.45);
+        }
+        .skeleton-card {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        .skeleton-card .bg-slate-200 {
+            background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .modal-enter { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- NAVBAR -->
+    <!-- ============================================ -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="explore.html" class="flex items-center space-x-2 group">
+                    <div class="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/30 group-hover:scale-105 transition">Y</div>
+                    <span class="text-xl font-extrabold text-emerald-800">YATA</span>
+                    <span class="hidden sm:inline text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Publik</span>
+                </a>
+
+                <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-600">
+                    <a href="explore.html" class="hover:text-emerald-600 transition">Beranda</a>
+                    <a href="feed.html" class="hover:text-emerald-600 transition">📖 Feed</a>
+                    <a href="campaigns.html" class="nav-link-jelajahi">Kampanye</a>
+                    <a href="penulis.html" class="hover:text-emerald-600 transition">Penulis</a>
+                    <a href="#mentoring" class="hover:text-emerald-600 transition">Mentoring</a>
+                    <a href="#tentang" class="hover:text-emerald-600 transition">Tentang</a>
+                    <a href="login.html" class="text-emerald-600 hover:text-emerald-700 font-semibold transition">Masuk</a>
+                    <a href="register.html" class="btn-daftar-komunitas px-5 py-2 rounded-full text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-user-plus mr-1"></i> Daftar Komunitas
+                    </a>
+                </div>
+
+                <button id="menu-btn" class="md:hidden text-slate-600 hover:text-emerald-600 text-xl">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="md:hidden hidden bg-white border-t border-emerald-100 px-4 py-4 space-y-3">
+            <a href="explore.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Beranda</a>
+            <a href="feed.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">📖 Feed</a>
+            <a href="campaigns.html" class="block text-sm font-medium text-amber-600 font-semibold">🎯 Kampanye</a>
+            <a href="penulis.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">👥 Penulis</a>
+            <a href="#mentoring" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Mentoring</a>
+            <a href="#tentang" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Tentang</a>
+            <a href="login.html" class="block text-sm font-medium text-emerald-600 hover:text-emerald-700">Masuk</a>
+            <a href="register.html" class="block bg-emerald-700 hover:bg-emerald-800 text-white text-center px-4 py-2.5 rounded-full text-sm font-bold transition">
+                Daftar Komunitas
+            </a>
+        </div>
+    </nav>
+
+    <!-- ============================================ -->
+    <!-- HERO KAMPANYE -->
+    <!-- ============================================ -->
+    <section class="pt-24 pb-10 bg-gradient-to-b from-emerald-50/50 to-white border-b border-emerald-100/60">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <span class="inline-block text-emerald-600 text-sm font-bold uppercase tracking-wider bg-emerald-100/80 px-4 py-1.5 rounded-full mb-4 border border-emerald-200/60">🎯 Gerakan Literasi</span>
+            <h1 class="text-4xl sm:text-5xl font-black text-slate-800 mb-4">Semua <span class="text-emerald-600">Kampanye</span> Literasi</h1>
+            <p class="text-lg text-slate-500 max-w-2xl mx-auto">Temukan dan ikuti kampanye literasi dari berbagai komunitas di YATA.</p>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- FILTER & SEARCH -->
+    <!-- ============================================ -->
+    <section class="py-4 bg-white border-b border-slate-200/60 sticky top-16 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button onclick="filterCampaigns('all')" class="filter-btn active px-3 py-1.5 rounded-full text-xs font-bold transition bg-emerald-600 text-white" id="filterAll">Semua</button>
+                    <button onclick="filterCampaigns('approved')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterApproved">✅ Terverifikasi</button>
+                    <button onclick="filterCampaigns('pending')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterPending">⏳ Menunggu</button>
+                </div>
+                <div class="relative w-full sm:w-56">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchCampaign" placeholder="Cari kampanye..." oninput="searchCampaign()" class="w-full pl-9 pr-4 py-1.5 rounded-full border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white" />
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- DAFTAR KAMPANYE -->
+    <!-- ============================================ -->
+    <section class="py-8 bg-slate-50/50 min-h-screen">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        📋 Semua Kampanye
+                        <span class="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full" id="campaignCount">0</span>
+                    </h2>
+                    <p class="text-xs text-slate-500">Kampanye dari komunitas YATA</p>
+                </div>
+            </div>
+
+            <div id="campaignGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Akan diisi JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- MODAL IKUT KAMPANYE (FORM PENDAFTARAN) -->
+    <!-- ============================================ -->
+    <div id="joinModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeJoinModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Pendaftaran</span>
+                <h3 id="joinModalTitle" class="text-xl font-black text-slate-800 mt-1">Ikut Kampanye</h3>
+                <p id="joinModalSubtitle" class="text-xs text-slate-500 mt-1">Isi data diri Anda untuk mendaftar.</p>
+            </div>
+
+            <form id="joinForm" class="space-y-4">
+                <input type="hidden" id="joinCampaignId" value="" />
+
+                <div>
+                    <label for="joinName" class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap <span class="text-red-500">*</span></label>
+                    <input type="text" id="joinName" placeholder="Masukkan nama lengkap" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="joinEmail" class="block text-xs font-semibold text-slate-700 mb-1">Email <span class="text-red-500">*</span></label>
+                    <input type="email" id="joinEmail" placeholder="Masukkan email" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="joinPhone" class="block text-xs font-semibold text-slate-700 mb-1">No. WhatsApp <span class="text-red-500">*</span></label>
+                    <input type="tel" id="joinPhone" placeholder="Contoh: 08123456789" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="joinReason" class="block text-xs font-semibold text-slate-700 mb-1">Alasan Ikut</label>
+                    <textarea id="joinReason" rows="2" placeholder="Ceritakan alasan Anda ingin ikut kampanye ini..." class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
+                </div>
+
+                <button type="submit" id="joinSubmitBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-regular fa-paper-plane mr-1"></i> Kirim Pendaftaran
+                </button>
+
+                <div id="joinMessage" class="text-sm text-center hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL LOGIN POPUP (UNTUK GUEST) -->
+    <!-- ============================================ -->
+    <div id="loginPopupModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeLoginPopup()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-amber-500 text-4xl block mb-2">🔒</span>
+                <h3 class="text-xl font-black text-slate-800">Login Diperlukan</h3>
+                <p class="text-sm text-slate-500 mt-1">Silakan login terlebih dahulu untuk ikut kampanye.</p>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <a href="login.html" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm text-center">
+                    <i class="fa-solid fa-arrow-right-to-bracket mr-2"></i> Login
+                </a>
+                <a href="register.html" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition text-sm text-center">
+                    <i class="fa-solid fa-user-plus mr-2"></i> Daftar Komunitas
+                </a>
+                <button onclick="closeLoginPopup()" class="w-full bg-transparent hover:bg-slate-50 text-slate-400 font-semibold py-2 rounded-xl transition text-sm">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================ -->
+    <footer class="bg-emerald-950 border-t border-emerald-800 py-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-emerald-400 rounded-xl flex items-center justify-center text-emerald-900 font-black text-sm">Y</div>
+                    <span class="text-white font-bold text-lg">YATA</span>
+                    <span class="text-xs text-emerald-400/60">Kata yang Menggerakkan</span>
+                </div>
+                <div class="flex space-x-4 text-emerald-400/60">
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-instagram text-lg"></i></a>
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-tiktok text-lg"></i></a>
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-twitter text-lg"></i></a>
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-youtube text-lg"></i></a>
+                </div>
+                <p class="text-xs text-emerald-400/40">&copy; 2026 YATA. Gerakan Literasi untuk Semua.</p>
+            </div>
+            <div class="border-t border-emerald-800/50 mt-6 pt-6 flex flex-wrap justify-center gap-6 text-xs text-emerald-400/40">
+                <a href="#" class="hover:text-emerald-300">Tentang Kami</a>
+                <a href="#" class="hover:text-emerald-300">Syarat &amp; Ketentuan</a>
+                <a href="#" class="hover:text-emerald-300">Kebijakan Privasi</a>
+                <a href="#" class="hover:text-emerald-300">Hubungi Kami</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        let allCampaigns = [];
+        let currentFilter = 'all';
+        let currentSearch = '';
+        let currentUser = null;
+
+        // ============================================
+        // 1. CEK SESSION
+        // ============================================
+        async function checkSession() {
+            const { data: { session } } = await _supabase.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                const ctaBtn = document.querySelector('.cta-banner a[href="register.html"]');
+                if (ctaBtn) {
+                    ctaBtn.href = 'dashboard.html';
+                    ctaBtn.innerHTML = '<i class="fa-solid fa-house mr-2"></i> Dashboard';
+                }
+            }
+            return session;
+        }
+
+        // ============================================
+        // 2. LOAD CAMPAIGNS
+        // ============================================
+        async function loadCampaigns() {
+            const container = document.getElementById('campaignGrid');
+            
+            showSkeletonGrid('campaignGrid', 6, 'card');
+            
+            try {
+                await checkSession();
+
+                const { data: campaigns, error } = await _supabase
+                    .from('yata_community_campaigns')
+                    .select('*')
+                    .in('verification_status', ['approved', 'pending'])
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                // --- AMBIL DATA COMMUNITY & CREATOR TERPISAH ---
+                if (campaigns && campaigns.length > 0) {
+                    const communityIds = [...new Set(campaigns.map(c => c.community_id).filter(id => id))];
+                    const creatorIds = [...new Set(campaigns.map(c => c.creator_id).filter(id => id))];
+                    
+                    let communityMap = {};
+                    let creatorMap = {};
+                    
+                    if (communityIds.length > 0) {
+                        const { data: communities, error: commError } = await _supabase
+                            .from('yata_communities')
+                            .select('id, name')
+                            .in('id', communityIds);
+                        
+                        if (!commError && communities) {
+                            communities.forEach(c => {
+                                communityMap[c.id] = c;
+                            });
+                        }
+                    }
+                    
+                    if (creatorIds.length > 0) {
+                        const { data: creators, error: creatorError } = await _supabase
+                            .from('yata_profiles')
+                            .select('id, full_name, username')
+                            .in('id', creatorIds);
+                        
+                        if (!creatorError && creators) {
+                            creators.forEach(c => {
+                                creatorMap[c.id] = c;
+                            });
+                        }
+                    }
+                    
+                    campaigns.forEach(c => {
+                        c.community = communityMap[c.community_id] || null;
+                        c.creator = creatorMap[c.creator_id] || null;
+                    });
+                }
+                // --- END AMBIL DATA ---
+
+                if (campaigns && campaigns.length > 0) {
+                    const campaignIds = campaigns.map(c => c.id);
+                    
+                    const { data: supporters, error: supportError } = await _supabase
+                        .from('yata_campaign_supporters')
+                        .select('campaign_id')
+                        .in('campaign_id', campaignIds);
+
+                    if (!supportError && supporters) {
+                        const supportCount = {};
+                        supporters.forEach(s => {
+                            supportCount[s.campaign_id] = (supportCount[s.campaign_id] || 0) + 1;
+                        });
+                        campaigns.forEach(c => {
+                            c.supporters_count = supportCount[c.id] || 0;
+                        });
+                    }
+
+                    const { data: participants, error: participantError } = await _supabase
+                        .from('yata_campaign_participants')
+                        .select('campaign_id')
+                        .in('campaign_id', campaignIds);
+
+                    if (!participantError && participants) {
+                        const participantCount = {};
+                        participants.forEach(p => {
+                            participantCount[p.campaign_id] = (participantCount[p.campaign_id] || 0) + 1;
+                        });
+                        campaigns.forEach(c => {
+                            c.participants_count = participantCount[c.id] || 0;
+                        });
+                    }
+                }
+
+                allCampaigns = campaigns || [];
+                document.getElementById('campaignCount').textContent = allCampaigns.length;
+                renderCampaigns();
+
+            } catch (err) {
+                console.error('Load campaigns error:', err);
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-red-400 text-sm">
+                        <i class="fa-solid fa-circle-exclamation text-2xl block mb-2"></i>
+                        Gagal memuat kampanye: ${err.message}
+                        <button onclick="loadCampaigns()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 3. RENDER CAMPAIGNS
+        // ============================================
+        function renderCampaigns() {
+            const container = document.getElementById('campaignGrid');
+
+            let filtered = allCampaigns;
+
+            if (currentFilter === 'approved') {
+                filtered = filtered.filter(c => c.verification_status === 'approved');
+            } else if (currentFilter === 'pending') {
+                filtered = filtered.filter(c => c.verification_status === 'pending');
+            }
+
+            if (currentSearch.trim()) {
+                const query = currentSearch.toLowerCase().trim();
+                filtered = filtered.filter(c =>
+                    c.title.toLowerCase().includes(query) ||
+                    (c.community?.name && c.community.name.toLowerCase().includes(query)) ||
+                    (c.creator?.full_name && c.creator.full_name.toLowerCase().includes(query))
+                );
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full bg-white rounded-2xl p-12 text-center border border-emerald-100/60 shadow-sm">
+                        <i class="fa-regular fa-folder-open text-5xl text-slate-300 block mb-4"></i>
+                        <p class="text-slate-500 text-sm">Belum ada kampanye yang cocok dengan pencarian Anda.</p>
+                        ${allCampaigns.length > 0 ? `
+                            <button onclick="resetFilters()" class="mt-4 text-emerald-600 hover:text-emerald-700 font-semibold text-sm">
+                                Reset filter
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+                return;
+            }
+
+            const statusLabels = {
+                approved: '✅ Terverifikasi',
+                pending: '⏳ Menunggu Verifikasi',
+                rejected: '❌ Ditolak'
+            };
+
+            const statusClasses = {
+                approved: 'status-approved',
+                pending: 'status-pending',
+                rejected: 'status-rejected'
+            };
+
+            container.innerHTML = filtered.map(c => {
+                const isFull = c.max_participants > 0 && c.participants_count >= c.max_participants;
+                const isApproved = c.verification_status === 'approved';
+
+                return `
+                    <div class="campaign-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm hover:shadow-md">
+                        <div class="flex items-start gap-3">
+                            <div class="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 text-2xl flex-shrink-0">🎯</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="font-bold text-slate-800 text-base">${c.title}</h3>
+                                    <span class="status-badge ${statusClasses[c.verification_status] || 'status-pending'}">${statusLabels[c.verification_status] || '⏳ Menunggu'}</span>
+                                </div>
+                                <p class="text-xs text-slate-500">${c.community?.name || 'Komunitas'} • ${c.creator?.full_name || 'User'}</p>
+                                <p class="text-sm text-slate-600 mt-2 line-clamp-2">${c.description || 'Tidak ada deskripsi.'}</p>
+                                ${c.goal ? `<p class="text-xs text-emerald-600 mt-1 font-semibold">🎯 ${c.goal}</p>` : ''}
+                                ${c.event_date ? `<p class="text-xs text-slate-400 mt-1">📅 ${new Date(c.event_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>` : ''}
+                                
+                                <div class="flex items-center gap-4 mt-2 text-xs text-slate-500">
+                                    <span><i class="fa-regular fa-heart text-red-400"></i> ${c.supporters_count || 0} dukungan</span>
+                                    <span><i class="fa-regular fa-user text-blue-400"></i> ${c.participants_count || 0} ${c.max_participants > 0 ? `/ ${c.max_participants}` : ''} peserta</span>
+                                    ${isFull ? '<span class="text-red-500 text-[10px] font-bold">🔴 Penuh</span>' : ''}
+                                </div>
+                                
+                                ${c.verification_status === 'approved' && c.target_progress > 0 ? `
+                                    <div class="mt-3">
+                                        <div class="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                                            <span>Progress</span>
+                                            <span>${c.current_progress || 0}/${c.target_progress}</span>
+                                        </div>
+                                        <div class="w-full bg-slate-200 rounded-full h-1.5">
+                                            <div class="bg-emerald-600 h-1.5 rounded-full progress-bar" style="width: ${Math.min(((c.current_progress || 0) / (c.target_progress || 1)) * 100, 100)}%;"></div>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                ${c.rejection_reason ? `<p class="text-xs text-red-500 mt-2">❌ ${c.rejection_reason}</p>` : ''}
+                                <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 flex-wrap gap-2">
+                                    <span class="text-[10px] text-slate-400">${new Date(c.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                    <div class="flex items-center gap-1 flex-wrap">
+                                        ${isApproved ? `
+                                            <button onclick="supportCampaign('${c.id}')" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-3 py-1 rounded-full transition">
+                                                <i class="fa-regular fa-thumbs-up mr-1"></i> Dukung
+                                            </button>
+                                            <button onclick="openJoinForm('${c.id}')" 
+                                                class="text-xs ${isFull ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-blue-50 hover:bg-blue-100 text-blue-700'} font-semibold px-3 py-1 rounded-full transition"
+                                                ${isFull ? 'disabled' : ''}>
+                                                <i class="fa-regular fa-user-plus mr-1"></i> ${isFull ? 'Penuh' : 'Ikut'}
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============================================
+        // 4. FILTERS
+        // ============================================
+        function filterCampaigns(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-slate-600');
+            });
+
+            const idMap = {
+                'all': 'filterAll',
+                'approved': 'filterApproved',
+                'pending': 'filterPending'
+            };
+
+            const activeBtn = document.getElementById(idMap[filter]);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+                activeBtn.classList.remove('text-slate-600');
+            }
+
+            renderCampaigns();
+        }
+
+        function searchCampaign() {
+            const input = document.getElementById('searchCampaign');
+            currentSearch = input.value;
+            renderCampaigns();
+        }
+
+        function resetFilters() {
+            currentFilter = 'all';
+            currentSearch = '';
+            document.getElementById('searchCampaign').value = '';
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-slate-600');
+            });
+            document.getElementById('filterAll').classList.add('active');
+            document.getElementById('filterAll').classList.remove('text-slate-600');
+            renderCampaigns();
+        }
+
+        // ============================================
+        // 5. SUPPORT CAMPAIGN
+        // ============================================
+        async function supportCampaign(campaignId) {
+            const rateCheck = checkRateLimit('campaign');
+            if (!rateCheck.allowed) {
+                showError(rateCheck.message, '⏳ Terlalu Cepat');
+                return;
+            }
+
+            let userId = localStorage.getItem('guest_id');
+            if (!userId) {
+                userId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+                localStorage.setItem('guest_id', userId);
+            }
+
+            try {
+                const { data: existingProfile } = await _supabase
+                    .from('yata_profiles')
+                    .select('id')
+                    .eq('id', userId)
+                    .maybeSingle();
+
+                if (!existingProfile) {
+                    await _supabase
+                        .from('yata_profiles')
+                        .insert([{
+                            id: userId,
+                            full_name: 'Tamu',
+                            username: 'tamu_' + Date.now(),
+                            role: 'guest',
+                            member_level: 'Tamu',
+                        }]);
+                }
+
+                const { error } = await _supabase
+                    .from('yata_campaign_supporters')
+                    .insert([{
+                        campaign_id: campaignId,
+                        user_id: userId,
+                        type: 'donation',
+                        amount: 1
+                    }]);
+
+                if (error) {
+                    if (error.code === '23505') {
+                        showError('Anda sudah mendukung kampanye ini!', 'Info');
+                    } else {
+                        showError('Gagal mendukung kampanye: ' + error.message, 'Error');
+                    }
+                    return;
+                }
+
+                saveRateLimit('campaign');
+                showError('✅ Terima kasih telah mendukung kampanye!', 'Sukses');
+                await loadCampaigns();
+
+            } catch (err) {
+                console.error('Support campaign error:', err);
+                showError('Terjadi kesalahan: ' + err.message, 'Error');
+            }
+        }
+
+        // ============================================
+        // 6. OPEN JOIN FORM (WAJIB LOGIN)
+        // ============================================
+        async function openJoinForm(campaignId) {
+            const session = await checkSession();
+            if (!session) {
+                document.getElementById('loginPopupModal').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                return;
+            }
+
+            const campaign = allCampaigns.find(c => c.id === campaignId);
+            if (!campaign) {
+                showError('Kampanye tidak ditemukan.', 'Error');
+                return;
+            }
+
+            if (campaign.max_participants > 0 && campaign.participants_count >= campaign.max_participants) {
+                showError('⚠️ Maaf, kuota peserta sudah penuh!', 'Info');
+                return;
+            }
+
+            const { data: existing } = await _supabase
+                .from('yata_campaign_participants')
+                .select('*')
+                .eq('campaign_id', campaignId)
+                .eq('user_id', session.user.id)
+                .maybeSingle();
+
+            if (existing) {
+                if (confirm('Anda sudah bergabung di kampanye ini. Ingin keluar?')) {
+                    const { error: deleteError } = await _supabase
+                        .from('yata_campaign_participants')
+                        .delete()
+                        .eq('campaign_id', campaignId)
+                        .eq('user_id', session.user.id);
+
+                    if (deleteError) throw deleteError;
+                    showError('✅ Anda telah keluar dari kampanye.', 'Sukses');
+                    await loadCampaigns();
+                }
+                return;
+            }
+
+            const { data: profile } = await _supabase
+                .from('yata_profiles')
+                .select('full_name')
+                .eq('id', session.user.id)
+                .single();
+
+            document.getElementById('joinCampaignId').value = campaignId;
+            document.getElementById('joinModalTitle').textContent = `Ikut Kampanye: ${campaign.title}`;
+            document.getElementById('joinModalSubtitle').textContent = `Bergabung sebagai peserta "${campaign.title}"`;
+            document.getElementById('joinName').value = profile?.full_name || '';
+            document.getElementById('joinEmail').value = session.user.email || '';
+            document.getElementById('joinPhone').value = '';
+            document.getElementById('joinReason').value = '';
+            document.getElementById('joinMessage').className = 'text-sm text-center hidden';
+
+            document.getElementById('joinModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeJoinModal() {
+            document.getElementById('joinModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            document.getElementById('joinForm').reset();
+        }
+
+        function closeLoginPopup() {
+            document.getElementById('loginPopupModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // ============================================
+        // 7. SUBMIT JOIN FORM
+        // ============================================
+        document.getElementById('joinForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const campaignId = document.getElementById('joinCampaignId').value;
+            const name = document.getElementById('joinName').value.trim();
+            const email = document.getElementById('joinEmail').value.trim();
+            const phone = document.getElementById('joinPhone').value.trim();
+            const reason = document.getElementById('joinReason').value.trim();
+
+            if (!name || !email || !phone) {
+                showJoinMessage('Harap isi semua kolom yang wajib.', 'error');
+                return;
+            }
+
+            if (!email.includes('@') || !email.includes('.')) {
+                showJoinMessage('Email tidak valid.', 'error');
+                return;
+            }
+
+            const submitBtn = document.getElementById('joinSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+            showJoinMessage('', '');
+
+            try {
+                const session = await checkSession();
+                if (!session) {
+                    showJoinMessage('Silakan login terlebih dahulu.', 'error');
+                    return;
+                }
+
+                const { error } = await _supabase
+                    .from('yata_campaign_participants')
+                    .insert([{
+                        campaign_id: campaignId,
+                        user_id: session.user.id,
+                        phone: phone,
+                        reason: reason || null,
+                        registered_at: new Date().toISOString()
+                    }]);
+
+                if (error) {
+                    if (error.code === '23505') {
+                        showJoinMessage('Anda sudah terdaftar di kampanye ini.', 'error');
+                    } else {
+                        showJoinMessage('Gagal mendaftar: ' + error.message, 'error');
+                    }
+                    return;
+                }
+
+                const { data: campaign } = await _supabase
+                    .from('yata_community_campaigns')
+                    .select('title, community_id')
+                    .eq('id', campaignId)
+                    .single();
+
+                if (campaign) {
+                    const { data: admins } = await _supabase
+                        .from('yata_community_members')
+                        .select('user_id')
+                        .eq('community_id', campaign.community_id)
+                        .eq('role', 'admin');
+
+                    if (admins && admins.length > 0) {
+                        for (const admin of admins) {
+                            const notifContent = `👥 Ada peserta baru untuk kampanye "${campaign.title}": ${name} (${email})`;
+
+                            const { data: notifData } = await _supabase
+                                .from('yata_notifications')
+                                .insert([{
+                                    title: '📢 Peserta Baru Kampanye',
+                                    content: notifContent,
+                                    type: 'campaign'
+                                }])
+                                .select()
+                                .single();
+
+                            if (notifData) {
+                                await _supabase
+                                    .from('yata_user_notifications')
+                                    .insert([{
+                                        notification_id: notifData.id,
+                                        user_id: admin.user_id,
+                                        is_read: false
+                                    }]);
+                            }
+                        }
+
+                        const { data: creator } = await _supabase
+                            .from('yata_community_campaigns')
+                            .select('creator_id')
+                            .eq('id', campaignId)
+                            .single();
+
+                        if (creator && creator.creator_id) {
+                            const notifContent = `👥 Peserta baru untuk kampanye "${campaign.title}": ${name} (${email})`;
+                            const { data: notifData } = await _supabase
+                                .from('yata_notifications')
+                                .insert([{
+                                    title: '📢 Peserta Baru Kampanye',
+                                    content: notifContent,
+                                    type: 'campaign'
+                                }])
+                                .select()
+                                .single();
+
+                            if (notifData) {
+                                await _supabase
+                                    .from('yata_user_notifications')
+                                    .insert([{
+                                        notification_id: notifData.id,
+                                        user_id: creator.creator_id,
+                                        is_read: false
+                                    }]);
+                            }
+                        }
+                    }
+                }
+
+                showJoinMessage('✅ Pendaftaran berhasil! Anda sekarang terdaftar sebagai peserta.', 'success');
+                submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
+
+                setTimeout(() => {
+                    closeJoinModal();
+                    loadCampaigns();
+                }, 2000);
+
+            } catch (err) {
+                console.error('Join campaign error:', err);
+                showJoinMessage('❌ Gagal mendaftar: ' + err.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Pendaftaran';
+            }
+        });
+
+        function showJoinMessage(text, type) {
+            const msg = document.getElementById('joinMessage');
+            msg.textContent = text;
+            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
+                type === 'success' ? 'text-emerald-600' :
+                type === 'error' ? 'text-red-600' :
+                ''
+            }`;
+        }
+
+        // ============================================
+        // 8. MOBILE MENU
+        // ============================================
+        const menuBtn = document.getElementById('menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        let menuOpen = false;
+
+        menuBtn.addEventListener('click', () => {
+            menuOpen = !menuOpen;
+            mobileMenu.classList.toggle('hidden');
+            menuBtn.innerHTML = menuOpen ? '<i class="fa-solid fa-xmark"></i>' : '<i class="fa-solid fa-bars"></i>';
+        });
+
+        document.querySelectorAll('#mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+                menuOpen = false;
+                menuBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
+            });
+        });
+
+        // ============================================
+        // 9. INIT
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCampaigns();
+        });
+    </script>
+
+</body>
+</html>

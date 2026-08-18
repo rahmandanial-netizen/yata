@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tulis Karya — YATA</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6EE7B7',
+                        primaryDark: '#065F46',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #065F46; color: white; }
+        .sidebar-link.active i { color: white; }
+        .sidebar-link:hover:not(.active) { background-color: #e2e8f0; }
+        .editor-textarea { min-height: 400px; resize: vertical; }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- SIDEBAR -->
+    <!-- ============================================ -->
+    <aside class="fixed top-0 left-0 z-40 w-64 h-screen bg-white border-r border-emerald-100/60 hidden md:block">
+        <div class="flex flex-col h-full">
+            <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
+                <a href="dashboard.html" class="flex items-center space-x-2">
+                    <div class="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/30">Y</div>
+                    <span class="text-xl font-extrabold text-emerald-800">YATA</span>
+                </a>
+            </div>
+
+            <!-- SIDEBAR NAVIGATION - STRUKTUR MENU FINAL -->
+            <nav class="flex-1 px-4 py-6 space-y-1">
+                <!-- Beranda -->
+                <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-house w-5"></i> Beranda
+                </a>
+
+                <!-- Tulis -->
+                <a href="write.html" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-sm font-semibold text-emerald-800 rounded-xl transition">
+                    <i class="fa-solid fa-pen w-5 text-emerald-600"></i> Tulis
+                </a>
+
+                <!-- Proyek Buku -->
+                <a href="#" onclick="checkProjectAccess(event)" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book w-5"></i> Proyek Buku
+                </a>
+
+                <!-- Perpustakaan -->
+                <a href="library.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book-open w-5"></i> Perpustakaan
+                </a>
+
+                <!-- Komunitas + Kampanye -->
+                <div class="space-y-0.5">
+                    <a href="community.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                        <i class="fa-solid fa-users w-5"></i> Komunitas
+                    </a>
+                    <a href="campaigns.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition pl-10 text-xs opacity-75">
+                        <i class="fa-solid fa-flag w-5 text-slate-400"></i> Lihat Kampanye
+                    </a>
+                </div>
+
+                <!-- Mentoring -->
+                <a href="mentoring.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring
+                </a>
+
+                <!-- Profil -->
+                <a href="profile.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-user w-5"></i> Profil
+                </a>
+            </nav>
+            <!-- END SIDEBAR NAVIGATION -->
+
+            <div class="p-4 border-t border-emerald-100/60">
+                <button id="btnLogout" class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition text-left">
+                    <i class="fa-solid fa-right-from-bracket w-5"></i> Keluar
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ============================================ -->
+    <!-- MOBILE HEADER -->
+    <!-- ============================================ -->
+    <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
+        <div class="flex items-center justify-between px-4 h-16">
+            <a href="dashboard.html" class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black">Y</div>
+                <span class="text-lg font-extrabold text-emerald-800">YATA</span>
+            </a>
+            <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+        <div id="mobileMenu" class="hidden bg-white border-t border-emerald-100/60 px-4 py-4 space-y-2">
+            <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Beranda</a>
+            <a href="write.html" class="block px-4 py-2.5 bg-emerald-50 text-emerald-800 font-semibold rounded-xl">Tulis</a>
+            <a href="#" onclick="checkProjectAccess(event)" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Proyek Buku</a>
+            <a href="library.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Perpustakaan</a>
+            <a href="community.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Komunitas</a>
+            <a href="campaigns.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl pl-6 text-xs opacity-75">
+                <i class="fa-solid fa-flag mr-1 text-slate-400"></i> Lihat Kampanye
+            </a>
+            <a href="mentoring.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Mentoring</a>
+            <a href="profile.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Profil</a>
+            <hr class="my-2 border-emerald-100" />
+            <button id="btnLogoutMobile" class="block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
+        </div>
+    </header>
+
+    <!-- ============================================ -->
+    <!-- KONTEN UTAMA -->
+    <!-- ============================================ -->
+    <main class="md:ml-64 pt-20 md:pt-8 min-h-screen bg-slate-50/50">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+            <div class="mb-6">
+                <h1 class="text-2xl font-black text-slate-800">✍️ Tulis Karya Baru</h1>
+                <p class="text-sm text-slate-500">Bagikan ide dan ceritamu kepada dunia.</p>
+            </div>
+
+            <form id="writeForm" class="bg-white rounded-3xl p-6 border border-emerald-100/60 shadow-sm space-y-5">
+                <div>
+                    <label for="title" class="block text-sm font-bold text-slate-700 mb-1">Judul <span class="text-red-500">*</span></label>
+                    <input type="text" id="title" placeholder="Masukkan judul karyamu..." required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="category" class="block text-sm font-bold text-slate-700 mb-1">Kategori</label>
+                    <select id="category" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white">
+                        <option value="cerpen">Cerpen</option>
+                        <option value="puisi">Puisi</option>
+                        <option value="esai">Esai</option>
+                        <option value="opini">Opini</option>
+                        <option value="resensi">Resensi</option>
+                        <option value="novel">Novel</option>
+                        <option value="artikel">Artikel</option>
+                        <option value="lainnya">Lainnya</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="content" class="block text-sm font-bold text-slate-700 mb-1">Konten <span class="text-red-500">*</span></label>
+                    <textarea id="content" placeholder="Tulis karyamu di sini..." required class="editor-textarea w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" rows="12"></textarea>
+                    <p class="text-xs text-slate-400 mt-1"><span id="wordCount">0</span> kata</p>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100">
+                    <button type="submit" name="action" value="draft" id="btnDraft" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl transition text-sm">
+                        <i class="fa-regular fa-floppy-disk mr-2"></i> Simpan Draft
+                    </button>
+                    <button type="submit" name="action" value="publish" id="btnPublish" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition shadow-sm shadow-emerald-500/20 text-sm">
+                        <i class="fa-solid fa-globe mr-2"></i> Publikasikan
+                    </button>
+                </div>
+
+                <div id="message" class="text-sm text-center hidden"></div>
+            </form>
+
+            <div class="mt-6 text-center">
+                <a href="dashboard.html" class="text-sm text-slate-400 hover:text-emerald-600 transition"><i class="fa-solid fa-arrow-left mr-1"></i> Kembali ke Dashboard</a>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        // ============================================
+        // FUNGSI CEK AKSES PROYEK BUKU
+        // ============================================
+        async function checkProjectAccess(e) {
+            if (e) e.preventDefault();
+            
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('member_level')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error) {
+                    console.error('Error checking level:', error);
+                    window.location.href = 'projects.html';
+                    return;
+                }
+
+                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
+                if (allowedLevels.includes(profile.member_level)) {
+                    window.location.href = 'projects.html';
+                } else {
+                    showProjectAccessDenied(profile.member_level || 'Tamu');
+                }
+            } catch (err) {
+                console.error('Error checking access:', err);
+                window.location.href = 'projects.html';
+            }
+        }
+
+        function showProjectAccessDenied(currentLevel) {
+            let modal = document.getElementById('projectAccessModal');
+            if (modal) {
+                modal.remove();
+            }
+
+            const modalHtml = `
+                <div id="projectAccessModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+                        <button onclick="closeProjectAccessModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        <div class="text-center mb-4">
+                            <span class="text-amber-500 text-4xl block mb-2">🔒</span>
+                            <h3 class="text-xl font-black text-slate-800">Akses Dibatasi</h3>
+                            <p class="text-sm text-slate-500 mt-1">Fitur Proyek Buku hanya untuk member level tertentu.</p>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-4 border border-amber-200 mb-4">
+                            <p class="text-sm text-slate-600">Level Anda saat ini: <strong class="text-amber-700">${currentLevel || 'Tamu'}</strong></p>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">Anda perlu mencapai level:</p>
+                        <ul class="space-y-2 text-sm mb-4">
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">✍️</span>
+                                <div>
+                                    <strong>Penulis</strong>
+                                    <p class="text-xs text-slate-500">5+ karya dipublikasikan • 3+ kali mentoring</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">📚</span>
+                                <div>
+                                    <strong>Penulis Profesional</strong>
+                                    <p class="text-xs text-slate-500">20+ karya • 1+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">🌟</span>
+                                <div>
+                                    <strong>Mentor</strong>
+                                    <p class="text-xs text-slate-500">50+ karya • 3+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                        </ul>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button onclick="closeProjectAccessModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
+                                Tutup
+                            </button>
+                            <button onclick="closeProjectAccessModal(); openLevelModal()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
+                                <i class="fa-regular fa-circle-question mr-1"></i> Lihat Syarat Level
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeProjectAccessModal() {
+            const modal = document.getElementById('projectAccessModal');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        function openLevelModal() {
+            const levelModal = document.getElementById('levelModal');
+            if (levelModal) {
+                levelModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            } else {
+                window.location.href = 'dashboard.html#level';
+            }
+        }
+
+        // ============================================
+        // 1. CEK LOGIN
+        // ============================================
+        async function checkAuth() {
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return null;
+                }
+                return session;
+            } catch (err) {
+                console.error('Auth check error:', err);
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
+
+        // ============================================
+        // 2. HITUNG KATA
+        // ============================================
+        document.getElementById('content').addEventListener('input', function() {
+            const text = this.value.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            document.getElementById('wordCount').textContent = words;
+        });
+
+        // ============================================
+        // 3. KIRIM NOTIFIKASI
+        // ============================================
+        async function sendNotification(userId, title, content, type = 'success') {
+            try {
+                const { data: notifData, error } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: title,
+                        content: content,
+                        type: type
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                if (notifData) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+                }
+                return true;
+            } catch (err) {
+                console.error('Send notification error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // 4. SUBMIT FORM
+        // ============================================
+        const form = document.getElementById('writeForm');
+        const message = document.getElementById('message');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const session = await checkAuth();
+            if (!session) return;
+
+            const title = document.getElementById('title').value.trim();
+            const content = document.getElementById('content').value.trim();
+            const category = document.getElementById('category').value;
+            const submitter = e.submitter;
+            const status = submitter && submitter.value === 'publish' ? 'published' : 'draft';
+
+            if (!title) { showMessage('Judul wajib diisi!', 'error'); return; }
+            if (!content) { showMessage('Konten wajib diisi!', 'error'); return; }
+            if (content.length < 20) { showMessage('Konten minimal 20 karakter.', 'error'); return; }
+
+            document.getElementById('btnDraft').disabled = true;
+            document.getElementById('btnPublish').disabled = true;
+            document.getElementById('btnDraft').innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Menyimpan...';
+            document.getElementById('btnPublish').innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Menerbitkan...';
+            showMessage('', '');
+
+            try {
+                const { data: writing, error } = await _supabase
+                    .from('yata_writings')
+                    .insert([{
+                        title: title,
+                        content: content,
+                        category: category,
+                        status: status,
+                        author_id: session.user.id,
+                        is_public: true,
+                        word_count: content.split(/\s+/).length,
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                if (status === 'published') {
+                    await sendNotification(
+                        session.user.id,
+                        '📖 Karyamu Telah Tayang!',
+                        `Karyamu "${title}" telah dipublikasikan dan dapat dibaca oleh semua orang. Teruslah berkarya!`,
+                        'publishing'
+                    );
+                } else {
+                    await sendNotification(
+                        session.user.id,
+                        '📝 Draft Tersimpan',
+                        `Draft "${title}" berhasil disimpan. Lanjutkan menulis kapan saja!`,
+                        'info'
+                    );
+                }
+
+                const statusText = status === 'published' ? 'dipublikasikan' : 'disimpan sebagai draft';
+                showMessage(`✅ Berhasil! Karya "${title}" telah ${statusText}.`, 'success');
+
+                document.getElementById('title').value = '';
+                document.getElementById('content').value = '';
+                document.getElementById('wordCount').textContent = '0';
+
+                setTimeout(() => window.location.href = 'dashboard.html', 2000);
+
+            } catch (err) {
+                console.error('Submit error:', err);
+                showMessage('❌ Gagal menyimpan: ' + err.message, 'error');
+            } finally {
+                document.getElementById('btnDraft').disabled = false;
+                document.getElementById('btnPublish').disabled = false;
+                document.getElementById('btnDraft').innerHTML = '<i class="fa-regular fa-floppy-disk mr-2"></i> Simpan Draft';
+                document.getElementById('btnPublish').innerHTML = '<i class="fa-solid fa-globe mr-2"></i> Publikasikan';
+            }
+        });
+
+        function showMessage(text, type) {
+            message.textContent = text;
+            message.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-red-600' : ''}`;
+        }
+
+        // ============================================
+        // 5. LOGOUT
+        // ============================================
+        async function handleLogout() {
+            if (confirm('Yakin ingin keluar?')) {
+                try {
+                    const { error } = await _supabase.auth.signOut();
+                    if (!error) window.location.href = 'login.html';
+                } catch (err) {
+                    console.error('Logout error:', err);
+                }
+            }
+        }
+
+        document.getElementById('btnLogout').addEventListener('click', handleLogout);
+        document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);
+
+        // ============================================
+        // 6. MOBILE MENU
+        // ============================================
+        document.getElementById('mobileMenuButton').addEventListener('click', function() {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
+        });
+
+        // ============================================
+        // 7. CEK SESSION SAAT LOAD
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+        });
+    </script>
+
+</body>
+</html>

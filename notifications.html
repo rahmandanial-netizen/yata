@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notifikasi — YATA</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6EE7B7',
+                        primaryDark: '#065F46',
+                        sage: '#A3E4D7',
+                        cream: '#FEF3C7',
+                        mint: '#B2F2BB',
+                        gold: '#D4AF37',
+                        platinum: '#E5E4E2',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #065F46; color: white; }
+        .sidebar-link.active i { color: white; }
+        .sidebar-link:hover:not(.active) { background-color: #e2e8f0; }
+        .notif-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .notif-card:hover {
+            transform: translateX(6px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
+        .notif-unread {
+            border-left: 4px solid #065F46;
+            background-color: #f0fdf4;
+        }
+        .notif-read {
+            border-left: 4px solid #e2e8f0;
+            opacity: 0.7;
+        }
+        .filter-btn.active {
+            background-color: #065F46;
+            color: white;
+        }
+        .filter-btn:not(.active):hover {
+            background-color: #f1f5f9;
+        }
+        .type-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .modal-enter {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #notifModalContent {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 450px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.8;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 12px;
+            font-family: inherit;
+            color: #1e293b;
+        }
+        #notifModalContent pre {
+            font-family: inherit;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            font-size: 14px;
+            line-height: 1.8;
+            color: #1e293b;
+        }
+        #notifModalContent::-webkit-scrollbar {
+            width: 4px;
+        }
+        #notifModalContent::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 9999px;
+        }
+        #notifModalContent::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 9999px;
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .load-more-btn {
+            transition: all 0.3s ease;
+        }
+        .load-more-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(6, 95, 70, 0.3);
+        }
+        .load-more-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .skeleton-notif {
+            animation: pulse 1.5s ease-in-out infinite;
+            background: #f1f5f9;
+            border-radius: 16px;
+            height: 80px;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .reply-section {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 16px;
+            margin-top: 16px;
+        }
+        .reply-section textarea {
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 13px;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .reply-section textarea:focus {
+            border-color: #065F46;
+            ring: 2px solid rgba(6,95,70,0.2);
+        }
+        .reply-section button {
+            background: #065F46;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 8px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 8px;
+        }
+        .reply-section button:hover {
+            background: #0D9488;
+        }
+        .reply-section button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="fixed top-0 left-0 z-40 w-64 h-screen bg-white border-r border-emerald-100/60 hidden md:block">
+        <div class="flex flex-col h-full">
+            <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
+                <a href="dashboard.html" class="flex items-center space-x-2 group">
+                    <div class="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/30">Y</div>
+                    <span class="text-xl font-extrabold text-emerald-800">YATA</span>
+                </a>
+            </div>
+            <nav class="flex-1 px-4 py-6 space-y-1">
+                <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-house w-5"></i> Beranda
+                </a>
+                <a href="write.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-pen w-5"></i> Tulis
+                </a>
+                <a href="#" onclick="checkProjectAccess(event)" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book w-5"></i> Proyek Buku
+                </a>
+                <a href="library.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book-open w-5"></i> Perpustakaan
+                </a>
+                <a href="community.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-users w-5"></i> Komunitas
+                </a>
+                <a href="profile.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-user w-5"></i> Profil
+                </a>
+            </nav>
+            <div class="p-4 border-t border-emerald-100/60">
+                <button id="btnLogout" class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition text-left">
+                    <i class="fa-solid fa-right-from-bracket w-5"></i> Keluar
+                </button>
+                <p class="text-xs text-slate-400 text-center mt-4">YATA v1.0 • Beta</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MOBILE HEADER -->
+    <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
+        <div class="flex items-center justify-between px-4 h-16">
+            <a href="dashboard.html" class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black">Y</div>
+                <span class="text-lg font-extrabold text-emerald-800">YATA</span>
+            </a>
+            <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+        <div id="mobileMenu" class="hidden bg-white border-t border-emerald-100/60 px-4 py-4 space-y-2">
+            <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Beranda</a>
+            <a href="write.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Tulis</a>
+            <a href="#" onclick="checkProjectAccess(event)" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Proyek Buku</a>
+            <a href="library.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Perpustakaan</a>
+            <a href="community.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Komunitas</a>
+            <a href="profile.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Profil</a>
+            <hr class="my-2 border-emerald-100" />
+            <button id="btnLogoutMobile" class="block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
+        </div>
+    </header>
+
+    <!-- KONTEN UTAMA -->
+    <main class="md:ml-64 pt-4 md:pt-8 min-h-screen bg-slate-50/50">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+            <!-- Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-800">🔔 Notifikasi</h1>
+                    <p class="text-sm text-slate-500">Semua informasi penting dari YATA.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="markAllRead()" class="text-sm text-emerald-600 hover:text-emerald-700 font-semibold transition flex items-center gap-1">
+                        <i class="fa-regular fa-check-circle"></i> Tandai semua dibaca
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter -->
+            <div class="bg-white rounded-2xl p-3 border border-emerald-100/60 shadow-sm flex flex-wrap items-center gap-2 mb-6">
+                <button onclick="filterNotifications('all')" class="filter-btn active px-4 py-1.5 rounded-full text-xs font-bold transition bg-emerald-600 text-white" id="filterAll">Semua</button>
+                <button onclick="filterNotifications('unread')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterUnread">Belum Dibaca</button>
+                <button onclick="filterNotifications('read')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterRead">Sudah Dibaca</button>
+                <span class="ml-auto text-xs text-slate-400" id="notifCount">0 notifikasi</span>
+            </div>
+
+            <!-- Daftar Notifikasi -->
+            <div id="notifList" class="space-y-3">
+                <!-- Akan diisi JavaScript -->
+            </div>
+
+            <!-- Pagination -->
+            <div id="loadMoreContainer" class="text-center mt-8 hidden">
+                <button id="loadMoreBtn" onclick="loadMoreNotifications()" class="load-more-btn bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3 rounded-xl text-sm transition shadow-md shadow-emerald-500/20 flex items-center gap-2 mx-auto">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Muat Lebih Banyak</span>
+                </button>
+            </div>
+
+            <div id="loadingSkeleton" class="space-y-3 hidden">
+                <div class="skeleton-notif"></div>
+                <div class="skeleton-notif"></div>
+                <div class="skeleton-notif"></div>
+                <div class="skeleton-notif"></div>
+                <div class="skeleton-notif"></div>
+            </div>
+
+            <div id="noMoreData" class="text-center py-8 text-slate-400 text-sm hidden">
+                <i class="fa-regular fa-circle-check text-2xl block mb-2"></i>
+                Semua notifikasi sudah dimuat.
+            </div>
+
+        </div>
+    </main>
+
+    <!-- MODAL DETAIL NOTIFIKASI -->
+    <div id="notifModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeNotifModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Detail Notifikasi</span>
+                <h3 id="notifModalTitle" class="text-xl font-black text-slate-800 mt-1">Judul Notifikasi</h3>
+                <p id="notifModalTime" class="text-xs text-slate-400 mt-1">Dikirim beberapa saat lalu</p>
+            </div>
+
+            <div id="notifModalContent" class="bg-slate-50 rounded-xl p-5 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap max-h-[450px] overflow-y-auto">
+                Isi notifikasi akan ditampilkan di sini.
+            </div>
+
+            <!-- SECTION BALAS NOTIFIKASI -->
+            <div id="replySection" class="reply-section hidden">
+                <label for="replyNotifInput" class="block text-xs font-semibold text-slate-700 mb-1">Balas Notifikasi</label>
+                <textarea id="replyNotifInput" rows="2" placeholder="Tulis balasan Anda..." class="w-full"></textarea>
+                <button onclick="submitReplyNotification()" id="replySubmitBtn">
+                    <i class="fa-regular fa-paper-plane mr-1"></i> Kirim Balasan
+                </button>
+                <div id="replyMessage" class="text-xs text-center mt-2 hidden"></div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-between">
+                <span id="notifModalStatus" class="text-xs font-semibold text-slate-400">Status: Belum dibaca</span>
+                <button onclick="closeNotifModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        console.log('✅ Supabase initialized');
+
+        let allNotifications = [];
+        let currentFilter = 'all';
+        let currentUser = null;
+        let currentModalNotifId = null;
+        let currentModalNotifUserId = null;
+
+        let currentPage = 0;
+        const pageSize = 15;
+        let hasMoreData = true;
+        let isLoading = false;
+
+        // CEK AKSES PROYEK BUKU
+        async function checkProjectAccess(e) {
+            if (e) e.preventDefault();
+            try {
+                const session = await checkAuth(false);
+                if (!session) { window.location.href = 'login.html'; return; }
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('member_level')
+                    .eq('id', session.user.id)
+                    .single();
+                if (error) { window.location.href = 'projects.html'; return; }
+                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
+                if (allowedLevels.includes(profile.member_level)) {
+                    window.location.href = 'projects.html';
+                } else {
+                    showError('⚠️ Fitur Proyek Buku hanya untuk Member level Penulis ke atas!', 'Akses Ditolak');
+                }
+            } catch (err) {
+                console.error('Error checking access:', err);
+                window.location.href = 'projects.html';
+            }
+        }
+
+        // CEK LOGIN
+        async function checkAuth(redirectIfNoSession = true) {
+            try {
+                const session = await getSession();
+                if (!session && redirectIfNoSession) {
+                    window.location.href = 'login.html';
+                    return null;
+                }
+                if (session) currentUser = session.user;
+                return session;
+            } catch (err) {
+                console.error('Auth check error:', err);
+                return null;
+            }
+        }
+
+        // LOAD NOTIFICATIONS
+        async function loadNotifications(reset = true) {
+            if (reset) {
+                currentPage = 0;
+                hasMoreData = true;
+                allNotifications = [];
+                document.getElementById('noMoreData').classList.add('hidden');
+            }
+
+            if (isLoading || !hasMoreData) return;
+            isLoading = true;
+
+            const container = document.getElementById('notifList');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            const loadMoreContainer = document.getElementById('loadMoreContainer');
+            const skeleton = document.getElementById('loadingSkeleton');
+
+            if (!reset) {
+                skeleton.classList.remove('hidden');
+                loadMoreBtn.disabled = true;
+                loadMoreBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat...';
+            }
+
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const from = currentPage * pageSize;
+                const to = from + pageSize - 1;
+
+                const { data: notifications, error } = await _supabase
+                    .from('yata_notifications')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .range(from, to);
+
+                if (error) throw error;
+
+                let readMap = {};
+                if (notifications && notifications.length > 0) {
+                    const notifIds = notifications.map(n => n.id);
+                    const { data: userNotifs, error: userError } = await _supabase
+                        .from('yata_user_notifications')
+                        .select('notification_id, is_read')
+                        .eq('user_id', session.user.id)
+                        .in('notification_id', notifIds);
+
+                    if (!userError && userNotifs) {
+                        userNotifs.forEach(un => {
+                            readMap[un.notification_id] = un.is_read;
+                        });
+                    }
+                }
+
+                const newNotifications = (notifications || []).map(n => ({
+                    ...n,
+                    is_read: readMap[n.id] || false
+                }));
+
+                if (newNotifications.length > 0) {
+                    allNotifications = reset ? newNotifications : [...allNotifications, ...newNotifications];
+                    currentPage++;
+                    hasMoreData = newNotifications.length === pageSize;
+                } else {
+                    hasMoreData = false;
+                }
+
+                updateCount();
+                renderNotifications();
+
+                if (hasMoreData && allNotifications.length > 0) {
+                    loadMoreContainer.classList.remove('hidden');
+                    loadMoreBtn.disabled = false;
+                    loadMoreBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Muat Lebih Banyak';
+                } else {
+                    loadMoreContainer.classList.add('hidden');
+                    if (allNotifications.length > 0) {
+                        document.getElementById('noMoreData').classList.remove('hidden');
+                    }
+                }
+
+                checkOpenNotification();
+
+            } catch (err) {
+                console.error('Load notifications error:', err);
+                if (allNotifications.length === 0) {
+                    container.innerHTML = `
+                        <div class="bg-white rounded-2xl p-12 text-center border border-emerald-100/60 shadow-sm">
+                            <i class="fa-regular fa-bell-slash text-5xl text-slate-300 block mb-4"></i>
+                            <p class="text-slate-500 text-sm">Gagal memuat notifikasi: ${err.message}</p>
+                            <button onclick="loadNotifications(true)" class="mt-4 text-emerald-600 hover:text-emerald-700 font-semibold text-sm">
+                                <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                            </button>
+                        </div>
+                    `;
+                }
+            } finally {
+                isLoading = false;
+                skeleton.classList.add('hidden');
+                loadMoreBtn.disabled = false;
+                loadMoreBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Muat Lebih Banyak';
+            }
+        }
+
+        function loadMoreNotifications() {
+            if (!isLoading && hasMoreData) {
+                loadNotifications(false);
+            }
+        }
+
+        // RENDER NOTIFICATIONS
+        function renderNotifications() {
+            const container = document.getElementById('notifList');
+
+            let filtered = allNotifications;
+
+            if (currentFilter === 'unread') {
+                filtered = filtered.filter(n => !n.is_read);
+            } else if (currentFilter === 'read') {
+                filtered = filtered.filter(n => n.is_read);
+            }
+
+            if (filtered.length === 0 && !isLoading) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl p-12 text-center border border-emerald-100/60 shadow-sm">
+                        <i class="fa-regular fa-bell-slash text-5xl text-slate-300 block mb-4"></i>
+                        <p class="text-slate-500 text-sm">Tidak ada notifikasi.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const typeColors = {
+                info: 'bg-blue-50 text-blue-500',
+                warning: 'bg-yellow-50 text-yellow-500',
+                success: 'bg-emerald-50 text-emerald-500',
+                event: 'bg-purple-50 text-purple-500',
+                campaign: 'bg-orange-50 text-orange-500',
+                publishing: 'bg-rose-50 text-rose-500'
+            };
+
+            const typeIcons = {
+                info: 'fa-circle-info',
+                warning: 'fa-triangle-exclamation',
+                success: 'fa-circle-check',
+                event: 'fa-calendar-check',
+                campaign: 'fa-flag',
+                publishing: 'fa-book'
+            };
+
+            container.innerHTML = filtered.map(n => `
+                <div class="notif-card ${n.is_read ? 'notif-read' : 'notif-unread'} bg-white rounded-2xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition" onclick="openNotifDetail('${n.id}')">
+                    <div class="flex items-start gap-4">
+                        <div class="type-icon ${typeColors[n.type] || 'bg-slate-100 text-slate-500'}">
+                            <i class="fa-solid ${typeIcons[n.type] || 'fa-bell'}"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between gap-2">
+                                <h4 class="font-bold text-slate-800 text-sm">${n.title}</h4>
+                                ${!n.is_read ? '<span class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 mt-1"></span>' : ''}
+                            </div>
+                            <p class="text-sm text-slate-600 mt-1 line-clamp-2">${n.content}</p>
+                            <div class="flex items-center gap-3 mt-2 text-xs text-slate-400">
+                                <span><i class="fa-regular fa-clock mr-1"></i> ${timeAgo(n.created_at)}</span>
+                                ${n.is_read ? '<span class="text-emerald-600">✓ Sudah dibaca</span>' : '<span class="text-slate-400">Belum dibaca</span>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // UPDATE COUNT
+        function updateCount() {
+            const total = allNotifications.length;
+            const unread = allNotifications.filter(n => !n.is_read).length;
+            document.getElementById('notifCount').textContent = `${total} notifikasi • ${unread} belum dibaca`;
+        }
+
+        // FILTER
+        function filterNotifications(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.className = 'filter-btn px-4 py-1.5 rounded-full text-xs font-bold transition text-slate-600 bg-transparent';
+            });
+            const idMap = { 'all': 'filterAll', 'unread': 'filterUnread', 'read': 'filterRead' };
+            const activeBtn = document.getElementById(idMap[filter]);
+            if (activeBtn) {
+                activeBtn.className = 'filter-btn active px-4 py-1.5 rounded-full text-xs font-bold transition bg-emerald-600 text-white';
+            }
+            renderNotifications();
+        }
+
+        // OPEN NOTIFICATION DETAIL
+        async function openNotifDetail(notificationId) {
+            try {
+                currentModalNotifId = notificationId;
+
+                const { data: freshNotif, error } = await _supabase
+                    .from('yata_notifications')
+                    .select('*')
+                    .eq('id', notificationId)
+                    .single();
+
+                if (error || !freshNotif) {
+                    showError('Notifikasi tidak ditemukan.', 'Error');
+                    return;
+                }
+
+                const notif = freshNotif;
+
+                document.getElementById('notifModalTitle').textContent = notif.title;
+
+                const contentEl = document.getElementById('notifModalContent');
+                contentEl.innerHTML = '';
+                contentEl.textContent = notif.content || 'Tidak ada konten.';
+                contentEl.style.whiteSpace = 'pre-wrap';
+                contentEl.style.wordWrap = 'break-word';
+                contentEl.style.maxHeight = '450px';
+                contentEl.style.overflowY = 'auto';
+                contentEl.style.padding = '16px';
+                contentEl.style.background = '#f8fafc';
+                contentEl.style.borderRadius = '12px';
+                contentEl.style.fontSize = '14px';
+                contentEl.style.lineHeight = '1.8';
+                contentEl.style.fontFamily = 'inherit';
+                contentEl.style.color = '#1e293b';
+
+                document.getElementById('notifModalTime').textContent = `Dikirim ${timeAgo(notif.created_at)}`;
+
+                const statusEl = document.getElementById('notifModalStatus');
+                if (notif.is_read) {
+                    statusEl.textContent = '✅ Sudah dibaca';
+                    statusEl.className = 'text-xs font-semibold text-emerald-600';
+                } else {
+                    statusEl.textContent = '📩 Belum dibaca';
+                    statusEl.className = 'text-xs font-semibold text-yellow-600';
+                }
+
+                const replySection = document.getElementById('replySection');
+                const replyMessage = document.getElementById('replyMessage');
+                replyMessage.className = 'text-xs text-center mt-2 hidden';
+                
+                if (notif.type === 'campaign' || (notif.title && notif.title.includes('Peserta Baru Kampanye'))) {
+                    replySection.classList.remove('hidden');
+                    
+                    const { data: userNotif } = await _supabase
+                        .from('yata_user_notifications')
+                        .select('user_id')
+                        .eq('notification_id', notificationId)
+                        .limit(1)
+                        .maybeSingle();
+                    
+                    if (userNotif) {
+                        currentModalNotifUserId = userNotif.user_id;
+                    }
+                    
+                    document.getElementById('replyNotifInput').value = '';
+                    document.getElementById('replySubmitBtn').disabled = false;
+                    document.getElementById('replySubmitBtn').innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Balasan';
+                } else {
+                    replySection.classList.add('hidden');
+                }
+
+                document.getElementById('notifModal').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+
+                if (!notif.is_read) {
+                    await markAsRead(notificationId);
+                }
+
+            } catch (err) {
+                console.error('Open notif detail error:', err);
+                showError('Gagal membuka notifikasi.', 'Error');
+            }
+        }
+
+        function closeNotifModal() {
+            document.getElementById('notifModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentModalNotifId = null;
+            currentModalNotifUserId = null;
+            document.getElementById('replySection').classList.add('hidden');
+            document.getElementById('replyMessage').className = 'text-xs text-center mt-2 hidden';
+        }
+
+        document.getElementById('notifModal').addEventListener('click', function(e) {
+            if (e.target === this) closeNotifModal();
+        });
+
+        // MARK AS READ
+        async function markAsRead(notificationId) {
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const { error } = await _supabase
+                    .from('yata_user_notifications')
+                    .upsert({
+                        notification_id: notificationId,
+                        user_id: session.user.id,
+                        is_read: true,
+                        read_at: new Date().toISOString()
+                    }, {
+                        onConflict: 'notification_id, user_id'
+                    });
+
+                if (error) throw error;
+
+                const notif = allNotifications.find(n => n.id === notificationId);
+                if (notif) {
+                    notif.is_read = true;
+                }
+
+                updateCount();
+                renderNotifications();
+                updateBadgeInDashboard();
+
+                const statusEl = document.getElementById('notifModalStatus');
+                if (statusEl && document.getElementById('notifModal').classList.contains('hidden') === false) {
+                    statusEl.textContent = '✅ Sudah dibaca';
+                    statusEl.className = 'text-xs font-semibold text-emerald-600';
+                }
+
+            } catch (err) {
+                console.error('Mark as read error:', err);
+            }
+        }
+
+        // MARK ALL READ
+        async function markAllRead() {
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const unreadNotifs = allNotifications.filter(n => !n.is_read);
+                if (unreadNotifs.length === 0) {
+                    showError('Semua notifikasi sudah dibaca.', 'Info');
+                    return;
+                }
+
+                if (!confirm(`Tandai ${unreadNotifs.length} notifikasi sebagai dibaca?`)) return;
+
+                for (const n of unreadNotifs) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .upsert({
+                            notification_id: n.id,
+                            user_id: session.user.id,
+                            is_read: true,
+                            read_at: new Date().toISOString()
+                        }, {
+                            onConflict: 'notification_id, user_id'
+                        });
+                }
+
+                allNotifications.forEach(n => n.is_read = true);
+                updateCount();
+                renderNotifications();
+                updateBadgeInDashboard();
+                showError('✅ Semua notifikasi ditandai sebagai dibaca!', 'Sukses');
+
+            } catch (err) {
+                console.error('Mark all read error:', err);
+                showError('Gagal menandai semua notifikasi: ' + err.message, 'Error');
+            }
+        }
+
+        // UPDATE BADGE
+        function updateBadgeInDashboard() {
+            localStorage.setItem('yata_notif_updated', Date.now().toString());
+        }
+
+        // CHECK OPEN NOTIFICATION FROM URL
+        function checkOpenNotification() {
+            const params = new URLSearchParams(window.location.search);
+            const openId = params.get('open');
+
+            if (openId) {
+                const notif = allNotifications.find(n => n.id === openId);
+                if (notif) {
+                    setTimeout(() => openNotifDetail(openId), 300);
+                }
+            }
+        }
+
+        // SUBMIT REPLY NOTIFICATION
+        async function submitReplyNotification() {
+            const input = document.getElementById('replyNotifInput');
+            const reply = input.value.trim();
+            const messageEl = document.getElementById('replyMessage');
+
+            if (!reply) {
+                messageEl.textContent = 'Harap tulis balasan terlebih dahulu.';
+                messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
+                return;
+            }
+
+            const btn = document.getElementById('replySubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+            messageEl.className = 'text-xs text-center mt-2 hidden';
+
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                let targetUserId = currentModalNotifUserId;
+                
+                if (!targetUserId) {
+                    const { data: userNotif, error: userError } = await _supabase
+                        .from('yata_user_notifications')
+                        .select('user_id')
+                        .eq('notification_id', currentModalNotifId)
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (userError) throw userError;
+                    if (userNotif) {
+                        targetUserId = userNotif.user_id;
+                    }
+                }
+
+                if (!targetUserId) {
+                    messageEl.textContent = 'Tidak dapat menemukan penerima notifikasi.';
+                    messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
+                    return;
+                }
+
+                const { data: newNotif, error: createError } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: '📩 Balasan Admin Komunitas',
+                        content: `Balasan untuk notifikasi Anda:\n\n${reply}`,
+                        type: 'info'
+                    }])
+                    .select()
+                    .single();
+
+                if (createError) throw createError;
+
+                await _supabase
+                    .from('yata_user_notifications')
+                    .insert([{
+                        notification_id: newNotif.id,
+                        user_id: targetUserId,
+                        is_read: false
+                    }]);
+
+                messageEl.textContent = '✅ Balasan berhasil dikirim!';
+                messageEl.className = 'text-xs text-center mt-2 text-emerald-600 block';
+                input.value = '';
+
+                setTimeout(() => {
+                    closeNotifModal();
+                    loadNotifications(true);
+                }, 2000);
+
+            } catch (err) {
+                console.error('Reply notification error:', err);
+                messageEl.textContent = '❌ Gagal mengirim balasan: ' + err.message;
+                messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Balasan';
+            }
+        }
+
+        // LOGOUT
+        async function handleLogout() {
+            if (confirm('Yakin ingin keluar?')) {
+                try {
+                    const { error } = await _supabase.auth.signOut();
+                    if (!error) window.location.href = 'login.html';
+                } catch (err) { console.error('Logout error:', err); }
+            }
+        }
+
+        // EVENT LISTENERS
+        document.addEventListener('DOMContentLoaded', () => {
+            loadNotifications(true);
+
+            document.getElementById('btnLogout').addEventListener('click', handleLogout);
+            document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);
+
+            document.getElementById('mobileMenuButton').addEventListener('click', function() {
+                document.getElementById('mobileMenu').classList.toggle('hidden');
+            });
+
+            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(el => {
+                el.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
+            });
+        });
+    </script>
+
+</body>
+</html>

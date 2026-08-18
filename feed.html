@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Feed — YATA</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6EE7B7',
+                        primaryDark: '#065F46',
+                        sage: '#A3E4D7',
+                        cream: '#FEF3C7',
+                        mint: '#B2F2BB',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .book-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-radius: 16px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .book-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px -12px rgba(0,0,0,0.2);
+        }
+        .book-cover {
+            aspect-ratio: 2/3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            font-weight: 900;
+            position: relative;
+            border-radius: 12px 12px 0 0;
+            background: #D1FAE5;
+        }
+        .book-cover .badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .book-cover .badge-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 8px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .badge-review { background: #FEF3C7; color: #92400E; }
+        .badge-editing { background: #DBEAFE; color: #1E40AF; }
+        .badge-layout { background: #E0E7FF; color: #3730A3; }
+        .badge-isbn { background: #FCE7F3; color: #9D174D; }
+        .badge-published { background: #D1FAE5; color: #065F46; }
+        .book-cover .cover-gradient {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40%;
+            background: linear-gradient(to top, rgba(0,0,0,0.05), transparent);
+        }
+        .book-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .line-clamp-1 {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .filter-btn.active {
+            background-color: #065F46;
+            color: white;
+        }
+        .filter-btn:not(.active):hover {
+            background-color: #f1f5f9;
+        }
+        .cta-banner {
+            background: linear-gradient(135deg, #065F46 0%, #0D9488 60%, #6EE7B7 100%);
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .benefit-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(4px);
+            padding: 8px 16px;
+            border-radius: 9999px;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .nav-link-jelajahi {
+            color: #F59E0B;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .nav-link-jelajahi:hover {
+            color: #D97706;
+        }
+        .nav-link-jelajahi::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #F59E0B;
+            transition: width 0.3s ease;
+        }
+        .nav-link-jelajahi:hover::after {
+            width: 100%;
+        }
+        .btn-daftar-komunitas {
+            background: #065F46;
+            color: white;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(6, 95, 70, 0.35);
+        }
+        .btn-daftar-komunitas:hover {
+            background: #0D9488;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(6, 95, 70, 0.45);
+        }
+
+        /* Pagination */
+        .load-more-btn {
+            transition: all 0.3s ease;
+        }
+        .load-more-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(6, 95, 70, 0.3);
+        }
+        .load-more-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .skeleton-card {
+            animation: pulse 1.5s ease-in-out infinite;
+            background: #f1f5f9;
+            border-radius: 16px;
+            height: 280px;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px -12px rgba(6, 95, 70, 0.15);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- NAVBAR -->
+    <!-- ============================================ -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="explore.html" class="flex items-center space-x-2 group">
+                    <div class="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/30 group-hover:scale-105 transition">Y</div>
+                    <span class="text-xl font-extrabold text-emerald-800">YATA</span>
+                    <span class="hidden sm:inline text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Publik</span>
+                </a>
+
+                <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-600">
+                    <a href="explore.html" class="hover:text-emerald-600 transition">Beranda</a>
+                    <a href="feed.html" class="nav-link-jelajahi">📖 Feed</a>
+                    <a href="campaigns.html" class="hover:text-emerald-600 transition">Kampanye</a>
+                    <a href="penulis.html" class="hover:text-emerald-600 transition">Penulis</a>
+                    <a href="#mentoring" class="hover:text-emerald-600 transition">Mentoring</a>
+                    <a href="#tentang" class="hover:text-emerald-600 transition">Tentang</a>
+                    <a href="login.html" class="text-emerald-600 hover:text-emerald-700 font-semibold transition">Masuk</a>
+                    <a href="register.html" class="btn-daftar-komunitas px-5 py-2 rounded-full text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-user-plus mr-1"></i> Daftar Komunitas
+                    </a>
+                </div>
+
+                <button id="menu-btn" class="md:hidden text-slate-600 hover:text-emerald-600 text-xl">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="md:hidden hidden bg-white border-t border-emerald-100 px-4 py-4 space-y-3">
+            <a href="explore.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Beranda</a>
+            <a href="feed.html" class="block text-sm font-medium text-amber-600 font-semibold">📖 Feed</a>
+            <a href="campaigns.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Kampanye</a>
+            <a href="penulis.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Penulis</a>
+            <a href="#mentoring" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Mentoring</a>
+            <a href="#tentang" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Tentang</a>
+            <a href="login.html" class="block text-sm font-medium text-emerald-600 hover:text-emerald-700">Masuk</a>
+            <a href="register.html" class="block bg-emerald-700 hover:bg-emerald-800 text-white text-center px-4 py-2.5 rounded-full text-sm font-bold transition">
+                Daftar Komunitas
+            </a>
+        </div>
+    </nav>
+
+    <!-- ============================================ -->
+    <!-- HERO FEED -->
+    <!-- ============================================ -->
+    <section class="pt-24 pb-10 bg-gradient-to-b from-emerald-50/50 to-white border-b border-emerald-100/60">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <span class="inline-block text-emerald-600 text-sm font-bold uppercase tracking-wider bg-emerald-100/80 px-4 py-1.5 rounded-full mb-4 border border-emerald-200/60">📖 Koleksi Buku</span>
+            <h1 class="text-4xl sm:text-5xl font-black text-slate-800 mb-4">Feed <span class="text-emerald-600">Buku</span> dari Penulis YATA</h1>
+            <p class="text-lg text-slate-500 max-w-2xl mx-auto">Jelajahi buku-buku karya penulis YATA. Setiap buku memiliki cerita yang menunggu untuk dibaca.</p>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- FILTER & SEARCH -->
+    <!-- ============================================ -->
+    <section class="py-4 bg-white border-b border-slate-200/60 sticky top-16 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button onclick="filterFeed('all')" class="filter-btn active px-3 py-1.5 rounded-full text-xs font-bold transition bg-emerald-600 text-white" id="filterAll">Semua</button>
+                    <button onclick="filterFeed('novel')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterNovel">Novel</button>
+                    <button onclick="filterFeed('antologi')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterAntologi">Antologi</button>
+                    <button onclick="filterFeed('puisi')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterPuisi">Puisi</button>
+                    <button onclick="filterFeed('self-development')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterSelfDev">Self Dev</button>
+                    <button onclick="filterFeed('buku-teks')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterBukuTeks">Buku Teks</button>
+                </div>
+                <div class="relative w-full sm:w-56">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchFeed" placeholder="Cari judul atau penulis..." oninput="searchFeed()" class="w-full pl-9 pr-4 py-1.5 rounded-full border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white" />
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- DAFTAR FEED (GRID COVER) -->
+    <!-- ============================================ -->
+    <section class="py-8 bg-slate-50/50 min-h-screen">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        📚 Buku Tersedia
+                        <span class="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full" id="feedCount">0</span>
+                    </h2>
+                    <p class="text-xs text-slate-500">Buku dari proyek penulis YATA</p>
+                </div>
+            </div>
+
+            <div id="feedGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-5">
+                <!-- Akan diisi JavaScript -->
+            </div>
+
+            <!-- Pagination: Load More Button -->
+            <div id="loadMoreContainer" class="text-center mt-8 hidden">
+                <button id="loadMoreBtn" onclick="loadMoreBooks()" class="load-more-btn bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3 rounded-xl text-sm transition shadow-md shadow-emerald-500/20 flex items-center gap-2 mx-auto">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Muat Lebih Banyak</span>
+                </button>
+            </div>
+
+            <!-- Loading Skeleton untuk Load More -->
+            <div id="loadingSkeleton" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-5 hidden">
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+            </div>
+
+            <div id="noMoreData" class="text-center py-8 text-slate-400 text-sm hidden">
+                <i class="fa-regular fa-circle-check text-2xl block mb-2"></i>
+                Semua buku sudah dimuat.
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- BANNER CTA -->
+    <!-- ============================================ -->
+    <section class="py-12">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="cta-banner rounded-3xl p-8 md:p-12 text-white shadow-2xl shadow-emerald-900/20 relative overflow-hidden">
+                <div class="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
+                <div class="absolute -bottom-12 -left-12 w-48 h-48 bg-emerald-400/20 rounded-full blur-2xl"></div>
+                
+                <div class="relative z-10 flex flex-col lg:flex-row items-center gap-8">
+                    <div class="flex-1 text-center lg:text-left">
+                        <span class="inline-block text-emerald-200 text-xs font-bold uppercase tracking-wider bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full border border-white/10 mb-3">
+                            🚀 Ayo Bergabung!
+                        </span>
+                        <h2 class="text-3xl md:text-4xl font-black mb-4">
+                            Jadi Member YATA <span class="text-emerald-200">Sekarang!</span>
+                        </h2>
+                        <p class="text-emerald-100/80 text-sm md:text-base max-w-lg mb-6">
+                            Dapatkan akses eksklusif untuk menulis, menerbitkan, dan berkembang bersama komunitas literasi.
+                        </p>
+                        
+                        <div class="flex flex-wrap gap-2 mb-6 justify-center lg:justify-start">
+                            <span class="benefit-check text-xs"><i class="fa-solid fa-pen-fancy text-emerald-300"></i> Tulis Karya</span>
+                            <span class="benefit-check text-xs"><i class="fa-regular fa-id-card text-emerald-300"></i> KTA Digital</span>
+                            <span class="benefit-check text-xs"><i class="fa-solid fa-users text-emerald-300"></i> Komunitas</span>
+                            <span class="benefit-check text-xs"><i class="fa-solid fa-graduation-cap text-emerald-300"></i> Kelas Mentoring</span>
+                            <span class="benefit-check text-xs"><i class="fa-solid fa-book-open text-emerald-300"></i> Diskon Penerbitan</span>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row gap-3 items-center lg:justify-start">
+                            <a href="register.html" class="bg-white text-emerald-800 hover:bg-emerald-50 font-bold px-8 py-3.5 rounded-full text-sm transition shadow-lg shadow-black/20 flex items-center gap-2">
+                                <i class="fa-solid fa-user-plus"></i> Daftar Sekarang (Gratis)
+                            </a>
+                            <span class="text-emerald-200/60 text-xs">atau <a href="login.html" class="text-white hover:underline font-semibold">Masuk</a> jika sudah punya akun</span>
+                        </div>
+                    </div>
+
+                    <div class="flex-shrink-0 text-center">
+                        <div class="w-28 h-28 md:w-36 md:h-36 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-6xl md:text-7xl animate-float border border-white/20">
+                            ✍️
+                        </div>
+                        <p class="text-xs text-emerald-200/60 mt-2">Mulai tulis karyamu!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- TENTANG - SECTION BARU -->
+    <!-- ============================================ -->
+    <section id="tentang" class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Tentang YATA</span>
+                <h2 class="text-3xl font-black text-emerald-900 mt-2">Mengapa YATA?</h2>
+                <p class="text-slate-500 mt-4 text-lg">YATA adalah rumah bagi para penulis dan pegiat literasi.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8 mt-12">
+                <div class="bg-emerald-50/30 rounded-2xl p-6 border border-emerald-100 text-center card-hover">
+                    <div class="text-4xl mb-3">📖</div>
+                    <h3 class="font-bold text-emerald-900">Ruang Publikasi</h3>
+                    <p class="text-sm text-slate-500 mt-1">Tempat menulis bebas untuk semua genre.</p>
+                </div>
+                <div class="bg-emerald-50/30 rounded-2xl p-6 border border-emerald-100 text-center card-hover">
+                    <div class="text-4xl mb-3">🤝</div>
+                    <h3 class="font-bold text-emerald-900">Komunitas</h3>
+                    <p class="text-sm text-slate-500 mt-1">Temukan teman dan mentor menulis.</p>
+                </div>
+                <div class="bg-emerald-50/30 rounded-2xl p-6 border border-emerald-100 text-center card-hover">
+                    <div class="text-4xl mb-3">🌍</div>
+                    <h3 class="font-bold text-emerald-900">Gerakan Sosial</h3>
+                    <p class="text-sm text-slate-500 mt-1">Karya berdampak nyata untuk masyarakat.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- MENTORING - SECTION BARU -->
+    <!-- ============================================ -->
+    <section id="mentoring" class="py-16 bg-slate-50/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Mentoring</span>
+                <h2 class="text-3xl font-black text-emerald-900 mt-2">Kelas & Mentoring</h2>
+                <p class="text-slate-500 mt-4">Belajar langsung dari mentor berpengalaman.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm card-hover">
+                    <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-xl mb-4">📝</div>
+                    <h3 class="font-bold text-slate-800">Menulis Cerpen Pemula</h3>
+                    <p class="text-sm text-slate-500 mt-1">Belajar dasar-dasar menulis cerpen dari mentor berpengalaman.</p>
+                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+                        <span class="text-xs font-semibold text-emerald-600">🆓 Gratis</span>
+                        <span class="text-xs text-slate-400">Mulai 15 Agu 2026</span>
+                    </div>
+                    <a href="register.html" class="block w-full text-center mt-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold py-2 rounded-xl text-xs transition">Daftar Kelas (Member)</a>
+                </div>
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm card-hover">
+                    <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 text-xl mb-4">📖</div>
+                    <h3 class="font-bold text-slate-800">Teknik Menulis Puisi</h3>
+                    <p class="text-sm text-slate-500 mt-1">Eksplorasi gaya bahasa dan rima untuk menulis puisi yang memukau.</p>
+                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+                        <span class="text-xs font-semibold text-purple-600">💎 Berbayar</span>
+                        <span class="text-xs text-slate-400">Mulai 20 Agu 2026</span>
+                    </div>
+                    <a href="register.html" class="block w-full text-center mt-3 bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold py-2 rounded-xl text-xs transition">Daftar Kelas (Member)</a>
+                </div>
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm card-hover">
+                    <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600 text-xl mb-4">✍️</div>
+                    <h3 class="font-bold text-slate-800">Mengatasi Writer's Block</h3>
+                    <p class="text-sm text-slate-500 mt-1">Tips dan trik mengatasi kebuntuan menulis bersama mentor profesional.</p>
+                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+                        <span class="text-xs font-semibold text-orange-600">🆓 Gratis</span>
+                        <span class="text-xs text-slate-400">Mulai 25 Agu 2026</span>
+                    </div>
+                    <a href="register.html" class="block w-full text-center mt-3 bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold py-2 rounded-xl text-xs transition">Daftar Kelas (Member)</a>
+                </div>
+            </div>
+            <div class="text-center mt-8">
+                <a href="mentoring.html" class="text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition">
+                    Lihat semua kelas <i class="fa-solid fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================ -->
+    <footer class="bg-emerald-950 border-t border-emerald-800 py-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-emerald-400 rounded-xl flex items-center justify-center text-emerald-900 font-black text-sm">Y</div>
+                    <span class="text-white font-bold text-lg">YATA</span>
+                    <span class="text-xs text-emerald-400/60">Kata yang Menggerakkan</span>
+                </div>
+                <div class="flex space-x-4 text-emerald-400/60">
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-instagram text-lg"></i></a>
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-tiktok text-lg"></i></a>
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-twitter text-lg"></i></a>
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-youtube text-lg"></i></a>
+                </div>
+                <p class="text-xs text-emerald-400/40">&copy; 2026 YATA. Gerakan Literasi untuk Semua.</p>
+            </div>
+            <div class="border-t border-emerald-800/50 mt-6 pt-6 flex flex-wrap justify-center gap-6 text-xs text-emerald-400/40">
+                <a href="#" class="hover:text-emerald-300">Tentang Kami</a>
+                <a href="#" class="hover:text-emerald-300">Syarat &amp; Ketentuan</a>
+                <a href="#" class="hover:text-emerald-300">Kebijakan Privasi</a>
+                <a href="#" class="hover:text-emerald-300">Hubungi Kami</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        let allBooks = [];
+        let currentFilter = 'all';
+        let currentSearch = '';
+        let currentPage = 0;
+        const pageSize = 18;
+        let hasMoreData = true;
+        let isLoading = false;
+
+        const coverColors = ['#D1FAE5', '#DBEAFE', '#FEF3C7', '#FCE7F3', '#E0E7FF', '#FFE4E6', '#CCFBF1', '#F3E8FF', '#FCE7F3', '#E0E7FF'];
+
+        // ============================================
+        // 1. CEK SESSION
+        // ============================================
+        async function checkSession() {
+            const { data: { session } } = await _supabase.auth.getSession();
+            if (session) {
+                const ctaBtn = document.querySelector('.cta-banner a[href="register.html"]');
+                if (ctaBtn) {
+                    ctaBtn.href = 'dashboard.html';
+                    ctaBtn.innerHTML = '<i class="fa-solid fa-house mr-2"></i> Dashboard';
+                }
+            }
+        }
+
+        // ============================================
+        // 2. LOAD FEED (Pagination)
+        // ============================================
+        async function loadFeed(reset = true) {
+            if (reset) {
+                currentPage = 0;
+                hasMoreData = true;
+                allBooks = [];
+                document.getElementById('noMoreData').classList.add('hidden');
+            }
+
+            if (isLoading || !hasMoreData) return;
+            isLoading = true;
+
+            const container = document.getElementById('feedGrid');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            const loadMoreContainer = document.getElementById('loadMoreContainer');
+            const skeleton = document.getElementById('loadingSkeleton');
+
+            if (!reset) {
+                skeleton.classList.remove('hidden');
+                loadMoreBtn.disabled = true;
+                loadMoreBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat...';
+            }
+
+            try {
+                const from = currentPage * pageSize;
+                const to = from + pageSize - 1;
+
+                let query = _supabase
+                    .from('yata_book_projects')
+                    .select('*', { count: 'exact' })
+                    .not('status', 'eq', 'draft')
+                    .order('created_at', { ascending: false })
+                    .range(from, to);
+
+                if (currentFilter !== 'all') {
+                    query = query.eq('category', currentFilter);
+                }
+
+                if (currentSearch.trim()) {
+                    const searchTerm = currentSearch.trim();
+                    query = query.or(`title.ilike.%${searchTerm}%`);
+                }
+
+                const { data: books, error, count } = await query;
+
+                if (error) throw error;
+
+                // --- AMBIL DATA AUTHOR TERPISAH ---
+                if (books && books.length > 0) {
+                    const authorIds = [...new Set(books.map(b => b.author_id).filter(id => id))];
+                    
+                    let authorMap = {};
+                    if (authorIds.length > 0) {
+                        const { data: authors, error: authorError } = await _supabase
+                            .from('yata_profiles')
+                            .select('id, full_name, username, member_level')
+                            .in('id', authorIds);
+                        
+                        if (!authorError && authors) {
+                            authors.forEach(a => {
+                                authorMap[a.id] = a;
+                            });
+                        }
+                    }
+                    
+                    books.forEach(b => {
+                        b.author = authorMap[b.author_id] || null;
+                    });
+                }
+                // --- END AMBIL DATA AUTHOR ---
+
+                if (books && books.length > 0) {
+                    const bookIds = books.map(b => b.id);
+                    
+                    const { data: chapters, error: chapterError } = await _supabase
+                        .from('yata_book_chapters')
+                        .select('book_project_id')
+                        .in('book_project_id', bookIds);
+
+                    if (!chapterError && chapters) {
+                        const chapterCount = {};
+                        chapters.forEach(c => {
+                            chapterCount[c.book_project_id] = (chapterCount[c.book_project_id] || 0) + 1;
+                        });
+                        
+                        books.forEach(b => {
+                            b.chapter_count = chapterCount[b.id] || 0;
+                        });
+                    }
+                }
+
+                if (books && books.length > 0) {
+                    allBooks = reset ? books : [...allBooks, ...books];
+                    currentPage++;
+                    hasMoreData = books.length === pageSize;
+                } else {
+                    hasMoreData = false;
+                }
+
+                document.getElementById('feedCount').textContent = allBooks.length;
+                renderFeed();
+
+                if (hasMoreData && allBooks.length > 0) {
+                    loadMoreContainer.classList.remove('hidden');
+                    loadMoreBtn.disabled = false;
+                    loadMoreBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Muat Lebih Banyak';
+                } else {
+                    loadMoreContainer.classList.add('hidden');
+                    if (allBooks.length > 0) {
+                        document.getElementById('noMoreData').classList.remove('hidden');
+                    }
+                }
+
+            } catch (err) {
+                console.error('Load feed error:', err);
+                if (allBooks.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center py-12 text-red-400 text-sm">
+                            <i class="fa-solid fa-circle-exclamation text-2xl block mb-2"></i>
+                            Gagal memuat buku: ${err.message}
+                        </div>
+                    `;
+                }
+            } finally {
+                isLoading = false;
+                skeleton.classList.add('hidden');
+                loadMoreBtn.disabled = false;
+                loadMoreBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Muat Lebih Banyak';
+            }
+        }
+
+        function loadMoreBooks() {
+            if (!isLoading && hasMoreData) {
+                loadFeed(false);
+            }
+        }
+
+        // ============================================
+        // 4. RENDER FEED (GRID COVER)
+        // ============================================
+        function renderFeed() {
+            const container = document.getElementById('feedGrid');
+
+            if (allBooks.length === 0 && !isLoading) {
+                container.innerHTML = `
+                    <div class="col-span-full bg-white rounded-2xl p-12 text-center border border-emerald-100/60 shadow-sm">
+                        <i class="fa-regular fa-folder-open text-5xl text-slate-300 block mb-4"></i>
+                        <p class="text-slate-500 text-sm">Belum ada buku yang cocok dengan pencarian Anda.</p>
+                        <button onclick="resetFilters()" class="mt-4 text-emerald-600 hover:text-emerald-700 font-semibold text-sm">
+                            Reset filter
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            const statusBadgeMap = {
+                'review': { label: 'Review', class: 'badge-review' },
+                'editing': { label: 'Editing', class: 'badge-editing' },
+                'layout': { label: 'Layout', class: 'badge-layout' },
+                'isbn_submission': { label: 'ISBN', class: 'badge-isbn' },
+                'published': { label: 'Terbit', class: 'badge-published' }
+            };
+
+            container.innerHTML = allBooks.map(b => {
+                const color = coverColors[Math.floor(Math.random() * coverColors.length)];
+                const firstLetter = b.title.charAt(0).toUpperCase();
+                const coverUrl = b.cover_url || null;
+                const categoryLabel = b.category || 'Umum';
+                const statusInfo = statusBadgeMap[b.status] || { label: b.status, class: 'badge-review' };
+                const authorName = b.author?.full_name || 'Penulis';
+                
+                return `
+                    <div class="book-card" onclick="window.location.href='book-read.html?id=${b.id}'">
+                        <div class="book-cover" style="background: ${coverUrl ? `#e2e8f0` : color};">
+                            ${coverUrl ? `<img src="${coverUrl}" alt="${b.title}" />` : `<span style="font-size:36px;font-weight:900;color:rgba(0,0,0,0.15);">${firstLetter}</span>`}
+                            <span class="badge">${categoryLabel}</span>
+                            <span class="badge-status ${statusInfo.class}">${statusInfo.label}</span>
+                            <div class="cover-gradient"></div>
+                        </div>
+                        <div class="p-3">
+                            <h3 class="font-bold text-slate-800 text-sm line-clamp-1">${b.title}</h3>
+                            <p class="text-xs text-slate-500">${authorName}</p>
+                            <div class="flex items-center justify-between mt-2">
+                                <div class="flex items-center gap-2 text-[10px] text-slate-400">
+                                    <span><i class="fa-regular fa-file-lines mr-1"></i> ${b.chapter_count || 0} chapter</span>
+                                </div>
+                                <span class="text-[10px] text-slate-400">${new Date(b.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============================================
+        // 5. FILTERS
+        // ============================================
+        function filterFeed(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-slate-600');
+            });
+
+            const idMap = {
+                'all': 'filterAll',
+                'novel': 'filterNovel',
+                'antologi': 'filterAntologi',
+                'puisi': 'filterPuisi',
+                'self-development': 'filterSelfDev',
+                'buku-teks': 'filterBukuTeks'
+            };
+
+            const activeBtn = document.getElementById(idMap[filter]);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+                activeBtn.classList.remove('text-slate-600');
+            }
+
+            loadFeed(true);
+        }
+
+        function searchFeed() {
+            const input = document.getElementById('searchFeed');
+            currentSearch = input.value;
+            loadFeed(true);
+        }
+
+        function resetFilters() {
+            currentFilter = 'all';
+            currentSearch = '';
+            document.getElementById('searchFeed').value = '';
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-slate-600');
+            });
+            document.getElementById('filterAll').classList.add('active');
+            document.getElementById('filterAll').classList.remove('text-slate-600');
+            loadFeed(true);
+        }
+
+        // ============================================
+        // 6. MOBILE MENU
+        // ============================================
+        const menuBtn = document.getElementById('menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        let menuOpen = false;
+
+        menuBtn.addEventListener('click', () => {
+            menuOpen = !menuOpen;
+            mobileMenu.classList.toggle('hidden');
+            menuBtn.innerHTML = menuOpen ? '<i class="fa-solid fa-xmark"></i>' : '<i class="fa-solid fa-bars"></i>';
+        });
+
+        document.querySelectorAll('#mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+                menuOpen = false;
+                menuBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
+            });
+        });
+
+        // ============================================
+        // 7. INIT
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            checkSession();
+            loadFeed(true);
+        });
+    </script>
+
+</body>
+</html>

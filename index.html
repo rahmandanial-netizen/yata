@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YATA — Kata yang Menggerakkan</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6EE7B7',
+                        primaryDark: '#065F46',
+                        sage: '#A3E4D7',
+                        cream: '#FEF3C7',
+                        mint: '#B2F2BB',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .hero-gradient {
+            background: linear-gradient(135deg, #065F46 0%, #0D9488 40%, #6EE7B7 100%);
+        }
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px -12px rgba(6, 95, 70, 0.25);
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .campaign-bar {
+            transition: width 1s ease-in-out;
+        }
+        html { scroll-behavior: smooth; }
+        .btn-explore {
+            background: #FBBF24;
+            color: #1F2937;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(251, 191, 36, 0.35);
+        }
+        .btn-explore:hover {
+            background: #F59E0B;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(251, 191, 36, 0.45);
+        }
+        .nav-link-jelajahi {
+            color: #F59E0B;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .nav-link-jelajahi:hover {
+            color: #D97706;
+        }
+        .nav-link-jelajahi::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #F59E0B;
+            transition: width 0.3s ease;
+        }
+        .nav-link-jelajahi:hover::after {
+            width: 100%;
+        }
+        .btn-daftar-komunitas {
+            background: #065F46;
+            color: white;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(6, 95, 70, 0.35);
+        }
+        .btn-daftar-komunitas:hover {
+            background: #0D9488;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(6, 95, 70, 0.45);
+        }
+        .testimonial-card {
+            transition: all 0.3s ease;
+        }
+        .testimonial-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px -12px rgba(6, 95, 70, 0.15);
+        }
+        .modal-enter { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .benefit-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(4px);
+            padding: 8px 16px;
+            border-radius: 9999px;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .line-clamp-1 {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .filter-btn-lb {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .filter-btn-lb.active {
+            background-color: #F59E0B;
+            color: white;
+        }
+        .filter-btn-lb:not(.active):hover {
+            background-color: #f1f5f9;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- NAVBAR -->
+    <!-- ============================================ -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="index.html" class="flex items-center space-x-2 group">
+                    <div class="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/30 group-hover:scale-105 transition">Y</div>
+                    <span class="text-xl font-extrabold text-emerald-800">YATA</span>
+                    <span class="hidden sm:inline text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Beta</span>
+                </a>
+
+                <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-600">
+                    <a href="explore.html" class="nav-link-jelajahi">🌟 Jelajahi YATA</a>
+                    <a href="#fitur" class="hover:text-emerald-600 transition">Fitur</a>
+                    <a href="#kampanye" class="hover:text-emerald-600 transition">Kampanye</a>
+                    <a href="penulis.html" class="hover:text-emerald-600 transition">Penulis</a>
+                    <a href="#tentang" class="hover:text-emerald-600 transition">Tentang</a>
+                    <a href="login.html" class="text-emerald-600 hover:text-emerald-700 font-semibold transition">Masuk</a>
+                    <a href="register.html" class="btn-daftar-komunitas px-5 py-2 rounded-full text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-user-plus mr-1"></i> Daftar Komunitas
+                    </a>
+                </div>
+
+                <button id="menu-btn" class="md:hidden text-slate-600 hover:text-emerald-600 text-xl">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="md:hidden hidden bg-white border-t border-emerald-100 px-4 py-4 space-y-3">
+            <a href="explore.html" class="block text-sm font-medium text-amber-600 font-semibold">🌟 Jelajahi YATA</a>
+            <a href="#fitur" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Fitur</a>
+            <a href="#kampanye" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Kampanye</a>
+            <a href="penulis.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">👥 Penulis</a>
+            <a href="#tentang" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Tentang</a>
+            <a href="login.html" class="block text-sm font-medium text-emerald-600 hover:text-emerald-700">Masuk</a>
+            <a href="register.html" class="block bg-emerald-700 hover:bg-emerald-800 text-white text-center px-4 py-2.5 rounded-full text-sm font-bold transition">
+                Daftar Komunitas
+            </a>
+        </div>
+    </nav>
+
+    <!-- ============================================ -->
+    <!-- HERO SECTION -->
+    <!-- ============================================ -->
+    <section class="hero-gradient min-h-[70vh] flex items-center pt-14 overflow-hidden relative">
+        <div class="absolute top-20 right-10 w-56 h-56 bg-emerald-300/20 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-10 left-10 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-6 md:py-8">
+            <div class="grid md:grid-cols-2 gap-6 md:gap-10 items-center">
+                <div class="space-y-3 md:space-y-4">
+                    <div class="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1 text-white/80 text-[10px] md:text-xs font-semibold">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span>
+                        <span>Gerakan Literasi Nusantara</span>
+                    </div>
+
+                    <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-tight">
+                        Kata yang
+                        <span class="text-emerald-200">Menggerakkan</span>
+                    </h1>
+
+                    <p class="text-sm md:text-base text-white/70 max-w-lg leading-relaxed">
+                        Ruang publikasi, komunitas, dan gerakan literasi untuk Indonesia.
+                        Menulis, berbagi, dan mengubah dunia dengan kata-kata.
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row gap-2 md:gap-3 pt-1">
+                        <a href="register.html" class="bg-emerald-400 hover:bg-emerald-300 text-emerald-900 font-bold px-5 md:px-7 py-2.5 rounded-full text-sm shadow-lg shadow-emerald-400/30 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-pen-fancy"></i> Mulai Menulis
+                        </a>
+                        <a href="explore.html" class="btn-explore px-5 md:px-7 py-2.5 rounded-full text-sm flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-compass"></i> Jelajahi YATA
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3 pt-4 border-t border-white/10">
+                        <div>
+                            <p class="text-lg md:text-xl font-black text-white">12K+</p>
+                            <p class="text-[8px] md:text-[10px] text-white/50">Karya Tulis</p>
+                        </div>
+                        <div>
+                            <p class="text-lg md:text-xl font-black text-white">567</p>
+                            <p class="text-[8px] md:text-[10px] text-white/50">Anak Tersentuh</p>
+                        </div>
+                        <div>
+                            <p class="text-lg md:text-xl font-black text-white">1.2K</p>
+                            <p class="text-[8px] md:text-[10px] text-white/50">Buku Donasi</p>
+                        </div>
+                        <div>
+                            <p class="text-lg md:text-xl font-black text-white">89</p>
+                            <p class="text-[8px] md:text-[10px] text-white/50">Relawan Aktif</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hidden md:flex items-center justify-center">
+                    <div class="relative">
+                        <div class="w-64 h-64 bg-emerald-400/20 rounded-full blur-2xl absolute -top-10 -right-10"></div>
+                        <div class="relative bg-white/5 backdrop-blur-sm border border-white/20 rounded-3xl p-5 md:p-6 w-full max-w-sm">
+                            <div class="text-center text-white">
+                                <div class="text-4xl md:text-5xl mb-2 md:mb-3 animate-float">✍️</div>
+                                <h3 class="text-base md:text-lg font-bold">Tulis Karyamu</h3>
+                                <p class="text-white/60 text-[10px] md:text-xs mt-1">Bergabunglah dengan ribuan penulis.</p>
+                                <div class="mt-3 md:mt-4 flex justify-center space-x-2">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                    <span class="w-2 h-2 rounded-full bg-white/30"></span>
+                                    <span class="w-2 h-2 rounded-full bg-white/30"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- TENTANG -->
+    <!-- ============================================ -->
+    <section id="tentang" class="py-20 bg-emerald-50/30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Tentang YATA</span>
+                <h2 class="text-3xl sm:text-4xl font-black text-emerald-900 mt-2">Lebih dari Sekadar Platform Menulis</h2>
+                <p class="text-slate-500 mt-4 text-lg">YATA adalah ekosistem literasi yang menghubungkan penulis, pembaca, dan gerakan sosial.</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white rounded-3xl p-8 border border-emerald-100 card-hover transition text-center shadow-sm">
+                    <div class="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 text-3xl">📝</div>
+                    <h3 class="text-xl font-bold text-emerald-900 mt-5">Ruang Publikasi</h3>
+                    <p class="text-slate-500 text-sm mt-2 leading-relaxed">Tempat menulis bebas. Puisi, cerpen, esai, opini, resensi, novel — semua ada di sini.</p>
+                </div>
+                <div class="bg-white rounded-3xl p-8 border border-emerald-100 card-hover transition text-center shadow-sm">
+                    <div class="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 text-3xl">🌍</div>
+                    <h3 class="text-xl font-bold text-emerald-900 mt-5">Gerakan Sosial</h3>
+                    <p class="text-slate-500 text-sm mt-2 leading-relaxed">Setiap karya bisa berdampak nyata. Donasi buku ke panti asuhan, literasi desa, dan banyak lagi.</p>
+                </div>
+                <div class="bg-white rounded-3xl p-8 border border-emerald-100 card-hover transition text-center shadow-sm">
+                    <div class="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 text-3xl">🤝</div>
+                    <h3 class="text-xl font-bold text-emerald-900 mt-5">Komunitas Literasi</h3>
+                    <p class="text-slate-500 text-sm mt-2 leading-relaxed">Temukan teman menulis, ikuti event, dan tumbuh bersama di ekosistem literasi YATA.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- FITUR -->
+    <!-- ============================================ -->
+    <section id="fitur" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Fitur Unggulan</span>
+                <h2 class="text-3xl sm:text-4xl font-black text-emerald-900 mt-2">Apa yang Bisa Kamu Lakukan di YATA?</h2>
+            </div>
+
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-emerald-50/30 rounded-2xl p-5 border border-emerald-100 hover:shadow-lg transition group hover:border-emerald-300 flex items-center gap-4">
+                    <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-2xl group-hover:scale-110 transition flex-shrink-0">🔥</div>
+                    <div>
+                        <h4 class="font-bold text-emerald-900 text-sm">Prompt Generator</h4>
+                        <p class="text-xs text-slate-500 mt-0.5">100+ prompt cerita</p>
+                    </div>
+                </div>
+                <div class="bg-emerald-50/30 rounded-2xl p-5 border border-emerald-100 hover:shadow-lg transition group hover:border-emerald-300 flex items-center gap-4">
+                    <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-2xl group-hover:scale-110 transition flex-shrink-0">📚</div>
+                    <div>
+                        <h4 class="font-bold text-emerald-900 text-sm">Penerbitan Kurasi</h4>
+                        <p class="text-xs text-slate-500 mt-0.5">Karya terbaik diterbitkan</p>
+                    </div>
+                </div>
+                <div class="bg-emerald-50/30 rounded-2xl p-5 border border-emerald-100 hover:shadow-lg transition group hover:border-emerald-300 flex items-center gap-4">
+                    <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-2xl group-hover:scale-110 transition flex-shrink-0">📖</div>
+                    <div>
+                        <h4 class="font-bold text-emerald-900 text-sm">KBBI Checker</h4>
+                        <p class="text-xs text-slate-500 mt-0.5">Sesuai kaidah PUEBI</p>
+                    </div>
+                </div>
+                <div class="bg-emerald-50/30 rounded-2xl p-5 border border-emerald-100 hover:shadow-lg transition group hover:border-emerald-300 flex items-center gap-4">
+                    <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-2xl group-hover:scale-110 transition flex-shrink-0">🏆</div>
+                    <div>
+                        <h4 class="font-bold text-emerald-900 text-sm">3 Penulis Terbaik</h4>
+                        <p class="text-xs text-slate-500 mt-0.5">Tampil di banner utama</p>
+                    </div>
+                </div>
+                <div class="bg-emerald-50/30 rounded-2xl p-5 border border-emerald-100 hover:shadow-lg transition group hover:border-emerald-300 flex items-center gap-4">
+                    <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-2xl group-hover:scale-110 transition flex-shrink-0">🎯</div>
+                    <div>
+                        <h4 class="font-bold text-emerald-900 text-sm">Kampanye Literasi</h4>
+                        <p class="text-xs text-slate-500 mt-0.5">#1Anak1Buku, Perpus Panti</p>
+                    </div>
+                </div>
+                <div class="bg-emerald-50/30 rounded-2xl p-5 border border-emerald-100 hover:shadow-lg transition group hover:border-emerald-300 flex items-center gap-4">
+                    <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-2xl group-hover:scale-110 transition flex-shrink-0">💳</div>
+                    <div>
+                        <h4 class="font-bold text-emerald-900 text-sm">Kartu Member Digital</h4>
+                        <p class="text-xs text-slate-500 mt-0.5">Akses eksklusif</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- KAMPANYE (DINAMIS DARI DATABASE) -->
+    <!-- ============================================ -->
+    <section id="kampanye" class="py-20 bg-emerald-50/30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Gerakan Sosial</span>
+                <h2 class="text-3xl sm:text-4xl font-black text-emerald-900 mt-2">Kampanye Literasi YATA</h2>
+                <p class="text-slate-500 mt-4">Setiap aksi di YATA berdampak nyata bagi mereka yang membutuhkan akses literasi.</p>
+            </div>
+
+            <div id="indexCampaigns" class="space-y-6 max-w-3xl mx-auto">
+                <div class="text-center py-12 text-slate-400 text-sm">
+                    <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat kampanye...
+                </div>
+            </div>
+
+            <div class="text-center mt-10">
+                <a href="campaigns.html" class="inline-flex items-center gap-2 bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-8 py-3.5 rounded-full text-sm transition shadow-md shadow-emerald-800/20">
+                    <i class="fa-solid fa-flag"></i> Lihat Semua Kampanye
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- TESTIMONI -->
+    <!-- ============================================ -->
+    <section class="py-20 bg-white" id="testimoni">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Testimoni</span>
+                <h2 class="text-3xl sm:text-4xl font-black text-emerald-900 mt-2">Apa Kata Mereka tentang YATA</h2>
+                <p class="text-slate-500 mt-4">Pengalaman nyata dari komunitas YATA</p>
+                
+                <div id="ratingSummary" class="mt-4 inline-flex items-center gap-4 bg-emerald-50/80 px-6 py-3 rounded-full border border-emerald-200">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl font-black text-emerald-700" id="avgRating">0.0</span>
+                        <span class="text-sm text-slate-500">/ 5</span>
+                    </div>
+                    <div class="flex text-amber-400 text-sm" id="avgStars">
+                        <i class="fa-regular fa-star"></i>
+                        <i class="fa-regular fa-star"></i>
+                        <i class="fa-regular fa-star"></i>
+                        <i class="fa-regular fa-star"></i>
+                        <i class="fa-regular fa-star"></i>
+                    </div>
+                    <span class="text-sm text-slate-400" id="totalReviews">0 ulasan</span>
+                </div>
+            </div>
+
+            <div id="testimonialList" class="grid md:grid-cols-3 gap-6 mb-12">
+                <div class="col-span-full text-center py-12 text-slate-400 text-sm">
+                    <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat testimoni...
+                </div>
+            </div>
+
+            <div class="text-center">
+                <button onclick="openTestimonialModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3 rounded-full text-sm transition shadow-md shadow-emerald-500/25 inline-flex items-center gap-2">
+                    <i class="fa-regular fa-pen-to-square"></i> Tulis Testimoni
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- LEADERBOARD YATA - SECTION BARU -->
+    <!-- ============================================ -->
+    <section id="leaderboard" class="py-16 bg-gradient-to-b from-amber-50/30 to-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <span class="text-amber-600 text-sm font-bold uppercase tracking-wider">🏆 Leaderboard</span>
+                <h2 class="text-3xl sm:text-4xl font-black text-slate-800 mt-2">Penulis <span class="text-amber-600">Terbaik</span> YATA</h2>
+                <p class="text-slate-500 mt-4">Berdasarkan kontribusi, kualitas karya, dan dampak bagi komunitas.</p>
+            </div>
+
+            <!-- Filter -->
+            <div class="flex flex-wrap items-center justify-center gap-2 mb-8">
+                <button onclick="filterLeaderboard('all')" class="filter-btn-lb active px-4 py-2 rounded-full text-xs font-bold transition bg-amber-600 text-white" id="lbFilterAll">🌍 Semua</button>
+                <button onclick="filterLeaderboard('top_10')" class="filter-btn-lb px-4 py-2 rounded-full text-xs font-bold transition text-slate-600" id="lbFilterTop10">🏆 Top 10</button>
+                <button onclick="filterLeaderboard('top_50')" class="filter-btn-lb px-4 py-2 rounded-full text-xs font-bold transition text-slate-600" id="lbFilterTop50">⭐ Top 50</button>
+                <button onclick="filterLeaderboard('top_100')" class="filter-btn-lb px-4 py-2 rounded-full text-xs font-bold transition text-slate-600" id="lbFilterTop100">📈 Top 100</button>
+                <button onclick="filterLeaderboard('rising')" class="filter-btn-lb px-4 py-2 rounded-full text-xs font-bold transition text-slate-600" id="lbFilterRising">🚀 Pendatang Baru</button>
+            </div>
+
+            <!-- Daftar Leaderboard -->
+            <div id="leaderboardList" class="space-y-3 max-w-3xl mx-auto">
+                <div class="text-center py-12 text-slate-400 text-sm">
+                    <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat leaderboard...
+                </div>
+            </div>
+
+            <!-- Karya Terbaik -->
+            <div class="mt-12 max-w-3xl mx-auto">
+                <h3 class="text-xl font-bold text-slate-800 text-center mb-6 flex items-center justify-center gap-2">
+                    <i class="fa-regular fa-star text-amber-500"></i> Karya Terbaik
+                    <span class="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">10 besar</span>
+                </h3>
+                <div id="bestWritingsList" class="space-y-2">
+                    <div class="text-center py-6 text-slate-400 text-sm">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat karya terbaik...
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-8">
+                <a href="penulis.html" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-8 py-3 rounded-full text-sm transition shadow-md shadow-amber-500/20 inline-flex items-center gap-2">
+                    <i class="fa-solid fa-users"></i> Lihat Semua Penulis
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- MODAL TULIS TESTIMONI -->
+    <!-- ============================================ -->
+    <div id="testimonialModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeTestimonialModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Testimoni</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Bagikan Pengalaman Anda</h3>
+                <p class="text-xs text-slate-500 mt-1">Ceritakan pengalaman Anda menggunakan YATA.</p>
+            </div>
+
+            <form id="testimonialForm" class="space-y-4">
+                <div>
+                    <label for="testiName" class="block text-xs font-semibold text-slate-700 mb-1">Nama <span class="text-red-500">*</span></label>
+                    <input type="text" id="testiName" placeholder="Masukkan nama Anda" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="testiRole" class="block text-xs font-semibold text-slate-700 mb-1">Peran / Pekerjaan</label>
+                    <input type="text" id="testiRole" placeholder="Contoh: Siswa, Guru, Penulis" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="testiContent" class="block text-xs font-semibold text-slate-700 mb-1">Ulasan <span class="text-red-500">*</span></label>
+                    <textarea id="testiContent" rows="3" placeholder="Ceritakan pengalaman Anda..." required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-2">Rating <span class="text-red-500">*</span></label>
+                    <div class="flex gap-1 text-2xl" id="starRating">
+                        <span class="cursor-pointer transition hover:scale-110" onclick="setRating(1)">⭐</span>
+                        <span class="cursor-pointer transition hover:scale-110" onclick="setRating(2)">⭐</span>
+                        <span class="cursor-pointer transition hover:scale-110" onclick="setRating(3)">⭐</span>
+                        <span class="cursor-pointer transition hover:scale-110" onclick="setRating(4)">⭐</span>
+                        <span class="cursor-pointer transition hover:scale-110" onclick="setRating(5)">⭐</span>
+                    </div>
+                    <input type="hidden" id="testiRating" value="5" />
+                    <p class="text-xs text-slate-400 mt-1" id="ratingLabel">⭐ 5 - Sangat Baik</p>
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-regular fa-paper-plane mr-1"></i> Kirim Testimoni
+                </button>
+
+                <div id="testiMessage" class="text-sm text-center hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================ -->
+    <footer class="bg-emerald-950 border-t border-emerald-800 py-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-emerald-400 rounded-xl flex items-center justify-center text-emerald-900 font-black text-sm">Y</div>
+                    <span class="text-white font-bold text-lg">YATA</span>
+                    <span class="text-xs text-emerald-400/60">Kata yang Menggerakkan</span>
+                </div>
+                <div class="flex space-x-4 text-emerald-400/60">
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-instagram text-lg"></i></a>
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-tiktok text-lg"></i></a>
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-twitter text-lg"></i></a>
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-youtube text-lg"></i></a>
+                </div>
+                <p class="text-xs text-emerald-400/40">&copy; 2026 YATA. Gerakan Literasi untuk Semua.</p>
+            </div>
+            <div class="border-t border-emerald-800/50 mt-6 pt-6 flex flex-wrap justify-center gap-6 text-xs text-emerald-400/40">
+                <a href="#" class="hover:text-emerald-300">Tentang Kami</a>
+                <a href="#" class="hover:text-emerald-300">Syarat &amp; Ketentuan</a>
+                <a href="#" class="hover:text-emerald-300">Kebijakan Privasi</a>
+                <a href="#" class="hover:text-emerald-300">Hubungi Kami</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        let selectedRating = 5;
+        let allRankings = [];
+        let currentLbFilter = 'all';
+
+        // ============================================
+        // 1. MENU
+        // ============================================
+        const menuBtn = document.getElementById('menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        let menuOpen = false;
+
+        menuBtn.addEventListener('click', () => {
+            menuOpen = !menuOpen;
+            mobileMenu.classList.toggle('hidden');
+            menuBtn.innerHTML = menuOpen ? '<i class="fa-solid fa-xmark"></i>' : '<i class="fa-solid fa-bars"></i>';
+        });
+
+        document.querySelectorAll('#mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+                menuOpen = false;
+                menuBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
+            });
+        });
+
+        // ============================================
+        // 2. LOAD TESTIMONIALS
+        // ============================================
+        async function loadTestimonials() {
+            const container = document.getElementById('testimonialList');
+            try {
+                const { data: testimonials, error } = await _supabase
+                    .from('yata_testimonials')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(6);
+
+                if (error) throw error;
+
+                let totalRating = 0;
+                let totalReviews = 0;
+
+                if (testimonials && testimonials.length > 0) {
+                    testimonials.forEach(t => {
+                        totalRating += t.rating || 0;
+                        totalReviews++;
+                    });
+                }
+
+                const avgRating = totalReviews > 0 ? (totalRating / totalReviews) : 0;
+                updateRatingSummary(avgRating, totalReviews);
+
+                if (!testimonials || testimonials.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center py-12 text-slate-400 text-sm">
+                            <i class="fa-regular fa-comment-dots text-3xl block mb-3"></i>
+                            Belum ada testimoni. Jadilah yang pertama!
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = testimonials.map(t => `
+                    <div class="testimonial-card bg-emerald-50/30 rounded-2xl p-6 border border-emerald-100 relative">
+                        ${t.role ? `<div class="absolute top-3 right-3 text-xs text-slate-400 bg-white/80 px-2 py-0.5 rounded-full">${t.role}</div>` : ''}
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="flex text-amber-400 text-sm">
+                                ${renderStars(t.rating)}
+                            </div>
+                            <span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">${t.rating}.0</span>
+                        </div>
+                        <p class="text-sm text-slate-600 italic leading-relaxed">"${t.content}"</p>
+                        <div class="flex items-center gap-3 mt-4 pt-4 border-t border-emerald-100">
+                            <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
+                                ${t.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-emerald-900">${t.name}</p>
+                                ${t.role ? `<p class="text-xs text-slate-400">${t.role}</p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                console.error('Load testimonials error:', err);
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-red-400 text-sm">
+                        <i class="fa-solid fa-circle-exclamation text-2xl block mb-2"></i>
+                        Gagal memuat testimoni.
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 3. UPDATE RATING SUMMARY
+        // ============================================
+        function updateRatingSummary(avgRating, totalReviews) {
+            document.getElementById('avgRating').textContent = avgRating.toFixed(1);
+            document.getElementById('totalReviews').textContent = `${totalReviews} ulasan`;
+            
+            const starsContainer = document.getElementById('avgStars');
+            const fullStars = Math.round(avgRating);
+            let starsHtml = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= fullStars) {
+                    starsHtml += '<i class="fa-solid fa-star text-amber-400"></i>';
+                } else if (i - 0.5 <= avgRating) {
+                    starsHtml += '<i class="fa-solid fa-star-half-stroke text-amber-400"></i>';
+                } else {
+                    starsHtml += '<i class="fa-regular fa-star text-amber-400"></i>';
+                }
+            }
+            starsContainer.innerHTML = starsHtml;
+        }
+
+        // ============================================
+        // 4. RENDER STARS
+        // ============================================
+        function renderStars(rating) {
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= rating) {
+                    stars += '<i class="fa-solid fa-star"></i>';
+                } else if (i - 0.5 <= rating) {
+                    stars += '<i class="fa-solid fa-star-half-stroke"></i>';
+                } else {
+                    stars += '<i class="fa-regular fa-star"></i>';
+                }
+            }
+            return stars;
+        }
+
+        // ============================================
+        // 5. SET RATING
+        // ============================================
+        function setRating(rating) {
+            selectedRating = rating;
+            document.getElementById('testiRating').value = rating;
+            const stars = document.querySelectorAll('#starRating span');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.style.opacity = '1';
+                    star.style.filter = 'grayscale(0)';
+                } else {
+                    star.style.opacity = '0.3';
+                    star.style.filter = 'grayscale(1)';
+                }
+            });
+            const labels = ['', 'Sangat Buruk', 'Buruk', 'Cukup', 'Baik', 'Sangat Baik'];
+            document.getElementById('ratingLabel').textContent = `⭐ ${rating} - ${labels[rating]}`;
+        }
+
+        // ============================================
+        // 6. MODAL CONTROLS
+        // ============================================
+        function openTestimonialModal() {
+            document.getElementById('testimonialModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            document.getElementById('testimonialForm').reset();
+            document.getElementById('testiMessage').className = 'text-sm text-center hidden';
+            setRating(5);
+        }
+
+        function closeTestimonialModal() {
+            document.getElementById('testimonialModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.getElementById('testimonialModal').addEventListener('click', function(e) {
+            if (e.target === this) closeTestimonialModal();
+        });
+
+        // ============================================
+        // 7. SUBMIT TESTIMONIAL
+        // ============================================
+        document.getElementById('testimonialForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const rateCheck = checkRateLimit('testimonial');
+            if (!rateCheck.allowed) {
+                showError(rateCheck.message, '⏳ Terlalu Cepat');
+                return;
+            }
+
+            const name = document.getElementById('testiName').value.trim();
+            const role = document.getElementById('testiRole').value.trim();
+            const content = document.getElementById('testiContent').value.trim();
+            const rating = parseInt(document.getElementById('testiRating').value) || 5;
+
+            if (!name) {
+                showError('Nama wajib diisi.', 'Validasi Gagal');
+                return;
+            }
+            if (!content) {
+                showError('Ulasan wajib diisi.', 'Validasi Gagal');
+                return;
+            }
+            if (content.length < 10) {
+                showError('Ulasan minimal 10 karakter.', 'Validasi Gagal');
+                return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+
+            try {
+                const { error } = await _supabase
+                    .from('yata_testimonials')
+                    .insert([{
+                        name: name,
+                        role: role || null,
+                        content: content,
+                        rating: rating,
+                        is_approved: true
+                    }]);
+
+                if (error) throw error;
+
+                saveRateLimit('testimonial');
+
+                const msg = document.getElementById('testiMessage');
+                msg.textContent = '✅ Testimoni berhasil dikirim! Terima kasih atas ulasan Anda.';
+                msg.className = 'text-sm text-center text-emerald-600 block';
+
+                document.getElementById('testiName').value = '';
+                document.getElementById('testiRole').value = '';
+                document.getElementById('testiContent').value = '';
+
+                setTimeout(() => {
+                    closeTestimonialModal();
+                    loadTestimonials();
+                }, 1500);
+
+            } catch (err) {
+                console.error('Submit testimonial error:', err);
+                const msg = document.getElementById('testiMessage');
+                msg.textContent = '❌ Gagal mengirim testimoni: ' + err.message;
+                msg.className = 'text-sm text-center text-red-600 block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Testimoni';
+            }
+        });
+
+        // ============================================
+        // 8. LOAD KAMPANYE UNTUK INDEX
+        // ============================================
+        async function loadIndexCampaigns() {
+            const container = document.getElementById('indexCampaigns');
+            
+            try {
+                console.log('🔄 Memuat kampanye...');
+
+                const { data: campaigns, error } = await _supabase
+                    .from('yata_community_campaigns')
+                    .select('*')
+                    .eq('verification_status', 'approved')
+                    .eq('status', 'active')
+                    .order('created_at', { ascending: false })
+                    .limit(3);
+
+                if (error) {
+                    console.error('❌ Supabase error:', error);
+                    container.innerHTML = `
+                        <div class="bg-white rounded-2xl p-8 text-center border border-red-200 shadow-sm">
+                            <i class="fa-solid fa-circle-exclamation text-red-400 text-2xl block mb-2"></i>
+                            <p class="text-red-500 text-sm">❌ Gagal memuat kampanye</p>
+                            <p class="text-xs text-slate-400 mt-1">${error.message}</p>
+                            <button onclick="loadIndexCampaigns()" class="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2 rounded-xl text-sm transition">
+                                <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                console.log('✅ Data kampanye:', campaigns);
+
+                // Ambil data community & creator terpisah
+                if (campaigns && campaigns.length > 0) {
+                    const communityIds = [...new Set(campaigns.map(c => c.community_id).filter(id => id))];
+                    const creatorIds = [...new Set(campaigns.map(c => c.creator_id).filter(id => id))];
+                    
+                    let communityMap = {};
+                    let creatorMap = {};
+                    
+                    if (communityIds.length > 0) {
+                        const { data: communities, error: commError } = await _supabase
+                            .from('yata_communities')
+                            .select('id, name')
+                            .in('id', communityIds);
+                        
+                        if (!commError && communities) {
+                            communities.forEach(c => {
+                                communityMap[c.id] = c;
+                            });
+                        }
+                    }
+                    
+                    if (creatorIds.length > 0) {
+                        const { data: creators, error: creatorError } = await _supabase
+                            .from('yata_profiles')
+                            .select('id, full_name')
+                            .in('id', creatorIds);
+                        
+                        if (!creatorError && creators) {
+                            creators.forEach(c => {
+                                creatorMap[c.id] = c;
+                            });
+                        }
+                    }
+                    
+                    campaigns.forEach(c => {
+                        c.community = communityMap[c.community_id] || null;
+                        c.creator = creatorMap[c.creator_id] || null;
+                    });
+                }
+
+                if (!campaigns || campaigns.length === 0) {
+                    container.innerHTML = `
+                        <div class="bg-white rounded-2xl p-8 text-center border border-emerald-100 shadow-sm">
+                            <i class="fa-regular fa-flag text-3xl text-slate-300 block mb-2"></i>
+                            <p class="text-slate-500 text-sm">Belum ada kampanye aktif. Yuk, mulai gerakan literasi!</p>
+                            <a href="campaigns.html" class="inline-block mt-3 text-emerald-600 hover:text-emerald-700 font-semibold text-sm">
+                                Lihat semua kampanye →
+                            </a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const campaignIds = campaigns.map(c => c.id);
+                
+                const { data: supporters, error: supportError } = await _supabase
+                    .from('yata_campaign_supporters')
+                    .select('campaign_id')
+                    .in('campaign_id', campaignIds);
+
+                const supportCount = {};
+                if (!supportError && supporters) {
+                    supporters.forEach(s => {
+                        supportCount[s.campaign_id] = (supportCount[s.campaign_id] || 0) + 1;
+                    });
+                }
+
+                const { data: participants, error: participantError } = await _supabase
+                    .from('yata_campaign_participants')
+                    .select('campaign_id')
+                    .in('campaign_id', campaignIds);
+
+                const participantCount = {};
+                if (!participantError && participants) {
+                    participants.forEach(p => {
+                        participantCount[p.campaign_id] = (participantCount[p.campaign_id] || 0) + 1;
+                    });
+                }
+
+                const colors = ['bg-emerald-100', 'bg-blue-100', 'bg-purple-100'];
+                const textColors = ['text-emerald-700', 'text-blue-700', 'text-purple-700'];
+
+                container.innerHTML = campaigns.map((c, index) => {
+                    const progress = c.target_progress > 0 
+                        ? Math.min(((c.current_progress || 0) / c.target_progress) * 100, 100) 
+                        : 0;
+                    
+                    const supporters = supportCount[c.id] || 0;
+                    const participants = participantCount[c.id] || 0;
+                    
+                    return `
+                        <div class="bg-white rounded-2xl p-6 border border-emerald-100 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="${colors[index % colors.length]} ${textColors[index % textColors.length]} text-xs font-bold px-3 py-1 rounded-full">✅ Aktif</span>
+                                        <span class="text-xs text-slate-400">${c.community?.name || 'Komunitas'}</span>
+                                    </div>
+                                    <h4 class="font-bold text-emerald-900 mt-2 text-lg">${c.title}</h4>
+                                    <p class="text-sm text-slate-500">${c.description || 'Tidak ada deskripsi'}</p>
+                                    <p class="text-xs text-slate-400 mt-1">Dibuat oleh ${c.creator?.full_name || 'User'}</p>
+                                    <div class="flex items-center gap-4 mt-2 text-xs text-slate-400">
+                                        <span><i class="fa-regular fa-heart"></i> ${supporters} dukungan</span>
+                                        <span><i class="fa-regular fa-user"></i> ${participants} peserta</span>
+                                    </div>
+                                </div>
+                                ${c.target_progress > 0 ? `<span class="text-sm font-bold text-emerald-800">${Math.round(progress)}%</span>` : ''}
+                            </div>
+                            ${c.target_progress > 0 ? `
+                                <div class="w-full bg-emerald-100 rounded-full h-2 mt-3">
+                                    <div class="bg-emerald-600 h-2 rounded-full campaign-bar" style="width: ${progress}%;"></div>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-2">${c.current_progress || 0} dari ${c.target_progress} target</p>
+                            ` : `
+                                <div class="mt-3 text-xs text-slate-400">
+                                    <span><i class="fa-regular fa-user mr-1"></i> ${participants} peserta</span>
+                                </div>
+                            `}
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error('❌ Load index campaigns error:', err);
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl p-8 text-center border border-red-200 shadow-sm">
+                        <i class="fa-solid fa-circle-exclamation text-red-400 text-2xl block mb-2"></i>
+                        <p class="text-red-500 text-sm">❌ Terjadi kesalahan: ${err.message}</p>
+                        <button onclick="loadIndexCampaigns()" class="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2 rounded-xl text-sm transition">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 9. LOAD LEADERBOARD (TANPA RELASI)
+        // ============================================
+        async function loadLeaderboard() {
+            const container = document.getElementById('leaderboardList');
+            
+            try {
+                // 1. Ambil data ranking
+                const { data: rankings, error } = await _supabase
+                    .from('yata_rankings')
+                    .select('*')
+                    .order('rank_position', { ascending: true })
+                    .limit(20);
+
+                if (error) throw error;
+
+                if (!rankings || rankings.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-12 text-slate-400 text-sm bg-white rounded-2xl border border-slate-200">
+                            <i class="fa-regular fa-trophy text-3xl block mb-2"></i>
+                            Belum ada data ranking. Segera hadir!
+                        </div>
+                    `;
+                    return;
+                }
+
+                // 2. Ambil data profile user terpisah
+                const userIds = [...new Set(rankings.map(r => r.user_id).filter(id => id))];
+                
+                let profileMap = {};
+                if (userIds.length > 0) {
+                    const { data: profiles, error: profileError } = await _supabase
+                        .from('yata_profiles')
+                        .select('id, full_name, username, member_level, avatar_url, created_at')
+                        .in('id', userIds);
+                    
+                    if (!profileError && profiles) {
+                        profiles.forEach(p => {
+                            profileMap[p.id] = p;
+                        });
+                    }
+                }
+
+                // 3. Gabungkan data
+                rankings.forEach(r => {
+                    r.profile = profileMap[r.user_id] || null;
+                });
+
+                allRankings = rankings;
+                renderLeaderboard();
+
+            } catch (err) {
+                console.error('Load leaderboard error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-12 text-red-400 text-sm bg-white rounded-2xl border border-red-200">
+                        <i class="fa-solid fa-circle-exclamation text-2xl block mb-2"></i>
+                        Gagal memuat leaderboard: ${err.message}
+                    </div>
+                `;
+            }
+        }
+
+        function renderLeaderboard() {
+            const container = document.getElementById('leaderboardList');
+
+            let filtered = allRankings;
+
+            if (currentLbFilter === 'top_10') {
+                filtered = filtered.filter(r => r.rank_category === 'top_10');
+            } else if (currentLbFilter === 'top_50') {
+                filtered = filtered.filter(r => r.rank_category === 'top_50');
+            } else if (currentLbFilter === 'top_100') {
+                filtered = filtered.filter(r => r.rank_category === 'top_100');
+            } else if (currentLbFilter === 'rising') {
+                // Ambil 5 pendatang baru (user yang baru bergabung dengan skor terbaik)
+                filtered = [...allRankings]
+                    .sort((a, b) => {
+                        const dateA = a.profile?.created_at ? new Date(a.profile.created_at) : new Date(0);
+                        const dateB = b.profile?.created_at ? new Date(b.profile.created_at) : new Date(0);
+                        return dateA - dateB;
+                    })
+                    .slice(0, 5);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-400 text-sm bg-white rounded-2xl border border-slate-200">
+                        <i class="fa-regular fa-folder-open text-3xl block mb-2"></i>
+                        Tidak ada data untuk filter ini.
+                    </div>
+                `;
+                return;
+            }
+
+            const levelEmojis = {
+                'Tamu': '🌱',
+                'Penulis': '✍️',
+                'Penulis Profesional': '📚',
+                'Mentor': '🌟'
+            };
+
+            const rankEmojis = {
+                'top_10': '🏆',
+                'top_50': '⭐',
+                'top_100': '📈',
+                'rising': '🚀'
+            };
+
+            container.innerHTML = filtered.map((r, index) => {
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${r.rank_position}`;
+                const levelEmoji = levelEmojis[r.profile?.member_level] || '🌱';
+                const rankEmoji = rankEmojis[r.rank_category] || '';
+                const avatar = r.profile?.full_name?.charAt(0) || '?';
+                const avatarUrl = r.profile?.avatar_url || null;
+                
+                return `
+                    <div class="bg-white rounded-2xl p-4 border border-slate-200 hover:shadow-md transition flex items-center gap-4">
+                        <div class="w-10 text-center font-bold text-slate-400 text-sm">${medal}</div>
+                        <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm flex-shrink-0 overflow-hidden">
+                            ${avatarUrl ? `<img src="${avatarUrl}" class="w-full h-full object-cover" />` : avatar}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-bold text-slate-800">${r.profile?.full_name || 'User'}</span>
+                                <span class="text-xs text-slate-400">${levelEmoji} ${r.profile?.member_level || 'Tamu'}</span>
+                                ${rankEmoji ? `<span class="text-xs">${rankEmoji}</span>` : ''}
+                            </div>
+                            <p class="text-xs text-slate-400">@${r.profile?.username || 'username'}</p>
+                            <div class="flex items-center gap-3 mt-1 text-[10px] text-slate-400">
+                                <span>📖 ${Math.round(r.views_score || 0)}</span>
+                                <span>❤️ ${Math.round(r.likes_score || 0)}</span>
+                                <span>✍️ ${Math.round(r.writings_score || 0)}</span>
+                            </div>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <p class="font-bold text-amber-600 text-sm">${Math.round(r.total_score)} pts</p>
+                            <p class="text-[10px] text-slate-400">#${r.rank_position}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterLeaderboard(filter) {
+            currentLbFilter = filter;
+
+            document.querySelectorAll('.filter-btn-lb').forEach(btn => {
+                btn.className = 'filter-btn-lb px-4 py-2 rounded-full text-xs font-bold transition text-slate-600 bg-transparent';
+            });
+
+            const idMap = {
+                'all': 'lbFilterAll',
+                'top_10': 'lbFilterTop10',
+                'top_50': 'lbFilterTop50',
+                'top_100': 'lbFilterTop100',
+                'rising': 'lbFilterRising'
+            };
+
+            const activeBtn = document.getElementById(idMap[filter]);
+            if (activeBtn) {
+                activeBtn.className = 'filter-btn-lb px-4 py-2 rounded-full text-xs font-bold transition bg-amber-600 text-white';
+            }
+
+            renderLeaderboard();
+        }
+
+        // ============================================
+        // 10. LOAD BEST WRITINGS (TANPA RELASI)
+        // ============================================
+        async function loadBestWritings() {
+            const container = document.getElementById('bestWritingsList');
+            
+            try {
+                // 1. Ambil 10 karya dengan likes terbanyak
+                const { data: writings, error } = await _supabase
+                    .from('yata_writings')
+                    .select('*')
+                    .eq('status', 'published')
+                    .eq('is_public', true)
+                    .order('likes', { ascending: false })
+                    .limit(10);
+
+                if (error) throw error;
+
+                if (!writings || writings.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-slate-400 text-sm bg-white rounded-xl border border-slate-200">
+                            Belum ada karya terbaik.
+                        </div>
+                    `;
+                    return;
+                }
+
+                // 2. Ambil data profile author terpisah
+                const authorIds = [...new Set(writings.map(w => w.author_id).filter(id => id))];
+                
+                let profileMap = {};
+                if (authorIds.length > 0) {
+                    const { data: profiles, error: profileError } = await _supabase
+                        .from('yata_profiles')
+                        .select('id, full_name, username')
+                        .in('id', authorIds);
+                    
+                    if (!profileError && profiles) {
+                        profiles.forEach(p => {
+                            profileMap[p.id] = p;
+                        });
+                    }
+                }
+
+                // 3. Gabungkan data
+                writings.forEach(w => {
+                    w.profile = profileMap[w.author_id] || null;
+                });
+
+                container.innerHTML = writings.map((w, index) => {
+                    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+                    return `
+                        <div class="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-slate-100 hover:bg-slate-50 transition">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <span class="text-sm font-bold text-slate-400 w-8">${medal}</span>
+                                <div class="min-w-0">
+                                    <a href="read.html?id=${w.id}" class="font-semibold text-slate-800 hover:text-emerald-600 transition text-sm truncate block">
+                                        ${w.title}
+                                    </a>
+                                    <p class="text-xs text-slate-400">${w.profile?.full_name || 'Penulis'} • ${w.category || 'Umum'}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3 text-xs text-slate-400 flex-shrink-0">
+                                <span><i class="fa-regular fa-heart text-red-400"></i> ${w.likes || 0}</span>
+                                <span><i class="fa-regular fa-eye"></i> ${w.views || 0}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error('Load best writings error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-6 text-red-400 text-sm bg-white rounded-xl border border-red-200">
+                        Gagal memuat karya terbaik: ${err.message}
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 11. INIT
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTestimonials();
+            loadIndexCampaigns();
+            loadLeaderboard();
+            loadBestWritings();
+        });
+    </script>
+
+</body>
+</html>

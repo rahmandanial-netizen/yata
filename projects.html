@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Proyek Buku — YATA</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6EE7B7',
+                        primaryDark: '#065F46',
+                        sage: '#A3E4D7',
+                        cream: '#FEF3C7',
+                        mint: '#B2F2BB',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #065F46; color: white; }
+        .sidebar-link.active i { color: white; }
+        .sidebar-link:hover:not(.active) { background-color: #e2e8f0; }
+        .project-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .project-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px -12px rgba(6, 95, 70, 0.2);
+        }
+        .status-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 12px;
+            border-radius: 9999px;
+            display: inline-block;
+        }
+        .status-draft { background: #F1F5F9; color: #64748B; }
+        .status-review { background: #FEF3C7; color: #92400E; }
+        .status-editing { background: #DBEAFE; color: #1E40AF; }
+        .status-layout { background: #E0E7FF; color: #3730A3; }
+        .status-isbn { background: #FCE7F3; color: #9D174D; }
+        .status-published { background: #D1FAE5; color: #065F46; }
+        .modal-enter { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- SIDEBAR -->
+    <!-- ============================================ -->
+    <aside class="fixed top-0 left-0 z-40 w-64 h-screen bg-white border-r border-emerald-100/60 hidden md:block">
+        <div class="flex flex-col h-full">
+            <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
+                <a href="dashboard.html" class="flex items-center space-x-2 group">
+                    <div class="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/30">Y</div>
+                    <span class="text-xl font-extrabold text-emerald-800">YATA</span>
+                </a>
+            </div>
+
+            <!-- SIDEBAR NAVIGATION - STRUKTUR MENU FINAL -->
+            <nav class="flex-1 px-4 py-6 space-y-1">
+                <!-- Beranda -->
+                <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-house w-5"></i> Beranda
+                </a>
+
+                <!-- Tulis -->
+                <a href="write.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-pen w-5"></i> Tulis
+                </a>
+
+                <!-- Proyek Buku -->
+                <a href="projects.html" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-sm font-semibold text-emerald-800 rounded-xl transition">
+                    <i class="fa-solid fa-book w-5 text-emerald-600"></i> Proyek Buku
+                </a>
+
+                <!-- Perpustakaan -->
+                <a href="library.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book-open w-5"></i> Perpustakaan
+                </a>
+
+                <!-- Komunitas + Kampanye -->
+                <div class="space-y-0.5">
+                    <a href="community.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                        <i class="fa-solid fa-users w-5"></i> Komunitas
+                    </a>
+                    <a href="campaigns.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition pl-10 text-xs opacity-75">
+                        <i class="fa-solid fa-flag w-5 text-slate-400"></i> Lihat Kampanye
+                    </a>
+                </div>
+
+                <!-- Mentoring -->
+                <a href="mentoring.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring
+                </a>
+
+                <!-- Profil -->
+                <a href="profile.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-user w-5"></i> Profil
+                </a>
+            </nav>
+            <!-- END SIDEBAR NAVIGATION -->
+
+            <div class="p-4 border-t border-emerald-100/60">
+                <button id="btnLogout" class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition text-left">
+                    <i class="fa-solid fa-right-from-bracket w-5"></i> Keluar
+                </button>
+                <p class="text-xs text-slate-400 text-center mt-4">YATA v1.0 • Beta</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ============================================ -->
+    <!-- MOBILE HEADER -->
+    <!-- ============================================ -->
+    <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
+        <div class="flex items-center justify-between px-4 h-16">
+            <a href="dashboard.html" class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black">Y</div>
+                <span class="text-lg font-extrabold text-emerald-800">YATA</span>
+            </a>
+            <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+
+        <div id="mobileMenu" class="hidden bg-white border-t border-emerald-100/60 px-4 py-4 space-y-2">
+            <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Beranda</a>
+            <a href="write.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Tulis</a>
+            <a href="projects.html" class="block px-4 py-2.5 bg-emerald-50 text-emerald-800 font-semibold rounded-xl">Proyek Buku</a>
+            <a href="library.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Perpustakaan</a>
+            <a href="community.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Komunitas</a>
+            <a href="campaigns.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl pl-6 text-xs opacity-75">
+                <i class="fa-solid fa-flag mr-1 text-slate-400"></i> Lihat Kampanye
+            </a>
+            <a href="mentoring.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Mentoring</a>
+            <a href="profile.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Profil</a>
+            <hr class="my-2 border-emerald-100" />
+            <button id="btnLogoutMobile" class="block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
+        </div>
+    </header>
+
+    <!-- ============================================ -->
+    <!-- KONTEN UTAMA -->
+    <!-- ============================================ -->
+    <main class="md:ml-64 pt-4 md:pt-8 min-h-screen bg-slate-50/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+            <!-- Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-800">📚 Proyek Buku</h1>
+                    <p class="text-sm text-slate-500">Kelola proyek buku yang sedang dan sudah Anda tulis.</p>
+                </div>
+                <button onclick="openCreateProject()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition shadow-sm shadow-emerald-500/20 flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Buat Proyek Buku Baru
+                </button>
+            </div>
+
+            <!-- Filter -->
+            <div class="bg-white rounded-2xl p-3 border border-emerald-100/60 shadow-sm flex flex-wrap items-center gap-2 mb-6">
+                <button onclick="filterProjects('all')" class="filter-btn active px-4 py-1.5 rounded-full text-xs font-bold transition bg-emerald-600 text-white" id="filterAll">Semua</button>
+                <button onclick="filterProjects('draft')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterDraft">📝 Draft</button>
+                <button onclick="filterProjects('review')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterReview">⏳ Review</button>
+                <button onclick="filterProjects('editing')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterEditing">✏️ Editing</button>
+                <button onclick="filterProjects('isbn_submission')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterIsbn">📖 ISBN/QRCBN</button>
+                <button onclick="filterProjects('published')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterPublished">✅ Terbit</button>
+                <span class="ml-auto text-xs text-slate-400" id="projectCount">0 proyek</span>
+            </div>
+
+            <!-- Daftar Proyek -->
+            <div id="projectGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="col-span-full text-center py-12 text-slate-400 text-sm">
+                    <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat proyek...
+                </div>
+            </div>
+
+            <!-- Kosong -->
+            <div id="emptyState" class="hidden bg-white rounded-2xl p-12 text-center border border-emerald-100/60 shadow-sm">
+                <i class="fa-regular fa-bookmark text-5xl text-slate-300 block mb-4"></i>
+                <p class="text-slate-500 text-sm">Belum ada proyek buku. Mulai tulis buku pertamamu!</p>
+                <button onclick="openCreateProject()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                    <i class="fa-solid fa-plus mr-1"></i> Buat Proyek Buku
+                </button>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ============================================ -->
+    <!-- MODAL BUAT PROYEK BUKU -->
+    <!-- ============================================ -->
+    <div id="createProjectModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeCreateProject()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Proyek Buku</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Buat Proyek Buku Baru</h3>
+                <p class="text-xs text-slate-500 mt-1">Tulis buku bersambung hingga siap terbit.</p>
+                <p class="text-xs text-amber-600 mt-1">⚠️ Fitur ini hanya untuk Member level <strong>Penulis</strong> ke atas.</p>
+            </div>
+
+            <form id="createProjectForm" class="space-y-4">
+                <div>
+                    <label for="projectTitle" class="block text-xs font-semibold text-slate-700 mb-1">Judul Buku <span class="text-red-500">*</span></label>
+                    <input type="text" id="projectTitle" placeholder="Contoh: Senja di Pelabuhan" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="projectSlug" class="block text-xs font-semibold text-slate-700 mb-1">Slug <span class="text-red-500">*</span></label>
+                    <input type="text" id="projectSlug" placeholder="Contoh: senja-di-pelabuhan" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm lowercase" />
+                    <p class="text-xs text-slate-400 mt-1">Hanya huruf kecil, angka, dan tanda hubung (-)</p>
+                </div>
+
+                <div>
+                    <label for="projectCategory" class="block text-xs font-semibold text-slate-700 mb-1">Kategori <span class="text-red-500">*</span></label>
+                    <select id="projectCategory" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white">
+                        <optgroup label="📖 Fiksi">
+                            <option value="novel">Novel</option>
+                            <option value="antologi">Antologi</option>
+                            <option value="puisi">Puisi</option>
+                            <option value="kumpulan-cerpen">Kumpulan Cerpen</option>
+                        </optgroup>
+                        <optgroup label="📚 Non-Fiksi">
+                            <option value="self-development">Self Development</option>
+                            <option value="buku-teks">Buku Teks</option>
+                            <option value="modul">Modul Pembelajaran</option>
+                            <option value="referensi">Referensi</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="projectBookType" class="block text-xs font-semibold text-slate-700 mb-1">Jenis Buku</label>
+                    <select id="projectBookType" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white">
+                        <option value="fiction">Fiksi</option>
+                        <option value="non-fiction">Non-Fiksi</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="projectSynopsis" class="block text-xs font-semibold text-slate-700 mb-1">Sinopsis</label>
+                    <textarea id="projectSynopsis" rows="3" placeholder="Ceritakan secara singkat tentang buku ini..." class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-plus mr-1"></i> Buat Proyek Buku
+                </button>
+            </form>
+
+            <div id="createSuccess" class="hidden text-center py-4">
+                <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fa-solid fa-check text-emerald-600 text-2xl"></i>
+                </div>
+                <h4 class="font-bold text-slate-800">✅ Proyek Buku Terbuat!</h4>
+                <p class="text-sm text-slate-500 mt-1">Mulai tulis chapter pertamamu sekarang.</p>
+                <button onclick="goToProjectWrite()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                    Mulai Menulis
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL HAPUS PROYEK -->
+    <!-- ============================================ -->
+    <div id="deleteModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeDeleteModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-red-500 text-sm font-bold uppercase tracking-wider">Hapus Proyek</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Yakin ingin menghapus?</h3>
+                <p class="text-sm text-slate-500 mt-1">Semua chapter yang sudah ditulis akan ikut terhapus.</p>
+                <p class="text-xs text-red-500 mt-2">⚠️ Tindakan ini tidak bisa dibatalkan!</p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button onclick="closeDeleteModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition text-sm">Batal</button>
+                <button id="confirmDeleteBtn" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition text-sm">
+                    <i class="fa-solid fa-trash-can mr-1"></i> Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        let allProjects = [];
+        let currentFilter = 'all';
+        let deleteTargetId = null;
+        let lastCreatedProjectId = null;
+
+        // ============================================
+        // CEK AKSES PROYEK BUKU
+        // ============================================
+        async function checkProjectAccess(e) {
+            if (e) e.preventDefault();
+            
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('member_level')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error) {
+                    console.error('Error checking level:', error);
+                    window.location.href = 'projects.html';
+                    return;
+                }
+
+                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
+                if (allowedLevels.includes(profile.member_level)) {
+                    window.location.href = 'projects.html';
+                } else {
+                    showProjectAccessDenied(profile.member_level || 'Tamu');
+                }
+            } catch (err) {
+                console.error('Error checking access:', err);
+                window.location.href = 'projects.html';
+            }
+        }
+
+        function showProjectAccessDenied(currentLevel) {
+            let modal = document.getElementById('projectAccessModal');
+            if (modal) modal.remove();
+
+            const modalHtml = `
+                <div id="projectAccessModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+                        <button onclick="closeProjectAccessModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        <div class="text-center mb-4">
+                            <span class="text-amber-500 text-4xl block mb-2">🔒</span>
+                            <h3 class="text-xl font-black text-slate-800">Akses Dibatasi</h3>
+                            <p class="text-sm text-slate-500 mt-1">Fitur Proyek Buku hanya untuk member level tertentu.</p>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-4 border border-amber-200 mb-4">
+                            <p class="text-sm text-slate-600">Level Anda saat ini: <strong class="text-amber-700">${currentLevel || 'Tamu'}</strong></p>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">Anda perlu mencapai level:</p>
+                        <ul class="space-y-2 text-sm mb-4">
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">✍️</span>
+                                <div>
+                                    <strong>Penulis</strong>
+                                    <p class="text-xs text-slate-500">5+ karya dipublikasikan • 3+ kali mentoring</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">📚</span>
+                                <div>
+                                    <strong>Penulis Profesional</strong>
+                                    <p class="text-xs text-slate-500">20+ karya • 1+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">🌟</span>
+                                <div>
+                                    <strong>Mentor</strong>
+                                    <p class="text-xs text-slate-500">50+ karya • 3+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                        </ul>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button onclick="closeProjectAccessModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
+                                Tutup
+                            </button>
+                            <button onclick="closeProjectAccessModal(); window.location.href='dashboard.html'" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
+                                <i class="fa-regular fa-circle-question mr-1"></i> Lihat Syarat Level
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeProjectAccessModal() {
+            const modal = document.getElementById('projectAccessModal');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // ============================================
+        // 1. CEK LOGIN & LEVEL
+        // ============================================
+        async function checkAuth() {
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return null;
+                }
+
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('member_level')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error) throw error;
+
+                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
+                if (!allowedLevels.includes(profile.member_level)) {
+                    showError('⚠️ Fitur Proyek Buku hanya untuk Member level Penulis ke atas. Silakan naik level terlebih dahulu!', 'Akses Ditolak');
+                    window.location.href = 'dashboard.html';
+                    return null;
+                }
+
+                return session;
+
+            } catch (err) {
+                console.error('Auth check error:', err);
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
+
+        // ============================================
+        // 2. KIRIM NOTIFIKASI
+        // ============================================
+        async function sendNotification(userId, title, content, type = 'success') {
+            try {
+                const { data: notifData, error } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: title,
+                        content: content,
+                        type: type
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                if (notifData) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+                }
+                return true;
+            } catch (err) {
+                console.error('Send notification error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // 3. LOAD PROJECTS
+        // ============================================
+        async function loadProjects() {
+            const container = document.getElementById('projectGrid');
+            const empty = document.getElementById('emptyState');
+            
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-slate-400 text-sm">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat proyek...
+                    </div>
+                `;
+
+                const { data: projects, error } = await _supabase
+                    .from('yata_book_projects')
+                    .select('*')
+                    .eq('author_id', session.user.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center py-12 text-red-400 text-sm">
+                            <i class="fa-solid fa-circle-exclamation text-2xl block mb-2"></i>
+                            Gagal memuat proyek: ${error.message}
+                            <button onclick="loadProjects()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                                <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                allProjects = projects || [];
+                document.getElementById('projectCount').textContent = allProjects.length + ' proyek';
+                renderProjects();
+
+            } catch (err) {
+                console.error('Load projects error:', err);
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-red-400 text-sm">
+                        <i class="fa-solid fa-circle-exclamation text-2xl block mb-2"></i>
+                        Terjadi kesalahan: ${err.message}
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 4. RENDER PROJECTS
+        // ============================================
+        function renderProjects() {
+            const container = document.getElementById('projectGrid');
+            const empty = document.getElementById('emptyState');
+
+            let filtered = allProjects;
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(p => p.status === currentFilter);
+            }
+
+            if (filtered.length === 0 && allProjects.length === 0) {
+                container.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-8 text-slate-400 text-sm">
+                        <i class="fa-regular fa-folder-open text-2xl block mb-2"></i>
+                        Tidak ada proyek dengan status ini.
+                        <button onclick="filterProjects('all')" class="block mt-2 text-emerald-600 hover:text-emerald-700 font-semibold text-sm">
+                            Lihat semua proyek
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            const statusLabels = {
+                draft: '📝 Draft',
+                review: '⏳ Review',
+                editing: '✏️ Editing',
+                layout: '📐 Layout',
+                isbn_submission: '📖 Pengajuan ISBN/QRCBN',
+                published: '✅ Terbit'
+            };
+
+            const statusClasses = {
+                draft: 'status-draft',
+                review: 'status-review',
+                editing: 'status-editing',
+                layout: 'status-layout',
+                isbn_submission: 'status-isbn',
+                published: 'status-published'
+            };
+
+            container.innerHTML = filtered.map(p => `
+                <div class="project-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm hover:shadow-md" onclick="window.location.href='project-write.html?id=${p.id}'">
+                    <div class="flex items-start gap-4">
+                        <div class="w-16 h-20 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 text-2xl flex-shrink-0 overflow-hidden">
+                            ${p.cover_url ? `<img src="${p.cover_url}" class="w-full h-full object-cover" />` : '📖'}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="font-bold text-slate-800 text-sm truncate">${p.title}</h3>
+                            </div>
+                            <span class="status-badge ${statusClasses[p.status] || 'status-draft'}">${statusLabels[p.status] || p.status}</span>
+                            <div class="flex items-center gap-3 mt-1 text-xs text-slate-400">
+                                <span><i class="fa-regular fa-file-lines mr-1"></i> ${p.total_chapters || 0} chapter</span>
+                                <span><i class="fa-regular fa-clock mr-1"></i> ${new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1 line-clamp-1">${p.synopsis || 'Tidak ada sinopsis'}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-slate-100">
+                        <button onclick="event.stopPropagation(); window.location.href='project-write.html?id=${p.id}'" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-3 py-1.5 rounded-full transition">
+                            <i class="fa-regular fa-pen-to-square mr-1"></i> Lanjutkan
+                        </button>
+                        <button onclick="event.stopPropagation(); confirmDelete('${p.id}')" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-3 py-1.5 rounded-full transition">
+                            <i class="fa-regular fa-trash-can mr-1"></i> Hapus
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============================================
+        // 5. FILTER
+        // ============================================
+        function filterProjects(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-slate-600');
+            });
+
+            const idMap = {
+                'all': 'filterAll',
+                'draft': 'filterDraft',
+                'review': 'filterReview',
+                'editing': 'filterEditing',
+                'isbn_submission': 'filterIsbn',
+                'published': 'filterPublished'
+            };
+
+            const activeBtn = document.getElementById(idMap[filter]);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+                activeBtn.classList.remove('text-slate-600');
+            }
+
+            renderProjects();
+        }
+
+        // ============================================
+        // 6. CREATE PROJECT (DENGAN NOTIFIKASI)
+        // ============================================
+        function openCreateProject() {
+            document.getElementById('createProjectModal').classList.remove('hidden');
+            document.getElementById('createProjectForm').classList.remove('hidden');
+            document.getElementById('createSuccess').classList.add('hidden');
+            document.body.style.overflow = 'hidden';
+            document.getElementById('createProjectForm').reset();
+            lastCreatedProjectId = null;
+        }
+
+        function closeCreateProject() {
+            document.getElementById('createProjectModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.getElementById('projectTitle').addEventListener('input', function() {
+            const slug = this.value
+                .toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-');
+            document.getElementById('projectSlug').value = slug;
+        });
+
+        document.getElementById('createProjectForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const title = document.getElementById('projectTitle').value.trim();
+            const slug = document.getElementById('projectSlug').value.trim().toLowerCase();
+            const category = document.getElementById('projectCategory').value;
+            const bookType = document.getElementById('projectBookType').value;
+            const synopsis = document.getElementById('projectSynopsis').value.trim();
+
+            if (!title) { showError('Judul wajib diisi.', 'Validasi Gagal'); return; }
+            if (!slug) { showError('Slug wajib diisi.', 'Validasi Gagal'); return; }
+            if (!/^[a-z0-9-]+$/.test(slug)) { showError('Slug hanya boleh huruf kecil, angka, dan tanda hubung (-).', 'Validasi Gagal'); return; }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Membuat...';
+
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                // Check slug availability
+                const { data: existing } = await _supabase
+                    .from('yata_book_projects')
+                    .select('slug')
+                    .eq('slug', slug)
+                    .maybeSingle();
+
+                if (existing) {
+                    showError('❌ Slug sudah digunakan. Silakan gunakan slug lain.', 'Error');
+                    return;
+                }
+
+                const { data, error } = await _supabase
+                    .from('yata_book_projects')
+                    .insert([{
+                        author_id: session.user.id,
+                        title: title,
+                        slug: slug,
+                        category: category,
+                        book_type: bookType,
+                        synopsis: synopsis,
+                        status: 'draft'
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                lastCreatedProjectId = data.id;
+
+                // Kirim notifikasi
+                await sendNotification(
+                    session.user.id,
+                    '📚 Proyek Buku Berhasil Dibuat!',
+                    `Proyek buku "${title}" berhasil dibuat. Mulai tulis chapter pertamamu sekarang!`,
+                    'publishing'
+                );
+
+                document.getElementById('createProjectForm').classList.add('hidden');
+                document.getElementById('createSuccess').classList.remove('hidden');
+                showError('✅ Proyek buku berhasil dibuat!', 'Sukses');
+
+            } catch (err) {
+                console.error('Create project error:', err);
+                showError('❌ Gagal membuat proyek: ' + err.message, 'Error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-plus mr-1"></i> Buat Proyek Buku';
+            }
+        });
+
+        function goToProjectWrite() {
+            if (lastCreatedProjectId) {
+                window.location.href = `project-write.html?id=${lastCreatedProjectId}`;
+            } else {
+                if (allProjects.length > 0) {
+                    const latest = allProjects[0];
+                    window.location.href = `project-write.html?id=${latest.id}`;
+                } else {
+                    showError('⚠️ Proyek tidak ditemukan. Silakan buat ulang.', 'Error');
+                    loadProjects();
+                }
+            }
+        }
+
+        // ============================================
+        // 7. DELETE PROJECT
+        // ============================================
+        function confirmDelete(projectId) {
+            deleteTargetId = projectId;
+            document.getElementById('deleteModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            deleteTargetId = null;
+        }
+
+        document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+            if (!deleteTargetId) return;
+
+            if (!confirm('Yakin ingin menghapus proyek ini? Semua chapter akan ikut terhapus.')) {
+                closeDeleteModal();
+                return;
+            }
+
+            this.disabled = true;
+            this.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menghapus...';
+
+            try {
+                const { error: chapterError } = await _supabase
+                    .from('yata_book_chapters')
+                    .delete()
+                    .eq('book_project_id', deleteTargetId);
+
+                if (chapterError) throw chapterError;
+
+                const { error: projectError } = await _supabase
+                    .from('yata_book_projects')
+                    .delete()
+                    .eq('id', deleteTargetId);
+
+                if (projectError) throw projectError;
+
+                showError('✅ Proyek buku berhasil dihapus.', 'Sukses');
+                closeDeleteModal();
+                await loadProjects();
+
+            } catch (err) {
+                console.error('Delete project error:', err);
+                showError('❌ Gagal menghapus proyek: ' + err.message, 'Error');
+            } finally {
+                this.disabled = false;
+                this.innerHTML = '<i class="fa-solid fa-trash-can mr-1"></i> Hapus';
+            }
+        });
+
+        // ============================================
+        // 8. LOGOUT
+        // ============================================
+        async function handleLogout() {
+            if (confirm('Yakin ingin keluar?')) {
+                try {
+                    const { error } = await _supabase.auth.signOut();
+                    if (!error) {
+                        window.location.href = 'login.html';
+                    } else {
+                        console.error('Logout error:', error);
+                    }
+                } catch (err) {
+                    console.error('Logout error:', err);
+                }
+            }
+        }
+
+        // ============================================
+        // 9. EVENT LISTENERS
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProjects();
+
+            document.getElementById('btnLogout').addEventListener('click', handleLogout);
+            document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);
+
+            document.getElementById('mobileMenuButton').addEventListener('click', function() {
+                document.getElementById('mobileMenu').classList.toggle('hidden');
+            });
+
+            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(el => {
+                el.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
+            });
+
+            document.getElementById('createProjectModal').addEventListener('click', function(e) {
+                if (e.target === this) closeCreateProject();
+            });
+
+            document.getElementById('deleteModal').addEventListener('click', function(e) {
+                if (e.target === this) closeDeleteModal();
+            });
+        });
+    </script>
+
+</body>
+</html>

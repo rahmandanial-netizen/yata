@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Perpustakaan — YATA</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6EE7B7',
+                        primaryDark: '#065F46',
+                        sage: '#A3E4D7',
+                        cream: '#FEF3C7',
+                        mint: '#B2F2BB',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #065F46; color: white; }
+        .sidebar-link.active i { color: white; }
+        .sidebar-link:hover:not(.active) { background-color: #e2e8f0; }
+        .status-badge-published { background-color: #D1FAE5; color: #065F46; }
+        .status-badge-draft { background-color: #F1F5F9; color: #64748B; }
+        .filter-btn.active { background-color: #065F46; color: white; }
+        .filter-btn.active:hover { background-color: #065F46; }
+        .filter-btn:not(.active):hover { background-color: #F1F5F9; }
+        .modal-enter { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .editor-textarea { min-height: 200px; resize: vertical; }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- SIDEBAR -->
+    <!-- ============================================ -->
+    <aside class="fixed top-0 left-0 z-40 w-64 h-screen bg-white border-r border-emerald-100/60 hidden md:block">
+        <div class="flex flex-col h-full">
+            <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
+                <a href="dashboard.html" class="flex items-center space-x-2 group">
+                    <div class="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/30">Y</div>
+                    <span class="text-xl font-extrabold text-emerald-800">YATA</span>
+                </a>
+            </div>
+
+            <!-- SIDEBAR NAVIGATION - STRUKTUR MENU FINAL -->
+            <nav class="flex-1 px-4 py-6 space-y-1">
+                <!-- Beranda -->
+                <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-house w-5"></i> Beranda
+                </a>
+
+                <!-- Tulis -->
+                <a href="write.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-pen w-5"></i> Tulis
+                </a>
+
+                <!-- Proyek Buku -->
+                <a href="#" onclick="checkProjectAccess(event)" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book w-5"></i> Proyek Buku
+                </a>
+
+                <!-- Perpustakaan -->
+                <a href="library.html" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-sm font-semibold text-emerald-800 rounded-xl transition">
+                    <i class="fa-solid fa-book-open w-5 text-emerald-600"></i> Perpustakaan
+                </a>
+
+                <!-- Komunitas + Kampanye -->
+                <div class="space-y-0.5">
+                    <a href="community.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                        <i class="fa-solid fa-users w-5"></i> Komunitas
+                    </a>
+                    <a href="campaigns.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition pl-10 text-xs opacity-75">
+                        <i class="fa-solid fa-flag w-5 text-slate-400"></i> Lihat Kampanye
+                    </a>
+                </div>
+
+                <!-- Mentoring -->
+                <a href="mentoring.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring
+                </a>
+
+                <!-- Profil -->
+                <a href="profile.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-user w-5"></i> Profil
+                </a>
+            </nav>
+            <!-- END SIDEBAR NAVIGATION -->
+
+            <div class="p-4 border-t border-emerald-100/60">
+                <button id="btnLogout" class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition text-left">
+                    <i class="fa-solid fa-right-from-bracket w-5"></i> Keluar
+                </button>
+                <p class="text-xs text-slate-400 text-center mt-4">YATA v1.0 • Beta</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ============================================ -->
+    <!-- MOBILE HEADER -->
+    <!-- ============================================ -->
+    <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
+        <div class="flex items-center justify-between px-4 h-16">
+            <a href="dashboard.html" class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black">Y</div>
+                <span class="text-lg font-extrabold text-emerald-800">YATA</span>
+            </a>
+            <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+
+        <div id="mobileMenu" class="hidden bg-white border-t border-emerald-100/60 px-4 py-4 space-y-2">
+            <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Beranda</a>
+            <a href="write.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Tulis</a>
+            <a href="#" onclick="checkProjectAccess(event)" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Proyek Buku</a>
+            <a href="library.html" class="block px-4 py-2.5 bg-emerald-50 text-emerald-800 font-semibold rounded-xl">Perpustakaan</a>
+            <a href="community.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Komunitas</a>
+            <a href="campaigns.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl pl-6 text-xs opacity-75">
+                <i class="fa-solid fa-flag mr-1 text-slate-400"></i> Lihat Kampanye
+            </a>
+            <a href="mentoring.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Mentoring</a>
+            <a href="profile.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Profil</a>
+            <hr class="my-2 border-emerald-100" />
+            <button id="btnLogoutMobile" class="block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
+        </div>
+    </header>
+
+    <!-- ============================================ -->
+    <!-- KONTEN UTAMA -->
+    <!-- ============================================ -->
+    <main class="md:ml-64 pt-4 md:pt-8 min-h-screen bg-slate-50/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+            <!-- Header -->
+            <div class="mb-6">
+                <h1 class="text-2xl font-black text-slate-800">📚 Perpustakaan</h1>
+                <p class="text-sm text-slate-500">Semua karya yang pernah Anda tulis.</p>
+            </div>
+
+            <!-- Statistik Ringkas -->
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="bg-white rounded-2xl p-4 border border-emerald-100/60 shadow-sm text-center">
+                    <p class="text-2xl font-black text-slate-800" id="statTotal">0</p>
+                    <p class="text-xs text-slate-500">Total Karya</p>
+                </div>
+                <div class="bg-white rounded-2xl p-4 border border-emerald-100/60 shadow-sm text-center">
+                    <p class="text-2xl font-black text-emerald-600" id="statPublished">0</p>
+                    <p class="text-xs text-slate-500">Published</p>
+                </div>
+                <div class="bg-white rounded-2xl p-4 border border-emerald-100/60 shadow-sm text-center">
+                    <p class="text-2xl font-black text-slate-400" id="statDraft">0</p>
+                    <p class="text-xs text-slate-500">Draft</p>
+                </div>
+            </div>
+
+            <!-- Filter & Search -->
+            <div class="bg-white rounded-2xl p-4 border border-emerald-100/60 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button onclick="filterLibrary('all')" class="filter-btn active px-4 py-2 rounded-full text-xs font-bold transition" id="filterAll">Semua</button>
+                    <button onclick="filterLibrary('published')" class="filter-btn px-4 py-2 rounded-full text-xs font-bold transition text-slate-600" id="filterPublished">Published</button>
+                    <button onclick="filterLibrary('draft')" class="filter-btn px-4 py-2 rounded-full text-xs font-bold transition text-slate-600" id="filterDraft">Draft</button>
+                </div>
+                <div class="relative w-full sm:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input
+                        type="text"
+                        id="searchLibrary"
+                        placeholder="Cari judul..."
+                        oninput="searchLibrary()"
+                        class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                    />
+                </div>
+            </div>
+
+            <!-- Daftar Karya -->
+            <div id="libraryGrid" class="space-y-4">
+                <div class="text-center py-12 text-slate-400 text-sm">
+                    <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat karya...
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ============================================ -->
+    <!-- MODAL EDIT KARYA -->
+    <!-- ============================================ -->
+    <div id="editModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeEditModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Edit Karya</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Edit Karya</h3>
+                <p class="text-xs text-slate-500 mt-1">Perbarui judul, kategori, atau konten karya Anda.</p>
+            </div>
+
+            <form id="editForm" class="space-y-4">
+                <input type="hidden" id="editId" value="" />
+
+                <div>
+                    <label for="editTitle" class="block text-xs font-semibold text-slate-700 mb-1">Judul <span class="text-red-500">*</span></label>
+                    <input type="text" id="editTitle" placeholder="Masukkan judul karyamu..." required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="editCategory" class="block text-xs font-semibold text-slate-700 mb-1">Kategori</label>
+                    <select id="editCategory" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white">
+                        <option value="cerpen">Cerpen</option>
+                        <option value="puisi">Puisi</option>
+                        <option value="esai">Esai</option>
+                        <option value="opini">Opini</option>
+                        <option value="resensi">Resensi</option>
+                        <option value="novel">Novel</option>
+                        <option value="artikel">Artikel</option>
+                        <option value="lainnya">Lainnya</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="editContent" class="block text-xs font-semibold text-slate-700 mb-1">Konten <span class="text-red-500">*</span></label>
+                    <textarea id="editContent" rows="6" placeholder="Tulis karyamu di sini..." required class="editor-textarea w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"></textarea>
+                    <p class="text-xs text-slate-400 mt-1"><span id="editWordCount">0</span> kata</p>
+                </div>
+
+                <div>
+                    <label for="editStatus" class="block text-xs font-semibold text-slate-700 mb-1">Status</label>
+                    <select id="editStatus" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white">
+                        <option value="draft">📝 Draft</option>
+                        <option value="published">📖 Published</option>
+                    </select>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm">
+                        <i class="fa-regular fa-floppy-disk mr-1"></i> Simpan Perubahan
+                    </button>
+                    <button type="button" onclick="closeEditModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition text-sm">
+                        Batal
+                    </button>
+                </div>
+
+                <div id="editMessage" class="text-sm text-center hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        let allWritings = [];
+        let currentFilter = 'all';
+        let currentSearch = '';
+
+        // ============================================
+        // CEK AKSES PROYEK BUKU
+        // ============================================
+        async function checkProjectAccess(e) {
+            if (e) e.preventDefault();
+            
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('member_level')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error) {
+                    console.error('Error checking level:', error);
+                    window.location.href = 'projects.html';
+                    return;
+                }
+
+                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
+                if (allowedLevels.includes(profile.member_level)) {
+                    window.location.href = 'projects.html';
+                } else {
+                    showProjectAccessDenied(profile.member_level || 'Tamu');
+                }
+            } catch (err) {
+                console.error('Error checking access:', err);
+                window.location.href = 'projects.html';
+            }
+        }
+
+        function showProjectAccessDenied(currentLevel) {
+            let modal = document.getElementById('projectAccessModal');
+            if (modal) modal.remove();
+
+            const modalHtml = `
+                <div id="projectAccessModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+                        <button onclick="closeProjectAccessModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        <div class="text-center mb-4">
+                            <span class="text-amber-500 text-4xl block mb-2">🔒</span>
+                            <h3 class="text-xl font-black text-slate-800">Akses Dibatasi</h3>
+                            <p class="text-sm text-slate-500 mt-1">Fitur Proyek Buku hanya untuk member level tertentu.</p>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-4 border border-amber-200 mb-4">
+                            <p class="text-sm text-slate-600">Level Anda saat ini: <strong class="text-amber-700">${currentLevel || 'Tamu'}</strong></p>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">Anda perlu mencapai level:</p>
+                        <ul class="space-y-2 text-sm mb-4">
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">✍️</span>
+                                <div>
+                                    <strong>Penulis</strong>
+                                    <p class="text-xs text-slate-500">5+ karya dipublikasikan • 3+ kali mentoring</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">📚</span>
+                                <div>
+                                    <strong>Penulis Profesional</strong>
+                                    <p class="text-xs text-slate-500">20+ karya • 1+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">🌟</span>
+                                <div>
+                                    <strong>Mentor</strong>
+                                    <p class="text-xs text-slate-500">50+ karya • 3+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                        </ul>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button onclick="closeProjectAccessModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
+                                Tutup
+                            </button>
+                            <button onclick="closeProjectAccessModal(); window.location.href='dashboard.html'" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
+                                <i class="fa-regular fa-circle-question mr-1"></i> Lihat Syarat Level
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeProjectAccessModal() {
+            const modal = document.getElementById('projectAccessModal');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // ============================================
+        // CEK LOGIN (WAJIB!)
+        // ============================================
+        async function checkAuth() {
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return null;
+                }
+                return session;
+            } catch (err) {
+                console.error('Auth check error:', err);
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
+
+        // ============================================
+        // LOAD LIBRARY
+        // ============================================
+        async function loadLibrary() {
+            const container = document.getElementById('libraryGrid');
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const { data: writings, error } = await _supabase
+                    .from('yata_writings')
+                    .select('*')
+                    .eq('author_id', session.user.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                allWritings = writings || [];
+                updateStats();
+                renderLibrary();
+
+            } catch (err) {
+                console.error('Load library error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-12 text-red-400 text-sm">
+                        <i class="fa-solid fa-circle-exclamation text-2xl block mb-2"></i>
+                        Gagal memuat perpustakaan.
+                        <button onclick="loadLibrary()" class="block mt-2 text-emerald-600 hover:text-emerald-700 font-semibold">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // UPDATE STATISTIK
+        // ============================================
+        function updateStats() {
+            const total = allWritings.length;
+            const published = allWritings.filter(w => w.status === 'published').length;
+            const draft = allWritings.filter(w => w.status === 'draft').length;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statPublished').textContent = published;
+            document.getElementById('statDraft').textContent = draft;
+        }
+
+        // ============================================
+        // RENDER LIBRARY
+        // ============================================
+        function renderLibrary() {
+            const container = document.getElementById('libraryGrid');
+
+            let filtered = allWritings;
+            if (currentFilter === 'published') {
+                filtered = filtered.filter(w => w.status === 'published');
+            } else if (currentFilter === 'draft') {
+                filtered = filtered.filter(w => w.status === 'draft');
+            }
+
+            if (currentSearch.trim()) {
+                const query = currentSearch.toLowerCase().trim();
+                filtered = filtered.filter(w => w.title.toLowerCase().includes(query));
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl p-12 text-center border border-emerald-100/60 shadow-sm">
+                        <i class="fa-regular fa-folder-open text-5xl text-slate-300 block mb-4"></i>
+                        <p class="text-slate-500 text-sm">${allWritings.length === 0 ? 'Belum ada karya di perpustakaan.' : 'Tidak ada karya yang cocok dengan filter.'}</p>
+                        ${allWritings.length === 0 ? `
+                            <a href="write.html" class="inline-block mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                                <i class="fa-solid fa-plus mr-1"></i> Buat Tulisan
+                            </a>
+                        ` : `
+                            <button onclick="resetFilters()" class="mt-4 text-emerald-600 hover:text-emerald-700 font-semibold text-sm">
+                                Reset filter
+                            </button>
+                        `}
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(w => `
+                <div class="bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm hover:shadow-md transition">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="font-bold text-slate-800 text-base">${w.title}</h3>
+                                <span class="text-xs px-2.5 py-0.5 rounded-full ${w.status === 'published' ? 'status-badge-published' : 'status-badge-draft'} font-semibold">
+                                    ${w.status === 'published' ? '📖 Published' : '✏️ Draft'}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-4 mt-1 text-xs text-slate-400">
+                                <span><i class="fa-regular fa-calendar mr-1"></i> ${new Date(w.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                                <span><i class="fa-regular fa-eye mr-1"></i> ${w.views || 0}</span>
+                                <span><i class="fa-regular fa-heart mr-1"></i> ${w.likes || 0}</span>
+                                <span class="capitalize">${w.category || 'Umum'}</span>
+                            </div>
+                            <p class="text-sm text-slate-500 line-clamp-1 mt-1">${w.content ? w.content.substring(0, 100) + '...' : 'Tidak ada konten'}</p>
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <button onclick="viewWriting('${w.id}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition">
+                                <i class="fa-regular fa-eye mr-1"></i> Baca
+                            </button>
+                            <button onclick="openEditModal('${w.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-xl text-xs transition">
+                                <i class="fa-regular fa-pen-to-square mr-1"></i> Edit
+                            </button>
+                            <button onclick="deleteWriting('${w.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-4 py-2 rounded-xl text-xs transition">
+                                <i class="fa-regular fa-trash-can mr-1"></i> Hapus
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============================================
+        // FILTER
+        // ============================================
+        function filterLibrary(filter) {
+            currentFilter = filter;
+
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-slate-600');
+            });
+
+            if (filter === 'all') {
+                document.getElementById('filterAll').classList.add('active');
+                document.getElementById('filterAll').classList.remove('text-slate-600');
+            } else if (filter === 'published') {
+                document.getElementById('filterPublished').classList.add('active');
+                document.getElementById('filterPublished').classList.remove('text-slate-600');
+            } else if (filter === 'draft') {
+                document.getElementById('filterDraft').classList.add('active');
+                document.getElementById('filterDraft').classList.remove('text-slate-600');
+            }
+
+            renderLibrary();
+        }
+
+        // ============================================
+        // SEARCH
+        // ============================================
+        function searchLibrary() {
+            const input = document.getElementById('searchLibrary');
+            currentSearch = input.value;
+            renderLibrary();
+        }
+
+        function resetFilters() {
+            currentFilter = 'all';
+            currentSearch = '';
+            document.getElementById('searchLibrary').value = '';
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-slate-600');
+            });
+            document.getElementById('filterAll').classList.add('active');
+            document.getElementById('filterAll').classList.remove('text-slate-600');
+            renderLibrary();
+        }
+
+        // ============================================
+        // ACTIONS (Baca, Edit, Hapus)
+        // ============================================
+        function viewWriting(id) {
+            window.location.href = `read.html?id=${id}`;
+        }
+
+        // ============================================
+        // OPEN EDIT MODAL
+        // ============================================
+        async function openEditModal(id) {
+            const modal = document.getElementById('editModal');
+            const form = document.getElementById('editForm');
+            const message = document.getElementById('editMessage');
+
+            form.reset();
+            message.className = 'text-sm text-center hidden';
+            document.getElementById('editId').value = id;
+
+            document.getElementById('editTitle').placeholder = 'Memuat...';
+            document.getElementById('editContent').placeholder = 'Memuat...';
+            document.getElementById('editWordCount').textContent = '0';
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+
+            try {
+                const { data: writing, error } = await _supabase
+                    .from('yata_writings')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+
+                if (error) throw error;
+
+                if (!writing) {
+                    showError('Karya tidak ditemukan.', 'Error');
+                    closeEditModal();
+                    return;
+                }
+
+                document.getElementById('editTitle').value = writing.title || '';
+                document.getElementById('editCategory').value = writing.category || 'cerpen';
+                document.getElementById('editContent').value = writing.content || '';
+                document.getElementById('editStatus').value = writing.status || 'draft';
+                document.getElementById('editWordCount').textContent = writing.content ? writing.content.split(/\s+/).length : 0;
+
+            } catch (err) {
+                console.error('Load writing for edit error:', err);
+                showError('Gagal memuat data karya: ' + err.message, 'Error');
+                closeEditModal();
+            }
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            document.getElementById('editForm').reset();
+            document.getElementById('editId').value = '';
+        }
+
+        document.getElementById('editContent').addEventListener('input', function() {
+            const text = this.value.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            document.getElementById('editWordCount').textContent = words;
+        });
+
+        // ============================================
+        // SUBMIT EDIT
+        // ============================================
+        document.getElementById('editForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const id = document.getElementById('editId').value;
+            const title = document.getElementById('editTitle').value.trim();
+            const category = document.getElementById('editCategory').value;
+            const content = document.getElementById('editContent').value.trim();
+            const status = document.getElementById('editStatus').value;
+            const message = document.getElementById('editMessage');
+
+            if (!title) {
+                showEditMessage('Judul wajib diisi.', 'error');
+                return;
+            }
+            if (!content) {
+                showEditMessage('Konten wajib diisi.', 'error');
+                return;
+            }
+            if (content.length < 20) {
+                showEditMessage('Konten minimal 20 karakter.', 'error');
+                return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...';
+            message.className = 'text-sm text-center hidden';
+
+            try {
+                const wordCount = content.split(/\s+/).length;
+
+                const { error } = await _supabase
+                    .from('yata_writings')
+                    .update({
+                        title: title,
+                        category: category,
+                        content: content,
+                        status: status,
+                        word_count: wordCount,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                showEditMessage('✅ Karya berhasil diperbarui!', 'success');
+                
+                setTimeout(() => {
+                    closeEditModal();
+                    loadLibrary();
+                }, 1500);
+
+            } catch (err) {
+                console.error('Update error:', err);
+                showEditMessage('❌ Gagal memperbarui karya: ' + err.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> Simpan Perubahan';
+            }
+        });
+
+        function showEditMessage(text, type) {
+            const msg = document.getElementById('editMessage');
+            msg.textContent = text;
+            msg.className = `text-sm text-center ${type === 'success' ? 'text-emerald-600' : 'text-red-600'} block`;
+        }
+
+        // ============================================
+        // DELETE WRITING
+        // ============================================
+        async function deleteWriting(id) {
+            if (!confirm('Yakin ingin menghapus karya ini? Tindakan ini tidak bisa dibatalkan.')) return;
+
+            try {
+                const { error } = await _supabase
+                    .from('yata_writings')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                showError('✅ Karya berhasil dihapus.', 'Sukses');
+                loadLibrary();
+
+            } catch (err) {
+                console.error('Delete error:', err);
+                showError('❌ Gagal menghapus karya: ' + err.message, 'Error');
+            }
+        }
+
+        // ============================================
+        // LOGOUT
+        // ============================================
+        async function handleLogout() {
+            if (confirm('Yakin ingin keluar?')) {
+                try {
+                    const { error } = await _supabase.auth.signOut();
+                    if (!error) {
+                        window.location.href = 'login.html';
+                    } else {
+                        console.error('Logout error:', error);
+                    }
+                } catch (err) {
+                    console.error('Logout error:', err);
+                }
+            }
+        }
+
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadLibrary();
+
+            document.getElementById('btnLogout').addEventListener('click', handleLogout);
+            document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);
+
+            document.getElementById('mobileMenuButton').addEventListener('click', function() {
+                document.getElementById('mobileMenu').classList.toggle('hidden');
+            });
+
+            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(el => {
+                el.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
+            });
+
+            document.getElementById('editModal').addEventListener('click', function(e) {
+                if (e.target === this) closeEditModal();
+            });
+        });
+    </script>
+
+</body>
+</html>

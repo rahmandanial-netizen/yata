@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kelas yang Saya Ikuti — YATA</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6EE7B7',
+                        primaryDark: '#065F46',
+                        sage: '#A3E4D7',
+                        cream: '#FEF3C7',
+                        mint: '#B2F2BB',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #065F46; color: white; }
+        .sidebar-link.active i { color: white; }
+        .sidebar-link:hover:not(.active) { background-color: #e2e8f0; }
+        .status-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 12px;
+            border-radius: 9999px;
+            display: inline-block;
+        }
+        .status-pending { background: #FEF3C7; color: #92400E; }
+        .status-approved { background: #D1FAE5; color: #065F46; }
+        .status-rejected { background: #FEE2E2; color: #991B1B; }
+        .status-completed { background: #E0E7FF; color: #3730A3; }
+        .session-card {
+            transition: all 0.3s ease;
+        }
+        .session-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px -8px rgba(6, 95, 70, 0.15);
+        }
+        .filter-btn.active {
+            background-color: #065F46;
+            color: white;
+        }
+        .filter-btn:not(.active):hover {
+            background-color: #f1f5f9;
+        }
+        .modal-enter { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .line-clamp-1 {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .level-badge {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            display: inline-block;
+        }
+        .level-pemula { background: #D1FAE5; color: #065F46; }
+        .level-menengah { background: #FEF3C7; color: #92400E; }
+        .level-lanjutan { background: #FEE2E2; color: #991B1B; }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- SIDEBAR -->
+    <!-- ============================================ -->
+    <aside class="fixed top-0 left-0 z-40 w-64 h-screen bg-white border-r border-emerald-100/60 hidden md:block">
+        <div class="flex flex-col h-full">
+            <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
+                <a href="dashboard.html" class="flex items-center space-x-2 group">
+                    <div class="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/30">Y</div>
+                    <span class="text-xl font-extrabold text-emerald-800">YATA</span>
+                </a>
+            </div>
+
+            <nav class="flex-1 px-4 py-6 space-y-1">
+                <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-house w-5"></i> Beranda
+                </a>
+                <a href="write.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-pen w-5"></i> Tulis
+                </a>
+                <a href="#" onclick="checkProjectAccess(event)" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book w-5"></i> Proyek Buku
+                </a>
+                <a href="library.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-book-open w-5"></i> Perpustakaan
+                </a>
+                <a href="community.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-users w-5"></i> Komunitas
+                </a>
+                <a href="mentoring.html" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-sm font-semibold text-emerald-800 rounded-xl transition">
+                    <i class="fa-solid fa-graduation-cap w-5 text-emerald-600"></i> Mentoring
+                </a>
+                <a href="profile.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-user w-5"></i> Profil
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-emerald-100/60">
+                <button id="btnLogout" class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition text-left">
+                    <i class="fa-solid fa-right-from-bracket w-5"></i> Keluar
+                </button>
+                <p class="text-xs text-slate-400 text-center mt-4">YATA v1.0 • Beta</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ============================================ -->
+    <!-- MOBILE HEADER -->
+    <!-- ============================================ -->
+    <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
+        <div class="flex items-center justify-between px-4 h-16">
+            <a href="dashboard.html" class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-black">Y</div>
+                <span class="text-lg font-extrabold text-emerald-800">YATA</span>
+            </a>
+            <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+
+        <div id="mobileMenu" class="hidden bg-white border-t border-emerald-100/60 px-4 py-4 space-y-2">
+            <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Beranda</a>
+            <a href="write.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Tulis</a>
+            <a href="#" onclick="checkProjectAccess(event)" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Proyek Buku</a>
+            <a href="library.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Perpustakaan</a>
+            <a href="community.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Komunitas</a>
+            <a href="mentoring.html" class="block px-4 py-2.5 bg-emerald-50 text-emerald-800 font-semibold rounded-xl">Mentoring</a>
+            <a href="profile.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Profil</a>
+            <hr class="my-2 border-emerald-100" />
+            <button id="btnLogoutMobile" class="block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
+        </div>
+    </header>
+
+    <!-- ============================================ -->
+    <!-- KONTEN UTAMA -->
+    <!-- ============================================ -->
+    <main class="md:ml-64 pt-4 md:pt-8 min-h-screen bg-slate-50/50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+            <!-- Header -->
+            <div class="mb-6">
+                <h1 class="text-2xl font-black text-slate-800">🎓 Kelas yang Saya Ikuti</h1>
+                <p class="text-sm text-slate-500">Daftar kelas mentoring yang telah Anda daftar.</p>
+            </div>
+
+            <!-- Filter Status -->
+            <div class="bg-white rounded-2xl p-3 border border-emerald-100/60 shadow-sm flex flex-wrap items-center gap-2 mb-6">
+                <button onclick="filterMyMentoring('all')" class="filter-btn active px-4 py-1.5 rounded-full text-xs font-bold transition bg-emerald-600 text-white" id="filterAll">Semua</button>
+                <button onclick="filterMyMentoring('pending')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterPending">⏳ Menunggu</button>
+                <button onclick="filterMyMentoring('approved')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterApproved">✅ Diterima</button>
+                <button onclick="filterMyMentoring('rejected')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterRejected">❌ Ditolak</button>
+                <button onclick="filterMyMentoring('completed')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterCompleted">✅ Selesai</button>
+                <span class="ml-auto text-xs text-slate-400" id="myMentoringCount">0 kelas</span>
+            </div>
+
+            <!-- Daftar -->
+            <div id="myMentoringList" class="space-y-4">
+                <div class="text-center py-12 text-slate-400 text-sm">
+                    <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat kelas...
+                </div>
+            </div>
+
+            <!-- Kosong -->
+            <div id="emptyState" class="hidden bg-white rounded-2xl p-12 text-center border border-emerald-100/60 shadow-sm">
+                <i class="fa-regular fa-calendar-plus text-5xl text-slate-300 block mb-4"></i>
+                <p class="text-slate-500 text-sm">Anda belum mendaftar ke kelas mentoring.</p>
+                <a href="mentoring.html" class="inline-block mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                    <i class="fa-solid fa-search mr-1"></i> Cari Kelas Sekarang
+                </a>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ============================================ -->
+    <!-- MODAL DETAIL KELAS -->
+    <!-- ============================================ -->
+    <div id="detailModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeDetailModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Detail Kelas</span>
+                <h3 id="detailModalTitle" class="text-xl font-black text-slate-800 mt-1">Judul Kelas</h3>
+                <p id="detailModalStatus" class="text-xs mt-1">Status: <span class="font-semibold">-</span></p>
+            </div>
+
+            <div id="detailModalContent" class="space-y-4">
+                <!-- Akan diisi JavaScript -->
+            </div>
+
+            <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                <button onclick="openReviewModal()" id="reviewBtn" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2.5 rounded-xl text-sm transition hidden">
+                    <i class="fa-regular fa-star mr-1"></i> Beri Ulasan
+                </button>
+                <button onclick="closeDetailModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-sm transition">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL ULASAN -->
+    <!-- ============================================ -->
+    <div id="reviewModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeReviewModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-yellow-500 text-sm font-bold uppercase tracking-wider">Ulasan</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Beri Ulasan</h3>
+                <p id="reviewModalSubtitle" class="text-xs text-slate-500 mt-1">Bagikan pengalaman Anda mengikuti kelas ini.</p>
+            </div>
+
+            <form id="reviewForm" class="space-y-4">
+                <input type="hidden" id="reviewSessionId" value="" />
+                <input type="hidden" id="reviewParticipantId" value="" />
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-2">Rating <span class="text-red-500">*</span></label>
+                    <div class="flex gap-1 text-3xl" id="starRatingReview">
+                        <span class="cursor-pointer transition hover:scale-110" onclick="setReviewRating(1)">⭐</span>
+                        <span class="cursor-pointer transition hover:scale-110" onclick="setReviewRating(2)">⭐</span>
+                        <span class="cursor-pointer transition hover:scale-110" onclick="setReviewRating(3)">⭐</span>
+                        <span class="cursor-pointer transition hover:scale-110" onclick="setReviewRating(4)">⭐</span>
+                        <span class="cursor-pointer transition hover:scale-110" onclick="setReviewRating(5)">⭐</span>
+                    </div>
+                    <input type="hidden" id="reviewRating" value="5" />
+                    <p class="text-xs text-slate-400 mt-1" id="reviewRatingLabel">⭐ 5 - Sangat Baik</p>
+                </div>
+
+                <div>
+                    <label for="reviewComment" class="block text-xs font-semibold text-slate-700 mb-1">Komentar <span class="text-red-500">*</span></label>
+                    <textarea id="reviewComment" rows="3" placeholder="Ceritakan pengalaman Anda mengikuti kelas ini..." required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 text-sm resize-none"></textarea>
+                </div>
+
+                <button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-regular fa-paper-plane mr-1"></i> Kirim Ulasan
+                </button>
+
+                <div id="reviewMessage" class="text-sm text-center hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        let mySessions = [];
+        let currentFilter = 'all';
+        let currentUser = null;
+        let selectedReviewRating = 5;
+        let currentDetailSession = null;
+        let currentDetailParticipant = null;
+
+        // ============================================
+        // CEK AKSES PROYEK BUKU
+        // ============================================
+        async function checkProjectAccess(e) {
+            if (e) e.preventDefault();
+            
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('member_level')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error) {
+                    console.error('Error checking level:', error);
+                    window.location.href = 'projects.html';
+                    return;
+                }
+
+                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
+                if (allowedLevels.includes(profile.member_level)) {
+                    window.location.href = 'projects.html';
+                } else {
+                    showProjectAccessDenied(profile.member_level || 'Tamu');
+                }
+            } catch (err) {
+                console.error('Error checking access:', err);
+                window.location.href = 'projects.html';
+            }
+        }
+
+        function showProjectAccessDenied(currentLevel) {
+            let modal = document.getElementById('projectAccessModal');
+            if (modal) modal.remove();
+
+            const modalHtml = `
+                <div id="projectAccessModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+                        <button onclick="closeProjectAccessModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        <div class="text-center mb-4">
+                            <span class="text-amber-500 text-4xl block mb-2">🔒</span>
+                            <h3 class="text-xl font-black text-slate-800">Akses Dibatasi</h3>
+                            <p class="text-sm text-slate-500 mt-1">Fitur Proyek Buku hanya untuk member level tertentu.</p>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-4 border border-amber-200 mb-4">
+                            <p class="text-sm text-slate-600">Level Anda saat ini: <strong class="text-amber-700">${currentLevel || 'Tamu'}</strong></p>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">Anda perlu mencapai level:</p>
+                        <ul class="space-y-2 text-sm mb-4">
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">✍️</span>
+                                <div>
+                                    <strong>Penulis</strong>
+                                    <p class="text-xs text-slate-500">5+ karya dipublikasikan • 3+ kali mentoring</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">📚</span>
+                                <div>
+                                    <strong>Penulis Profesional</strong>
+                                    <p class="text-xs text-slate-500">20+ karya • 1+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">🌟</span>
+                                <div>
+                                    <strong>Mentor</strong>
+                                    <p class="text-xs text-slate-500">50+ karya • 3+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                        </ul>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button onclick="closeProjectAccessModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
+                                Tutup
+                            </button>
+                            <button onclick="closeProjectAccessModal(); window.location.href='dashboard.html'" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
+                                <i class="fa-regular fa-circle-question mr-1"></i> Lihat Syarat Level
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeProjectAccessModal() {
+            const modal = document.getElementById('projectAccessModal');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // ============================================
+        // 1. CEK LOGIN
+        // ============================================
+        async function checkAuth() {
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                currentUser = session.user;
+                return true;
+            } catch (err) {
+                console.error('Auth check error:', err);
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
+
+        // ============================================
+        // 2. LOAD MY MENTORING
+        // ============================================
+        async function loadMyMentoring() {
+            const container = document.getElementById('myMentoringList');
+            const empty = document.getElementById('emptyState');
+
+            try {
+                const isAuth = await checkAuth();
+                if (!isAuth) return;
+
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-400 text-sm">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat kelas...
+                    </div>
+                `;
+
+                // Ambil partisipasi user
+                const { data: participants, error: participantError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('*, session:session_id(*)')
+                    .eq('user_id', currentUser.id)
+                    .order('registered_at', { ascending: false });
+
+                if (participantError) throw participantError;
+
+                if (!participants || participants.length === 0) {
+                    container.innerHTML = '';
+                    empty.classList.remove('hidden');
+                    document.getElementById('myMentoringCount').textContent = '0 kelas';
+                    return;
+                }
+
+                empty.classList.add('hidden');
+                document.getElementById('myMentoringCount').textContent = participants.length + ' kelas';
+
+                // Ambil data mentor untuk setiap sesi
+                const sessionIds = participants.map(p => p.session_id).filter(id => id);
+                let mentorMap = {};
+
+                if (sessionIds.length > 0) {
+                    const { data: sessions, error: sessionError } = await _supabase
+                        .from('yata_mentoring_sessions')
+                        .select('id, mentor_id')
+                        .in('id', sessionIds);
+
+                    if (!sessionError && sessions) {
+                        const mentorIds = [...new Set(sessions.map(s => s.mentor_id).filter(id => id))];
+                        if (mentorIds.length > 0) {
+                            const { data: mentors, error: mentorError } = await _supabase
+                                .from('yata_profiles')
+                                .select('id, full_name, username, avatar_url, member_level')
+                                .in('id', mentorIds);
+
+                            if (!mentorError && mentors) {
+                                mentors.forEach(m => {
+                                    mentorMap[m.id] = m;
+                                });
+                            }
+                        }
+
+                        sessions.forEach(s => {
+                            const participant = participants.find(p => p.session_id === s.id);
+                            if (participant) {
+                                participant.session.mentor = mentorMap[s.mentor_id] || null;
+                            }
+                        });
+                    }
+                }
+
+                mySessions = participants;
+                renderMyMentoring();
+
+            } catch (err) {
+                console.error('Load my mentoring error:', err);
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl p-12 text-center border border-red-200 shadow-sm">
+                        <i class="fa-solid fa-circle-exclamation text-3xl text-red-400 block mb-3"></i>
+                        <p class="text-slate-500 text-sm">Gagal memuat kelas: ${err.message}</p>
+                        <button onclick="loadMyMentoring()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 3. RENDER MY MENTORING
+        // ============================================
+        function renderMyMentoring() {
+            const container = document.getElementById('myMentoringList');
+
+            let filtered = mySessions;
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(p => p.status === currentFilter);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl p-12 text-center border border-emerald-100/60 shadow-sm">
+                        <i class="fa-regular fa-folder-open text-5xl text-slate-300 block mb-4"></i>
+                        <p class="text-slate-500 text-sm">Tidak ada kelas dengan status ini.</p>
+                        <button onclick="filterMyMentoring('all')" class="mt-4 text-emerald-600 hover:text-emerald-700 font-semibold text-sm">
+                            Lihat semua kelas
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            const statusLabels = {
+                pending: '⏳ Menunggu Konfirmasi',
+                approved: '✅ Diterima',
+                rejected: '❌ Ditolak',
+                completed: '✅ Selesai'
+            };
+            const statusClasses = {
+                pending: 'status-pending',
+                approved: 'status-approved',
+                rejected: 'status-rejected',
+                completed: 'status-completed'
+            };
+            const levelLabels = {
+                pemula: '🌱 Pemula',
+                menengah: '📈 Menengah',
+                lanjutan: '🚀 Lanjutan'
+            };
+            const levelClasses = {
+                pemula: 'level-pemula',
+                menengah: 'level-menengah',
+                lanjutan: 'level-lanjutan'
+            };
+
+            container.innerHTML = filtered.map(p => {
+                const s = p.session;
+                if (!s) return '';
+
+                const mentor = s.mentor || {};
+                const mentorName = mentor.full_name || 'Mentor';
+                const avatar = mentorName.charAt(0).toUpperCase();
+
+                return `
+                    <div class="session-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm cursor-pointer" onclick="openDetail('${p.id}')">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="font-bold text-slate-800 text-base">${s.title || 'Kelas'}</h3>
+                                    <span class="status-badge ${statusClasses[p.status] || 'status-pending'}">${statusLabels[p.status] || '⏳ Menunggu'}</span>
+                                </div>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold">${avatar}</div>
+                                    <span class="text-xs text-slate-500 font-medium">${mentorName}</span>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-1 line-clamp-1">${s.description || 'Tidak ada deskripsi'}</p>
+                                <div class="flex items-center gap-3 mt-2 text-xs text-slate-400">
+                                    <span class="level-badge ${levelClasses[s.level] || 'level-pemula'}">${levelLabels[s.level] || '🌱 Pemula'}</span>
+                                    <span><i class="fa-regular fa-clock"></i> ${s.schedule || 'TBA'}</span>
+                                    <span class="${s.price === 0 ? 'text-emerald-600' : 'text-purple-600'} font-semibold">
+                                        ${s.price === 0 ? '🆓 Gratis' : '💰 Rp' + (s.price || 0).toLocaleString()}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                ${p.status === 'approved' && s.meeting_link ? `
+                                    <a href="${s.meeting_link}" target="_blank" class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold px-3 py-1.5 rounded-xl text-xs transition">
+                                        <i class="fa-regular fa-link mr-1"></i> Link Meeting
+                                    </a>
+                                ` : ''}
+                                ${p.status === 'approved' && s.status === 'completed' ? `
+                                    <button onclick="event.stopPropagation(); openReviewModalFromDetail('${s.id}', '${p.id}')" class="bg-yellow-50 hover:bg-yellow-100 text-yellow-700 font-semibold px-3 py-1.5 rounded-xl text-xs transition">
+                                        <i class="fa-regular fa-star mr-1"></i> Ulasan
+                                    </button>
+                                ` : ''}
+                                <button onclick="event.stopPropagation(); openDetail('${p.id}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-3 py-1.5 rounded-xl text-xs transition">
+                                    <i class="fa-regular fa-eye mr-1"></i> Detail
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============================================
+        // 4. FILTER
+        // ============================================
+        function filterMyMentoring(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-slate-600');
+            });
+
+            const idMap = {
+                'all': 'filterAll',
+                'pending': 'filterPending',
+                'approved': 'filterApproved',
+                'rejected': 'filterRejected',
+                'completed': 'filterCompleted'
+            };
+
+            const activeBtn = document.getElementById(idMap[filter]);
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+                activeBtn.classList.remove('text-slate-600');
+            }
+
+            renderMyMentoring();
+        }
+
+        // ============================================
+        // 5. OPEN DETAIL
+        // ============================================
+        async function openDetail(participantId) {
+            const participant = mySessions.find(p => p.id === participantId);
+            if (!participant) {
+                showError('Data tidak ditemukan.', 'Error');
+                return;
+            }
+
+            currentDetailSession = participant.session;
+            currentDetailParticipant = participant;
+
+            const s = participant.session;
+            if (!s) {
+                showError('Detail kelas tidak ditemukan.', 'Error');
+                return;
+            }
+
+            const mentor = s.mentor || {};
+            const mentorName = mentor.full_name || 'Mentor';
+
+            document.getElementById('detailModalTitle').textContent = s.title || 'Kelas Mentoring';
+
+            const statusLabels = {
+                pending: '⏳ Menunggu Konfirmasi',
+                approved: '✅ Diterima',
+                rejected: '❌ Ditolak',
+                completed: '✅ Selesai'
+            };
+            const statusColors = {
+                pending: 'text-yellow-600',
+                approved: 'text-emerald-600',
+                rejected: 'text-red-600',
+                completed: 'text-blue-600'
+            };
+            const levelLabels = {
+                pemula: '🌱 Pemula',
+                menengah: '📈 Menengah',
+                lanjutan: '🚀 Lanjutan'
+            };
+
+            document.getElementById('detailModalStatus').innerHTML = `Status: <span class="font-semibold ${statusColors[participant.status] || 'text-yellow-600'}">${statusLabels[participant.status] || '⏳ Menunggu'}</span>`;
+
+            const isFree = s.price === 0;
+
+            document.getElementById('detailModalContent').innerHTML = `
+                <div class="bg-slate-50 rounded-xl p-4 space-y-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
+                            ${mentorName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-800 text-sm">${mentorName}</p>
+                            <p class="text-xs text-slate-400">${mentor.member_level || 'Mentor'}</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                            <p class="text-xs text-slate-400">Kategori</p>
+                            <p class="font-semibold text-slate-700">${s.category || 'Umum'}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400">Level</p>
+                            <p class="font-semibold text-slate-700">${levelLabels[s.level] || '🌱 Pemula'}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400">Harga</p>
+                            <p class="font-semibold ${isFree ? 'text-emerald-600' : 'text-purple-600'}">${isFree ? '🆓 Gratis' : '💰 Rp' + (s.price || 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400">Kuota</p>
+                            <p class="font-semibold text-slate-700">${s.current_participants || 0}/${s.max_participants || '∞'}</p>
+                        </div>
+                        <div class="col-span-2">
+                            <p class="text-xs text-slate-400">Jadwal</p>
+                            <p class="font-semibold text-slate-700">${s.schedule || 'TBA'}</p>
+                        </div>
+                        ${s.start_date ? `
+                            <div class="col-span-2">
+                                <p class="text-xs text-slate-400">Tanggal Mulai</p>
+                                <p class="font-semibold text-slate-700">${new Date(s.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                            </div>
+                        ` : ''}
+                        ${s.meeting_link && participant.status === 'approved' ? `
+                            <div class="col-span-2">
+                                <p class="text-xs text-slate-400">Link Meeting</p>
+                                <a href="${s.meeting_link}" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-semibold text-sm break-all">
+                                    <i class="fa-regular fa-link mr-1"></i> ${s.meeting_link}
+                                </a>
+                            </div>
+                        ` : ''}
+                        <div class="col-span-2">
+                            <p class="text-xs text-slate-400">Alasan Mendaftar</p>
+                            <p class="text-sm text-slate-600 bg-white p-3 rounded-xl border border-slate-200">${participant.reason || 'Tidak ada alasan'}</p>
+                        </div>
+                        ${participant.feedback_rating ? `
+                            <div class="col-span-2">
+                                <p class="text-xs text-slate-400">Ulasan Anda</p>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-lg">${'⭐'.repeat(participant.feedback_rating)}${'☆'.repeat(5 - participant.feedback_rating)}</span>
+                                    <span class="text-sm font-semibold text-slate-700">${participant.feedback_rating}.0</span>
+                                </div>
+                                ${participant.feedback_comment ? `<p class="text-sm text-slate-600 bg-white p-3 rounded-xl border border-slate-200 mt-1">"${participant.feedback_comment}"</p>` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+            // Tampilkan tombol ulasan jika status completed dan belum ada rating
+            const reviewBtn = document.getElementById('reviewBtn');
+            if (participant.status === 'completed' && !participant.feedback_rating) {
+                reviewBtn.classList.remove('hidden');
+                reviewBtn.onclick = () => openReviewModalFromDetail(s.id, participant.id);
+            } else {
+                reviewBtn.classList.add('hidden');
+            }
+
+            document.getElementById('detailModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentDetailSession = null;
+            currentDetailParticipant = null;
+        }
+
+        // ============================================
+        // 6. REVIEW
+        // ============================================
+        function setReviewRating(rating) {
+            selectedReviewRating = rating;
+            document.getElementById('reviewRating').value = rating;
+            const stars = document.querySelectorAll('#starRatingReview span');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.style.opacity = '1';
+                    star.style.filter = 'grayscale(0)';
+                } else {
+                    star.style.opacity = '0.3';
+                    star.style.filter = 'grayscale(1)';
+                }
+            });
+            const labels = ['', 'Sangat Buruk', 'Buruk', 'Cukup', 'Baik', 'Sangat Baik'];
+            document.getElementById('reviewRatingLabel').textContent = `⭐ ${rating} - ${labels[rating]}`;
+        }
+
+        function openReviewModalFromDetail(sessionId, participantId) {
+            document.getElementById('reviewSessionId').value = sessionId;
+            document.getElementById('reviewParticipantId').value = participantId;
+            document.getElementById('reviewComment').value = '';
+            document.getElementById('reviewMessage').className = 'text-sm text-center hidden';
+            setReviewRating(5);
+            document.getElementById('reviewModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeReviewModal() {
+            document.getElementById('reviewModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.getElementById('reviewForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const sessionId = document.getElementById('reviewSessionId').value;
+            const participantId = document.getElementById('reviewParticipantId').value;
+            const rating = parseInt(document.getElementById('reviewRating').value) || 5;
+            const comment = document.getElementById('reviewComment').value.trim();
+
+            if (!comment) {
+                showReviewMessage('Harap tulis komentar.', 'error');
+                return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+            showReviewMessage('', '');
+
+            try {
+                // Update participant dengan rating & comment
+                const { error: updateError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .update({
+                        feedback_rating: rating,
+                        feedback_comment: comment
+                    })
+                    .eq('id', participantId);
+
+                if (updateError) throw updateError;
+
+                // Simpan ke tabel reviews
+                const { error: reviewError } = await _supabase
+                    .from('yata_mentoring_reviews')
+                    .insert([{
+                        session_id: sessionId,
+                        user_id: currentUser.id,
+                        rating: rating,
+                        comment: comment
+                    }]);
+
+                if (reviewError) throw reviewError;
+
+                showReviewMessage('✅ Ulasan berhasil dikirim! Terima kasih atas feedback Anda.', 'success');
+                submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
+
+                setTimeout(() => {
+                    closeReviewModal();
+                    closeDetailModal();
+                    loadMyMentoring();
+                }, 2000);
+
+            } catch (err) {
+                console.error('Submit review error:', err);
+                showReviewMessage('❌ Gagal mengirim ulasan: ' + err.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Ulasan';
+            }
+        });
+
+        function showReviewMessage(text, type) {
+            const msg = document.getElementById('reviewMessage');
+            msg.textContent = text;
+            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
+                type === 'success' ? 'text-emerald-600' :
+                type === 'error' ? 'text-red-600' :
+                ''
+            }`;
+        }
+
+        // ============================================
+        // 7. LOGOUT
+        // ============================================
+        async function handleLogout() {
+            if (confirm('Yakin ingin keluar?')) {
+                try {
+                    const { error } = await _supabase.auth.signOut();
+                    if (!error) {
+                        window.location.href = 'login.html';
+                    } else {
+                        console.error('Logout error:', error);
+                    }
+                } catch (err) {
+                    console.error('Logout error:', err);
+                }
+            }
+        }
+
+        // ============================================
+        // 8. EVENT LISTENERS
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMyMentoring();
+
+            document.getElementById('btnLogout').addEventListener('click', handleLogout);
+            document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);
+
+            document.getElementById('mobileMenuButton').addEventListener('click', function() {
+                document.getElementById('mobileMenu').classList.toggle('hidden');
+            });
+
+            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(el => {
+                el.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
+            });
+
+            document.getElementById('detailModal').addEventListener('click', function(e) {
+                if (e.target === this) closeDetailModal();
+            });
+
+            document.getElementById('reviewModal').addEventListener('click', function(e) {
+                if (e.target === this) closeReviewModal();
+            });
+        });
+    </script>
+
+</body>
+</html>
