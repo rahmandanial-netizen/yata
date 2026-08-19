@@ -167,7 +167,6 @@
 
             const rateCheck = checkRateLimit('login');
             if (!rateCheck.allowed) {
-                // ✅ Ganti alert dengan showError
                 showError(rateCheck.message, '⏳ Terlalu Cepat');
                 return;
             }
@@ -336,8 +335,9 @@
             document.getElementById('resetMessage').className = 'text-sm text-center hidden';
 
             try {
+                // ✅ PERBAIKAN: redirectTo menggunakan URL absolut
                 const { error } = await _supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: window.location.origin + '/reset-password.html'
+                    redirectTo: 'https://yata.vercel.app/reset-password.html'
                 });
 
                 if (error) {
