@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Komunitas — Yatta</title>
 
+    <!-- ============================================ -->
+    <!-- FAVICON YATTA -->
+    <!-- ============================================ -->
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
+    <link rel="apple-touch-icon" href="assets/favicon.png" />
+    <link rel="shortcut icon" href="assets/favicon.png" />
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -930,7 +937,7 @@
                 const roleLabel = role === 'admin' ? '🛡️ Admin' : '👤 Member';
                 
                 return `
-                    <div class="community-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm hover:shadow-md ${c.status === 'rejected' ? 'opacity-60' : ''}" onclick="openCommunityDetail('${c.id}')" data-community-id="${c.id}">
+                    <div class="community-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm ${c.status === 'rejected' ? 'opacity-60' : ''}" onclick="openCommunityDetail('${c.id}')" data-community-id="${c.id}">
                         <div class="flex items-start justify-between gap-3">
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
@@ -1015,7 +1022,7 @@
                 const roleLabel = role === 'admin' ? '🛡️ Admin' : isJoined ? '👤 Member' : '';
 
                 return `
-                    <div class="community-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm hover:shadow-md ${c.status === 'rejected' ? 'opacity-60' : ''}" onclick="openCommunityDetail('${c.id}')" data-community-id="${c.id}">
+                    <div class="community-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm ${c.status === 'rejected' ? 'opacity-60' : ''}" onclick="openCommunityDetail('${c.id}')" data-community-id="${c.id}">
                         <div class="flex items-start justify-between gap-3">
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
