@@ -62,6 +62,15 @@
         .level-pemula { background: #D1FAE5; color: #065F46; }
         .level-menengah { background: #FEF3C7; color: #92400E; }
         .level-lanjutan { background: #FEE2E2; color: #991B1B; }
+        .onboarding-badge {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            display: inline-block;
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
         .line-clamp-2 {
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -145,18 +154,6 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
-        .status-badge {
-            font-size: 10px;
-            font-weight: 700;
-            padding: 2px 12px;
-            border-radius: 9999px;
-            display: inline-block;
-        }
-        .status-draft { background: #F1F5F9; color: #64748B; }
-        .status-published { background: #D1FAE5; color: #065F46; }
-        .status-ongoing { background: #DBEAFE; color: #1E40AF; }
-        .status-completed { background: #E0E7FF; color: #3730A3; }
-        .status-cancelled { background: #FEE2E2; color: #991B1B; }
     </style>
 </head>
 <body>
@@ -168,10 +165,10 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <a href="explore.html" class="flex items-center space-x-2 group">
-    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30 group-hover:scale-105 transition" />
-    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
-    <span class="hidden sm:inline text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Publik</span>
-</a>
+                    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30 group-hover:scale-105 transition" />
+                    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
+                    <span class="hidden sm:inline text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Publik</span>
+                </a>
 
                 <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-600">
                     <a href="explore.html" class="hover:text-emerald-600 transition">Beranda</a>
@@ -218,7 +215,7 @@
     </section>
 
     <!-- ============================================ -->
-    <!-- FILTER & SEARCH -->
+    <!-- FILTER -->
     <!-- ============================================ -->
     <section class="py-4 bg-white border-b border-slate-200/60 sticky top-16 z-30 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -240,46 +237,69 @@
     </section>
 
     <!-- ============================================ -->
-    <!-- DAFTAR SESI MENTORING -->
+    <!-- DAFTAR MENTORING -->
     <!-- ============================================ -->
     <section class="py-8 bg-slate-50/50 min-h-screen">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between mb-6">
-                <div>
-                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        🎓 Kelas Tersedia
-                        <span class="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full" id="mentoringCount">0</span>
-                    </h2>
-                    <p class="text-xs text-slate-500">Sesi mentoring dari mentor Yatta</p>
+
+            <!-- ========================================== -->
+            <!-- SECTION ONBOARDING WAJIB -->
+            <!-- ========================================== -->
+            <div id="onboardingSection" class="mb-10">
+                <div class="flex items-center gap-3 mb-4">
+                    <span class="text-2xl">🎓</span>
+                    <h2 class="text-xl font-bold text-slate-800">Onboarding Wajib</h2>
+                    <span class="text-xs text-emerald-600 bg-emerald-100 px-2.5 py-0.5 rounded-full font-semibold">Untuk Member Baru</span>
                 </div>
-                <a href="mentoring-create.html" id="btnCreateMentoring" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2">
-                    <i class="fa-solid fa-plus"></i> Buat Kelas
-                </a>
+                <div id="onboardingGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Akan diisi JavaScript -->
+                </div>
+                <div id="onboardingEmpty" class="hidden text-center py-8 text-slate-400 text-sm bg-white rounded-2xl border border-emerald-100/60 shadow-sm">
+                    <i class="fa-regular fa-circle-check text-2xl block mb-2"></i>
+                    Tidak ada kelas onboarding saat ini.
+                </div>
             </div>
 
-            <div id="mentoringGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Akan diisi JavaScript -->
+            <!-- ========================================== -->
+            <!-- SECTION KELAS MENTORING (USER) -->
+            <!-- ========================================== -->
+            <div id="mentoringSection">
+                <div class="flex items-center gap-3 mb-4">
+                    <span class="text-2xl">📚</span>
+                    <h2 class="text-xl font-bold text-slate-800">Kelas Mentoring</h2>
+                    <span class="text-xs text-slate-400 bg-slate-100 px-2.5 py-0.5 rounded-full font-semibold">Dari Penulis</span>
+                </div>
+                <div id="mentoringGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Akan diisi JavaScript -->
+                </div>
+
+                <!-- Pagination: Load More Button -->
+                <div id="loadMoreContainer" class="text-center mt-8 hidden">
+                    <button id="loadMoreBtn" onclick="loadMoreMentoring()" class="load-more-btn bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3 rounded-xl text-sm transition shadow-md shadow-emerald-500/20 flex items-center gap-2 mx-auto">
+                        <i class="fa-solid fa-rotate-right"></i>
+                        <span>Muat Lebih Banyak</span>
+                    </button>
+                </div>
+
+                <!-- Loading Skeleton -->
+                <div id="loadingSkeleton" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
+                    <div class="skeleton-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm h-64"></div>
+                    <div class="skeleton-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm h-64"></div>
+                    <div class="skeleton-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm h-64"></div>
+                </div>
+
+                <div id="noMoreData" class="text-center py-8 text-slate-400 text-sm hidden">
+                    <i class="fa-regular fa-circle-check text-2xl block mb-2"></i>
+                    Semua kelas sudah dimuat.
+                </div>
+
+                <div id="mentoringEmpty" class="hidden text-center py-12 text-slate-400 text-sm bg-white rounded-2xl border border-emerald-100/60 shadow-sm">
+                    <i class="fa-regular fa-folder-open text-4xl block mb-3"></i>
+                    <p>Belum ada kelas mentoring yang tersedia.</p>
+                    <p class="text-xs mt-1">Jadilah mentor pertama dengan membuat kelas!</p>
+                </div>
             </div>
 
-            <!-- Pagination: Load More Button -->
-            <div id="loadMoreContainer" class="text-center mt-8 hidden">
-                <button id="loadMoreBtn" onclick="loadMoreMentoring()" class="load-more-btn bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3 rounded-xl text-sm transition shadow-md shadow-emerald-500/20 flex items-center gap-2 mx-auto">
-                    <i class="fa-solid fa-rotate-right"></i>
-                    <span>Muat Lebih Banyak</span>
-                </button>
-            </div>
-
-            <!-- Loading Skeleton -->
-            <div id="loadingSkeleton" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
-                <div class="skeleton-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm h-64"></div>
-                <div class="skeleton-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm h-64"></div>
-                <div class="skeleton-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm h-64"></div>
-            </div>
-
-            <div id="noMoreData" class="text-center py-8 text-slate-400 text-sm hidden">
-                <i class="fa-regular fa-circle-check text-2xl block mb-2"></i>
-                Semua kelas sudah dimuat.
-            </div>
         </div>
     </section>
 
@@ -332,36 +352,62 @@
     </section>
 
     <!-- ============================================ -->
-    <!-- MODAL DAFTAR MENTORING -->
+    <!-- TENTANG -->
     <!-- ============================================ -->
-    <div id="registerModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
-            <button onclick="closeRegisterModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-
-            <div class="text-center mb-6">
-                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Pendaftaran</span>
-                <h3 id="registerModalTitle" class="text-xl font-black text-slate-800 mt-1">Daftar Kelas</h3>
-                <p id="registerModalSubtitle" class="text-xs text-slate-500 mt-1">Isi alasan Anda ingin mengikuti kelas ini.</p>
+    <section id="tentang" class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Tentang Yatta</span>
+                <h2 class="text-3xl font-black text-emerald-900 mt-2">Mengapa Yatta?</h2>
+                <p class="text-slate-500 mt-4 text-lg">Yatta adalah rumah bagi para penulis dan pegiat literasi.</p>
             </div>
-
-            <form id="registerForm" class="space-y-4">
-                <input type="hidden" id="registerSessionId" value="" />
-
-                <div>
-                    <label for="registerReason" class="block text-xs font-semibold text-slate-700 mb-1">Alasan Mengikuti <span class="text-red-500">*</span></label>
-                    <textarea id="registerReason" rows="3" placeholder="Ceritakan alasan Anda ingin mengikuti kelas ini..." required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
+            <div class="grid md:grid-cols-3 gap-8 mt-12">
+                <div class="bg-emerald-50/30 rounded-2xl p-6 border border-emerald-100 text-center card-hover">
+                    <div class="text-4xl mb-3">📖</div>
+                    <h3 class="font-bold text-emerald-900">Ruang Publikasi</h3>
+                    <p class="text-sm text-slate-500 mt-1">Tempat menulis bebas untuk semua genre.</p>
                 </div>
-
-                <button type="submit" id="registerSubmitBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i class="fa-regular fa-paper-plane mr-1"></i> Kirim Pendaftaran
-                </button>
-
-                <div id="registerMessage" class="text-sm text-center hidden"></div>
-            </form>
+                <div class="bg-emerald-50/30 rounded-2xl p-6 border border-emerald-100 text-center card-hover">
+                    <div class="text-4xl mb-3">🤝</div>
+                    <h3 class="font-bold text-emerald-900">Komunitas</h3>
+                    <p class="text-sm text-slate-500 mt-1">Temukan teman dan mentor menulis.</p>
+                </div>
+                <div class="bg-emerald-50/30 rounded-2xl p-6 border border-emerald-100 text-center card-hover">
+                    <div class="text-4xl mb-3">🌍</div>
+                    <h3 class="font-bold text-emerald-900">Gerakan Sosial</h3>
+                    <p class="text-sm text-slate-500 mt-1">Karya berdampak nyata untuk masyarakat.</p>
+                </div>
+            </div>
         </div>
-    </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================ -->
+    <footer class="bg-emerald-950 border-t border-emerald-800 py-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center space-x-2">
+                    <img src="assets/favicon.png" alt="Yatta" class="w-8 h-8 rounded-xl object-cover" />
+                    <span class="text-white font-bold text-lg">Yatta</span>
+                    <span class="text-xs text-emerald-400/60">Kata yang Menggerakkan</span>
+                </div>
+                <div class="flex space-x-4 text-emerald-400/60">
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-instagram text-lg"></i></a>
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-tiktok text-lg"></i></a>
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-twitter text-lg"></i></a>
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-youtube text-lg"></i></a>
+                </div>
+                <p class="text-xs text-emerald-400/40">&copy; 2026 Yatta. Gerakan Literasi untuk Semua.</p>
+            </div>
+            <div class="border-t border-emerald-800/50 mt-6 pt-6 flex flex-wrap justify-center gap-6 text-xs text-emerald-400/40">
+                <a href="#" class="hover:text-emerald-300">Tentang Kami</a>
+                <a href="#" class="hover:text-emerald-300">Syarat &amp; Ketentuan</a>
+                <a href="#" class="hover:text-emerald-300">Kebijakan Privasi</a>
+                <a href="#" class="hover:text-emerald-300">Hubungi Kami</a>
+            </div>
+        </div>
+    </footer>
 
     <!-- ============================================ -->
     <!-- MODAL LOGIN POPUP -->
@@ -393,40 +439,13 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- FOOTER -->
-    <!-- ============================================ -->
-    <footer class="bg-emerald-950 border-t border-emerald-800 py-10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center space-x-2">
-    <img src="assets/footer.png" alt="Yatta" class="w-8 h-8 rounded-xl object-cover" />
-    <span class="text-white font-bold text-lg">Yatta</span>
-    <span class="text-xs text-emerald-400/60">Kata yang Menggerakkan</span>
-</div>
-                <div class="flex space-x-4 text-emerald-400/60">
-                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-instagram text-lg"></i></a>
-                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-tiktok text-lg"></i></a>
-                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-twitter text-lg"></i></a>
-                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-youtube text-lg"></i></a>
-                </div>
-                <p class="text-xs text-emerald-400/40">&copy; 2026 Yatta. Gerakan Literasi untuk Semua.</p>
-            </div>
-            <div class="border-t border-emerald-800/50 mt-6 pt-6 flex flex-wrap justify-center gap-6 text-xs text-emerald-400/40">
-                <a href="#" class="hover:text-emerald-300">Tentang Kami</a>
-                <a href="#" class="hover:text-emerald-300">Syarat &amp; Ketentuan</a>
-                <a href="#" class="hover:text-emerald-300">Kebijakan Privasi</a>
-                <a href="#" class="hover:text-emerald-300">Hubungi Kami</a>
-            </div>
-        </div>
-    </footer>
-
-    <!-- ============================================ -->
     <!-- JAVASCRIPT -->
     <!-- ============================================ -->
     <script>
         const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
         let allSessions = [];
+        let onboardingSessions = [];
         let currentFilter = 'all';
         let currentSearch = '';
         let currentUser = null;
@@ -442,24 +461,126 @@
             const { data: { session } } = await _supabase.auth.getSession();
             if (session) {
                 currentUser = session.user;
-                
-                // Cek apakah user bisa membuat kelas (mentor)
-                const { data: profile } = await _supabase
-                    .from('yata_profiles')
-                    .select('member_level')
-                    .eq('id', session.user.id)
-                    .single();
-                
-                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
-                if (profile && allowedLevels.includes(profile.member_level)) {
-                    document.getElementById('btnCreateMentoring').classList.remove('hidden');
-                }
             }
             return session;
         }
 
         // ============================================
-        // 2. LOAD MENTORING SESSIONS
+        // 2. LOAD ONBOARDING SESSIONS
+        // ============================================
+        async function loadOnboardingSessions() {
+            const container = document.getElementById('onboardingGrid');
+            const empty = document.getElementById('onboardingEmpty');
+
+            try {
+                const { data: sessions, error } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('*')
+                    .eq('is_onboarding', true)
+                    .in('status', ['published', 'ongoing'])
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+
+                onboardingSessions = sessions || [];
+
+                if (onboardingSessions.length === 0) {
+                    container.innerHTML = '';
+                    empty.classList.remove('hidden');
+                    return;
+                }
+
+                empty.classList.add('hidden');
+
+                // Ambil data mentor
+                const mentorIds = [...new Set(onboardingSessions.map(s => s.mentor_id).filter(id => id))];
+                let mentorMap = {};
+                if (mentorIds.length > 0) {
+                    const { data: mentors } = await _supabase
+                        .from('yata_profiles')
+                        .select('id, full_name, username, avatar_url, member_level')
+                        .in('id', mentorIds);
+                    if (mentors) {
+                        mentors.forEach(m => { mentorMap[m.id] = m; });
+                    }
+                }
+                onboardingSessions.forEach(s => {
+                    s.mentor = mentorMap[s.mentor_id] || null;
+                });
+
+                renderOnboarding();
+
+            } catch (err) {
+                console.error('Load onboarding error:', err);
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-8 text-red-400 text-sm">
+                        Gagal memuat kelas onboarding: ${err.message}
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 3. RENDER ONBOARDING
+        // ============================================
+        function renderOnboarding() {
+            const container = document.getElementById('onboardingGrid');
+
+            const levelLabels = {
+                pemula: '🌱 Pemula',
+                menengah: '📈 Menengah',
+                lanjutan: '🚀 Lanjutan'
+            };
+            const levelClasses = {
+                pemula: 'level-pemula',
+                menengah: 'level-menengah',
+                lanjutan: 'level-lanjutan'
+            };
+
+            container.innerHTML = onboardingSessions.map(s => {
+                const isFull = s.max_participants > 0 && s.current_participants >= s.max_participants;
+                const isFree = s.price === 0;
+                const mentorName = s.mentor?.full_name || 'Admin YATTA';
+                const avatar = mentorName.charAt(0).toUpperCase();
+                const schedule = s.schedule || 'Sabtu, 19:00 WIB';
+
+                return `
+                    <div class="mentoring-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm cursor-pointer" onclick="window.location.href='mentoring-detail.html?id=${s.id}'">
+                        <div class="flex items-start gap-3">
+                            <div class="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 text-2xl flex-shrink-0">🎓</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="font-bold text-slate-800 text-base line-clamp-1">${s.title}</h3>
+                                    <span class="onboarding-badge">🎓 Onboarding</span>
+                                    <span class="level-badge ${levelClasses[s.level] || 'level-pemula'}">${levelLabels[s.level] || '🌱 Pemula'}</span>
+                                </div>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <div class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold">${avatar}</div>
+                                    <span class="text-xs text-slate-500 font-medium">${mentorName}</span>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-1 line-clamp-2">${s.description || 'Tidak ada deskripsi'}</p>
+                                <div class="flex items-center gap-3 mt-2 text-xs text-slate-400">
+                                    <span><i class="fa-regular fa-user"></i> ${s.current_participants || 0}/${s.max_participants || '∞'}</span>
+                                    <span><i class="fa-regular fa-calendar"></i> ${schedule}</span>
+                                    <span class="text-emerald-600 font-semibold">🆓 Gratis</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                            <span class="text-[10px] text-slate-400">Wajib untuk member baru</span>
+                            <button onclick="event.stopPropagation(); window.location.href='mentoring-detail.html?id=${s.id}'" 
+                                class="text-xs ${isFull ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'} font-semibold px-3 py-1 rounded-full transition"
+                                ${isFull ? 'disabled' : ''}>
+                                <i class="fa-regular fa-user-plus mr-1"></i> ${isFull ? 'Penuh' : 'Daftar'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============================================
+        // 4. LOAD MENTORING SESSIONS (USER)
         // ============================================
         async function loadMentoring(reset = true) {
             if (reset) {
@@ -467,6 +588,7 @@
                 hasMoreData = true;
                 allSessions = [];
                 document.getElementById('noMoreData').classList.add('hidden');
+                document.getElementById('mentoringEmpty').classList.add('hidden');
             }
 
             if (isLoading || !hasMoreData) return;
@@ -492,7 +614,8 @@
                 let query = _supabase
                     .from('yata_mentoring_sessions')
                     .select('*', { count: 'exact' })
-                    .eq('status', 'published')
+                    .eq('is_onboarding', false)
+                    .in('status', ['published', 'ongoing'])
                     .order('created_at', { ascending: false })
                     .range(from, to);
 
@@ -513,29 +636,23 @@
 
                 if (error) throw error;
 
-                // --- AMBIL DATA MENTOR TERPISAH ---
+                // Ambil data mentor
                 if (sessions && sessions.length > 0) {
                     const mentorIds = [...new Set(sessions.map(s => s.mentor_id).filter(id => id))];
-                    
                     let mentorMap = {};
                     if (mentorIds.length > 0) {
-                        const { data: mentors, error: mentorError } = await _supabase
+                        const { data: mentors } = await _supabase
                             .from('yata_profiles')
                             .select('id, full_name, username, avatar_url, member_level')
                             .in('id', mentorIds);
-                        
-                        if (!mentorError && mentors) {
-                            mentors.forEach(m => {
-                                mentorMap[m.id] = m;
-                            });
+                        if (mentors) {
+                            mentors.forEach(m => { mentorMap[m.id] = m; });
                         }
                     }
-                    
                     sessions.forEach(s => {
                         s.mentor = mentorMap[s.mentor_id] || null;
                     });
                 }
-                // --- END AMBIL DATA MENTOR ---
 
                 if (sessions && sessions.length > 0) {
                     allSessions = reset ? sessions : [...allSessions, ...sessions];
@@ -545,8 +662,11 @@
                     hasMoreData = false;
                 }
 
-                document.getElementById('mentoringCount').textContent = allSessions.length;
                 renderMentoring();
+
+                if (allSessions.length === 0) {
+                    document.getElementById('mentoringEmpty').classList.remove('hidden');
+                }
 
                 if (hasMoreData && allSessions.length > 0) {
                     loadMoreContainer.classList.remove('hidden');
@@ -563,8 +683,7 @@
                 console.error('Load mentoring error:', err);
                 if (allSessions.length === 0) {
                     container.innerHTML = `
-                        <div class="col-span-full text-center py-12 text-red-400 text-sm">
-                            <i class="fa-solid fa-circle-exclamation text-2xl block mb-2"></i>
+                        <div class="col-span-full text-center py-8 text-red-400 text-sm">
                             Gagal memuat kelas: ${err.message}
                             <button onclick="loadMentoring(true)" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
                                 <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
@@ -587,21 +706,13 @@
         }
 
         // ============================================
-        // 3. RENDER MENTORING
+        // 5. RENDER MENTORING
         // ============================================
         function renderMentoring() {
             const container = document.getElementById('mentoringGrid');
 
             if (allSessions.length === 0 && !isLoading) {
-                container.innerHTML = `
-                    <div class="col-span-full bg-white rounded-2xl p-12 text-center border border-emerald-100/60 shadow-sm">
-                        <i class="fa-regular fa-folder-open text-5xl text-slate-300 block mb-4"></i>
-                        <p class="text-slate-500 text-sm">Belum ada kelas mentoring yang cocok dengan pencarian Anda.</p>
-                        <button onclick="resetFilters()" class="mt-4 text-emerald-600 hover:text-emerald-700 font-semibold text-sm">
-                            Reset filter
-                        </button>
-                    </div>
-                `;
+                container.innerHTML = '';
                 return;
             }
 
@@ -610,13 +721,11 @@
                 menengah: '📈 Menengah',
                 lanjutan: '🚀 Lanjutan'
             };
-
             const levelClasses = {
                 pemula: 'level-pemula',
                 menengah: 'level-menengah',
                 lanjutan: 'level-lanjutan'
             };
-
             const categoryIcons = {
                 'menulis-cerpen': '📝',
                 'menulis-puisi': '📖',
@@ -649,7 +758,7 @@
                                 <p class="text-xs text-slate-400 mt-1 line-clamp-2">${s.description || 'Tidak ada deskripsi'}</p>
                                 <div class="flex items-center gap-3 mt-2 text-xs text-slate-400">
                                     <span><i class="fa-regular fa-user"></i> ${s.current_participants || 0}/${s.max_participants || '∞'}</span>
-                                    <span><i class="fa-regular fa-calendar"></i> ${s.start_date ? new Date(s.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : 'TBA'}</span>
+                                    <span><i class="fa-regular fa-calendar"></i> ${s.schedule || 'TBA'}</span>
                                     <span class="${isFree ? 'text-emerald-600 font-semibold' : 'text-purple-600 font-semibold'}">
                                         ${isFree ? '🆓 Gratis' : '💰 Rp' + (s.price || 0).toLocaleString()}
                                     </span>
@@ -658,7 +767,7 @@
                         </div>
                         <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
                             <span class="text-[10px] text-slate-400">${new Date(s.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                            <button onclick="event.stopPropagation(); openRegisterModal('${s.id}')" 
+                            <button onclick="event.stopPropagation(); window.location.href='mentoring-detail.html?id=${s.id}'" 
                                 class="text-xs ${isFull ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'} font-semibold px-3 py-1 rounded-full transition"
                                 ${isFull ? 'disabled' : ''}>
                                 <i class="fa-regular fa-user-plus mr-1"></i> ${isFull ? 'Penuh' : 'Daftar'}
@@ -670,7 +779,7 @@
         }
 
         // ============================================
-        // 4. FILTERS
+        // 6. FILTERS
         // ============================================
         function filterMentoring(filter) {
             currentFilter = filter;
@@ -703,178 +812,16 @@
             loadMentoring(true);
         }
 
-        function resetFilters() {
-            currentFilter = 'all';
-            currentSearch = '';
-            document.getElementById('searchMentoring').value = '';
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-                btn.classList.add('text-slate-600');
-            });
-            document.getElementById('filterAll').classList.add('active');
-            document.getElementById('filterAll').classList.remove('text-slate-600');
-            loadMentoring(true);
-        }
-
         // ============================================
-        // 5. REGISTER MENTORING
+        // 7. CLOSE LOGIN POPUP
         // ============================================
-        async function openRegisterModal(sessionId) {
-            const session = allSessions.find(s => s.id === sessionId);
-            if (!session) {
-                showError('Kelas tidak ditemukan.', 'Error');
-                return;
-            }
-
-            const sessionCheck = await checkSession();
-            if (!sessionCheck) {
-                document.getElementById('loginPopupModal').classList.remove('hidden');
-                document.body.style.overflow = 'hidden';
-                return;
-            }
-
-            // Cek apakah sudah terdaftar
-            const { data: existing } = await _supabase
-                .from('yata_mentoring_participants')
-                .select('*')
-                .eq('session_id', sessionId)
-                .eq('user_id', currentUser.id)
-                .maybeSingle();
-
-            if (existing) {
-                if (existing.status === 'pending') {
-                    showError('⏳ Pendaftaran Anda sedang diproses oleh mentor.', 'Info');
-                } else if (existing.status === 'approved') {
-                    showError('✅ Anda sudah terdaftar di kelas ini!', 'Info');
-                } else if (existing.status === 'rejected') {
-                    showError('❌ Pendaftaran Anda ditolak oleh mentor.', 'Info');
-                }
-                return;
-            }
-
-            if (session.current_participants >= session.max_participants && session.max_participants > 0) {
-                showError('⚠️ Kuota peserta sudah penuh!', 'Info');
-                return;
-            }
-
-            document.getElementById('registerSessionId').value = sessionId;
-            document.getElementById('registerModalTitle').textContent = `Daftar: ${session.title}`;
-            document.getElementById('registerModalSubtitle').textContent = `Bergabung sebagai peserta kelas "${session.title}"`;
-            document.getElementById('registerReason').value = '';
-            document.getElementById('registerMessage').className = 'text-sm text-center hidden';
-            document.getElementById('registerModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeRegisterModal() {
-            document.getElementById('registerModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-            document.getElementById('registerForm').reset();
-        }
-
         function closeLoginPopup() {
             document.getElementById('loginPopupModal').classList.add('hidden');
             document.body.style.overflow = 'auto';
         }
 
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const sessionId = document.getElementById('registerSessionId').value;
-            const reason = document.getElementById('registerReason').value.trim();
-
-            if (!reason) {
-                showRegisterMessage('Harap isi alasan mengikuti kelas.', 'error');
-                return;
-            }
-
-            const submitBtn = document.getElementById('registerSubmitBtn');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mendaftar...';
-
-            try {
-                const session = await checkSession();
-                if (!session) {
-                    showRegisterMessage('Silakan login terlebih dahulu.', 'error');
-                    return;
-                }
-
-                const { error } = await _supabase
-                    .from('yata_mentoring_participants')
-                    .insert([{
-                        session_id: sessionId,
-                        user_id: currentUser.id,
-                        reason: reason,
-                        status: 'pending'
-                    }]);
-
-                if (error) throw error;
-
-                // Update participant count
-                const { data: sessionData } = await _supabase
-                    .from('yata_mentoring_sessions')
-                    .select('current_participants, title, mentor_id')
-                    .eq('id', sessionId)
-                    .single();
-
-                if (sessionData) {
-                    await _supabase
-                        .from('yata_mentoring_sessions')
-                        .update({ current_participants: (sessionData.current_participants || 0) + 1 })
-                        .eq('id', sessionId);
-
-                    // Kirim notifikasi ke mentor
-                    const notifContent = `👤 Ada peserta baru mendaftar di kelas "${sessionData.title}" dengan alasan: ${reason}`;
-                    const { data: notifData } = await _supabase
-                        .from('yata_notifications')
-                        .insert([{
-                            title: '📢 Pendaftar Baru di Kelas Mentoring',
-                            content: notifContent,
-                            type: 'event'
-                        }])
-                        .select()
-                        .single();
-
-                    if (notifData) {
-                        await _supabase
-                            .from('yata_user_notifications')
-                            .insert([{
-                                notification_id: notifData.id,
-                                user_id: sessionData.mentor_id,
-                                is_read: false
-                            }]);
-                    }
-                }
-
-                showRegisterMessage('✅ Pendaftaran berhasil! Tunggu konfirmasi dari mentor.', 'success');
-                submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
-
-                setTimeout(() => {
-                    closeRegisterModal();
-                    loadMentoring(true);
-                }, 2000);
-
-            } catch (err) {
-                console.error('Register mentoring error:', err);
-                showRegisterMessage('❌ Gagal mendaftar: ' + err.message, 'error');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Pendaftaran';
-            }
-        });
-
-        function showRegisterMessage(text, type) {
-            const msg = document.getElementById('registerMessage');
-            msg.textContent = text;
-            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
-                type === 'success' ? 'text-emerald-600' :
-                type === 'error' ? 'text-red-600' :
-                ''
-            }`;
-        }
-
         // ============================================
-        // 6. MOBILE MENU
+        // 8. MOBILE MENU
         // ============================================
         const menuBtn = document.getElementById('menu-btn');
         const mobileMenu = document.getElementById('mobile-menu');
@@ -894,10 +841,15 @@
             });
         });
 
+        document.getElementById('loginPopupModal').addEventListener('click', function(e) {
+            if (e.target === this) closeLoginPopup();
+        });
+
         // ============================================
-        // 7. INIT
+        // 9. INIT
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
+            loadOnboardingSessions();
             loadMentoring(true);
         });
     </script>
