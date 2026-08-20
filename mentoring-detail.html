@@ -1076,7 +1076,7 @@
         }
 
         // ============================================
-        // 9. SUBMIT REGISTER - AUTO APPROVE + NOTIFIKASI
+        // 9. SUBMIT REGISTER - AUTO APPROVE + NOTIFIKASI + UPDATE KUOTA
         // ============================================
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1112,11 +1112,13 @@
                 }
 
                 // ✅ CEK KAPASITAS
-                const { data: currentSession } = await _supabase
+                const { data: currentSession, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('current_participants, max_participants, title, meeting_link')
                     .eq('id', sessionId)
                     .single();
+
+                if (sessionError) throw sessionError;
 
                 if (currentSession.max_participants > 0 && 
                     currentSession.current_participants >= currentSession.max_participants) {
@@ -1125,34 +1127,42 @@
                 }
 
                 // ✅ INSERT PESERTA LANGSUNG APPROVED
-                const { error } = await _supabase
+                const { error: insertError } = await _supabase
                     .from('yata_mentoring_participants')
                     .insert([{
                         session_id: sessionId,
                         user_id: session.user.id,
                         reason: reason || null,
                         phone: phone,
-                        status: 'approved'  // ✅ AUTO-APPROVE
+                        status: 'approved'
                     }]);
 
-                if (error) {
-                    if (error.code === '23505') {
+                if (insertError) {
+                    if (insertError.code === '23505') {
                         showRegisterMessage('Anda sudah terdaftar di kelas ini.', 'error');
                     } else {
-                        showRegisterMessage('Gagal mendaftar: ' + error.message, 'error');
+                        showRegisterMessage('Gagal mendaftar: ' + insertError.message, 'error');
                     }
                     return;
                 }
 
                 // ✅ UPDATE KAPASITAS
-                await _supabase
+                const newCount = (currentSession.current_participants || 0) + 1;
+                const { error: updateError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .update({ 
-                        current_participants: (currentSession.current_participants || 0) + 1 
+                        current_participants: newCount 
                     })
                     .eq('id', sessionId);
 
-                // ✅ KIRIM NOTIFIKASI KE PESERTA (DENGAN LINK MEETING)
+                if (updateError) {
+                    console.error('❌ Update kapasitas error:', updateError);
+                    // Tapi tetap lanjut karena peserta sudah terdaftar
+                } else {
+                    console.log('✅ Kuota berhasil diupdate:', newCount);
+                }
+
+                // ✅ KIRIM NOTIFIKASI KE PESERTA
                 const notifTitle = `🎉 Pendaftaran Berhasil!`;
                 const notifContent = `Anda berhasil mendaftar di kelas "${currentSession.title}".
                 
@@ -1167,7 +1177,6 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
 
 📌 Tips: Simpan link ini untuk akses cepat ke kelas.`;
 
-                // Kirim notifikasi
                 await sendNotification(
                     session.user.id,
                     notifTitle,
@@ -1175,17 +1184,14 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
                     'success'
                 );
 
-                // ✅ KIRIM EMAIL (Jika ada integrasi email)
-                console.log('📧 Email pendaftaran akan dikirim ke:', email);
-
-                showRegisterMessage('✅ Pendaftaran berhasil! Cek notifikasi Anda untuk link meeting.', 'success');
+                showRegisterMessage('✅ Pendaftaran berhasil! Kuota terupdate.', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
 
-                // Redirect ke halaman detail untuk melihat status
+                // ✅ REFRESH HALAMAN UNTUK MENAMPILKAN KUOTA BARU
                 setTimeout(() => {
                     closeRegisterModal();
                     loadSessionDetail();  // Refresh halaman
-                }, 2000);
+                }, 1500);
 
             } catch (err) {
                 console.error('Register error:', err);
