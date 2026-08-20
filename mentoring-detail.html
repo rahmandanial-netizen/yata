@@ -110,6 +110,35 @@
             color: #6b7280;
             margin-top: 4px;
         }
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            font-size: 14px;
+            transition: all 0.2s;
+            background: white;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #065F46;
+            box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.15);
+        }
+        .form-input:disabled {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 4px;
+        }
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
     </style>
 </head>
 <body>
@@ -143,8 +172,8 @@
                     <i class="fa-solid fa-users w-5"></i> Komunitas
                 </a>
                 <a href="mentoring-my.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
-    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring Saya
-</a>
+                    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring Saya
+                </a>
                 <a href="certificates.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
                     <i class="fa-solid fa-certificate w-5"></i> Sertifikat
                 </a>
@@ -224,7 +253,7 @@
                             </div>
                             <h1 id="sessionTitle" class="text-2xl md:text-3xl font-black text-slate-800">Judul Kelas</h1>
                             <div class="flex items-center gap-3 mt-2">
-                                <div id="mentorAvatar" class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">?</div>
+                                <div id="mentorAvatar" class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm overflow-hidden">?</div>
                                 <div>
                                     <p id="mentorName" class="font-bold text-slate-800 text-sm">Nama Mentor</p>
                                     <p id="mentorLevel" class="text-xs text-slate-400">Level Mentor</p>
@@ -242,7 +271,6 @@
                                 <i class="fa-regular fa-user-plus mr-1"></i> Daftar Sekarang
                             </button>
                             <span id="registrationStatus" class="text-xs text-slate-400 hidden"></span>
-                            <!-- Tombol ulasan & klaim sertifikat akan ditambahkan oleh JavaScript -->
                         </div>
                     </div>
                 </div>
@@ -324,7 +352,7 @@
     </main>
 
     <!-- ============================================ -->
-    <!-- MODAL DAFTAR -->
+    <!-- MODAL DAFTAR - DENGAN FORM LENGKAP -->
     <!-- ============================================ -->
     <div id="registerModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
@@ -335,17 +363,55 @@
             <div class="text-center mb-6">
                 <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Pendaftaran</span>
                 <h3 class="text-xl font-black text-slate-800 mt-1">Daftar Kelas</h3>
-                <p id="registerSubtitle" class="text-xs text-slate-500 mt-1">Isi alasan Anda ingin mengikuti kelas ini.</p>
+                <p id="registerSubtitle" class="text-xs text-slate-500 mt-1">Lengkapi data diri untuk mendaftar.</p>
             </div>
 
             <form id="registerForm" class="space-y-4">
+                <input type="hidden" id="registerSessionId" value="" />
+
+                <!-- Nama Lengkap -->
                 <div>
-                    <label for="registerReason" class="block text-xs font-semibold text-slate-700 mb-1">Alasan Mengikuti <span class="text-red-500">*</span></label>
-                    <textarea id="registerReason" rows="3" placeholder="Ceritakan alasan Anda ingin mengikuti kelas ini..." required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
+                    <label for="registerName" class="form-label">Nama Lengkap <span class="text-red-500">*</span></label>
+                    <input type="text" id="registerName" placeholder="Masukkan nama lengkap" required class="form-input" />
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label for="registerEmail" class="form-label">Email <span class="text-red-500">*</span></label>
+                    <input type="email" id="registerEmail" placeholder="Masukkan email" required class="form-input" />
+                </div>
+
+                <!-- Level & ID Anggota -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="registerLevel" class="form-label">Level</label>
+                        <select id="registerLevel" class="form-input bg-white">
+                            <option value="Tamu">🌱 Tamu</option>
+                            <option value="Penulis">✍️ Penulis</option>
+                            <option value="Penulis Profesional">📚 Profesional</option>
+                            <option value="Mentor">🌟 Mentor</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="registerMemberId" class="form-label">ID Anggota</label>
+                        <input type="text" id="registerMemberId" placeholder="Yatta-T-00001" readonly class="form-input bg-slate-50 text-slate-500" />
+                    </div>
+                </div>
+
+                <!-- No WhatsApp -->
+                <div>
+                    <label for="registerPhone" class="form-label">No. WhatsApp <span class="text-red-500">*</span></label>
+                    <input type="tel" id="registerPhone" placeholder="Contoh: 08123456789" required class="form-input" />
+                </div>
+
+                <!-- Alasan -->
+                <div>
+                    <label for="registerReason" class="form-label">Alasan Mengikuti</label>
+                    <textarea id="registerReason" rows="2" placeholder="Ceritakan alasan Anda ingin mengikuti kelas ini..." class="form-input form-textarea"></textarea>
                 </div>
 
                 <button type="submit" id="registerSubmitBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i class="fa-regular fa-paper-plane mr-1"></i> Kirim Pendaftaran
+                    <i class="fa-regular fa-paper-plane mr-1"></i> Daftar Sekarang
                 </button>
 
                 <div id="registerMessage" class="text-sm text-center hidden"></div>
@@ -417,7 +483,7 @@
     <!-- ============================================ -->
     <!-- MODAL LOGIN POPUP -->
     <!-- ============================================ -->
-    <div id="loginPopupModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex-items-center justify-center z-50 p-4">
+    <div id="loginPopupModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
             <button onclick="closeLoginPopup()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
                 <i class="fa-solid fa-xmark"></i>
@@ -824,7 +890,6 @@
 
             // Action buttons
             const actionContainer = document.getElementById('actionButtons');
-            // Hapus tombol lama (selain registerBtn dan registrationStatus)
             const registerBtn = document.getElementById('registerBtn');
             const statusText = document.getElementById('registrationStatus');
             actionContainer.innerHTML = '';
@@ -844,7 +909,7 @@
                 registerBtn.textContent = '⏳ Menunggu Konfirmasi';
                 registerBtn.disabled = true;
                 registerBtn.className = 'bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
-                statusText.textContent = '⏳ Pendaftaran Anda sedang diproses oleh mentor.';
+                statusText.textContent = '⏳ Pendaftaran Anda sedang diproses.';
                 statusText.classList.remove('hidden');
             } else if (participantStatus === 'approved') {
                 registerBtn.textContent = '✅ Terdaftar';
@@ -852,33 +917,11 @@
                 registerBtn.className = 'bg-emerald-100 text-emerald-700 font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
                 statusText.textContent = '✅ Anda sudah terdaftar di kelas ini.';
                 statusText.classList.remove('hidden');
-
-                // Tambahkan tombol ulasan & klaim sertifikat untuk kelas onboarding
-                if (session.is_onboarding) {
-                    if (reviewStatus === 'not_reviewed' || reviewStatus === null) {
-                        const reviewBtn = document.createElement('button');
-                        reviewBtn.className = 'bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-6 py-3 rounded-xl text-sm transition';
-                        reviewBtn.innerHTML = '<i class="fa-regular fa-star mr-1"></i> Berikan Ulasan';
-                        reviewBtn.onclick = () => openReviewModal(session.id);
-                        actionContainer.appendChild(reviewBtn);
-                    } else if (reviewStatus === 'reviewed') {
-                        const claimBtn = document.createElement('button');
-                        claimBtn.className = 'bg-amber-500 hover:bg-amber-600 text-white font-bold px-6 py-3 rounded-xl text-sm transition';
-                        claimBtn.innerHTML = '<i class="fa-regular fa-certificate mr-1"></i> Klaim Sertifikat';
-                        claimBtn.onclick = () => claimCertificate(session.id);
-                        actionContainer.appendChild(claimBtn);
-                    } else if (reviewStatus === 'claimed') {
-                        const claimedEl = document.createElement('span');
-                        claimedEl.className = 'text-sm text-emerald-600 font-semibold';
-                        claimedEl.innerHTML = '✅ Sertifikat sudah diklaim';
-                        actionContainer.appendChild(claimedEl);
-                    }
-                }
             } else if (participantStatus === 'rejected') {
                 registerBtn.textContent = '❌ Ditolak';
                 registerBtn.disabled = true;
                 registerBtn.className = 'bg-red-100 text-red-600 font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
-                statusText.textContent = '❌ Pendaftaran Anda ditolak oleh mentor.';
+                statusText.textContent = '❌ Pendaftaran Anda ditolak.';
                 statusText.classList.remove('hidden');
             } else if (session.current_participants >= session.max_participants && session.max_participants > 0) {
                 registerBtn.textContent = '🔴 Kuota Penuh';
@@ -989,18 +1032,34 @@
         }
 
         // ============================================
-        // 8. REGISTER MODAL
+        // 8. OPEN REGISTER MODAL - DENGAN AUTO-FILL DATA
         // ============================================
-        function openRegisterModal() {
+        async function openRegisterModal() {
             if (!currentUser) {
                 document.getElementById('loginPopupModal').classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
                 return;
             }
 
+            // Ambil data profil user
+            const { data: profile } = await _supabase
+                .from('yata_profiles')
+                .select('full_name, email, member_level, member_id')
+                .eq('id', currentUser.id)
+                .single();
+
+            document.getElementById('registerSessionId').value = sessionId;
             document.getElementById('registerSubtitle').textContent = `Bergabung sebagai peserta "${sessionData?.title || 'Kelas'}"`;
+            
+            // Auto-fill data
+            document.getElementById('registerName').value = profile?.full_name || '';
+            document.getElementById('registerEmail').value = profile?.email || currentUser.email || '';
+            document.getElementById('registerLevel').value = profile?.member_level || 'Tamu';
+            document.getElementById('registerMemberId').value = profile?.member_id || formatMemberId();
+            document.getElementById('registerPhone').value = '';
             document.getElementById('registerReason').value = '';
             document.getElementById('registerMessage').className = 'text-sm text-center hidden';
+
             document.getElementById('registerModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
@@ -1016,19 +1075,34 @@
             document.body.style.overflow = 'auto';
         }
 
+        // ============================================
+        // 9. SUBMIT REGISTER - AUTO APPROVE + NOTIFIKASI
+        // ============================================
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            const sessionId = document.getElementById('registerSessionId').value;
+            const name = document.getElementById('registerName').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const level = document.getElementById('registerLevel').value;
+            const memberId = document.getElementById('registerMemberId').value.trim();
+            const phone = document.getElementById('registerPhone').value.trim();
             const reason = document.getElementById('registerReason').value.trim();
 
-            if (!reason) {
-                showRegisterMessage('Harap isi alasan mengikuti kelas.', 'error');
+            if (!name || !email || !phone) {
+                showRegisterMessage('Harap isi nama, email, dan nomor WA.', 'error');
+                return;
+            }
+
+            if (!email.includes('@') || !email.includes('.')) {
+                showRegisterMessage('Email tidak valid.', 'error');
                 return;
             }
 
             const submitBtn = document.getElementById('registerSubmitBtn');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mendaftar...';
+            showRegisterMessage('', '');
 
             try {
                 const session = await checkAuth();
@@ -1037,51 +1111,80 @@
                     return;
                 }
 
+                // ✅ CEK KAPASITAS
+                const { data: currentSession } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('current_participants, max_participants, title, meeting_link')
+                    .eq('id', sessionId)
+                    .single();
+
+                if (currentSession.max_participants > 0 && 
+                    currentSession.current_participants >= currentSession.max_participants) {
+                    showRegisterMessage('⚠️ Maaf, kuota peserta sudah penuh!', 'error');
+                    return;
+                }
+
+                // ✅ INSERT PESERTA LANGSUNG APPROVED
                 const { error } = await _supabase
                     .from('yata_mentoring_participants')
                     .insert([{
                         session_id: sessionId,
-                        user_id: currentUser.id,
-                        reason: reason,
-                        status: 'pending'
+                        user_id: session.user.id,
+                        reason: reason || null,
+                        phone: phone,
+                        status: 'approved'  // ✅ AUTO-APPROVE
                     }]);
 
-                if (error) throw error;
-
-                // Update participant count
-                await _supabase
-                    .from('yata_mentoring_sessions')
-                    .update({ current_participants: (sessionData.current_participants || 0) + 1 })
-                    .eq('id', sessionId);
-
-                // Kirim notifikasi ke mentor
-                const notifContent = `👤 Ada peserta baru mendaftar di kelas "${sessionData.title}" dengan alasan: ${reason}`;
-                const { data: notifData } = await _supabase
-                    .from('yata_notifications')
-                    .insert([{
-                        title: '📢 Pendaftar Baru di Kelas Mentoring',
-                        content: notifContent,
-                        type: 'event'
-                    }])
-                    .select()
-                    .single();
-
-                if (notifData) {
-                    await _supabase
-                        .from('yata_user_notifications')
-                        .insert([{
-                            notification_id: notifData.id,
-                            user_id: sessionData.mentor_id,
-                            is_read: false
-                        }]);
+                if (error) {
+                    if (error.code === '23505') {
+                        showRegisterMessage('Anda sudah terdaftar di kelas ini.', 'error');
+                    } else {
+                        showRegisterMessage('Gagal mendaftar: ' + error.message, 'error');
+                    }
+                    return;
                 }
 
-                showRegisterMessage('✅ Pendaftaran berhasil! Tunggu konfirmasi dari mentor.', 'success');
+                // ✅ UPDATE KAPASITAS
+                await _supabase
+                    .from('yata_mentoring_sessions')
+                    .update({ 
+                        current_participants: (currentSession.current_participants || 0) + 1 
+                    })
+                    .eq('id', sessionId);
+
+                // ✅ KIRIM NOTIFIKASI KE PESERTA (DENGAN LINK MEETING)
+                const notifTitle = `🎉 Pendaftaran Berhasil!`;
+                const notifContent = `Anda berhasil mendaftar di kelas "${currentSession.title}".
+                
+📋 Data Pendaftaran:
+- Nama: ${name}
+- Email: ${email}
+- Level: ${level}
+- ID Anggota: ${memberId}
+- WhatsApp: ${phone}
+
+${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeting_link}` : '💡 Link meeting akan diinfokan kemudian oleh mentor.'}
+
+📌 Tips: Simpan link ini untuk akses cepat ke kelas.`;
+
+                // Kirim notifikasi
+                await sendNotification(
+                    session.user.id,
+                    notifTitle,
+                    notifContent,
+                    'success'
+                );
+
+                // ✅ KIRIM EMAIL (Jika ada integrasi email)
+                console.log('📧 Email pendaftaran akan dikirim ke:', email);
+
+                showRegisterMessage('✅ Pendaftaran berhasil! Cek notifikasi Anda untuk link meeting.', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
 
+                // Redirect ke halaman detail untuk melihat status
                 setTimeout(() => {
                     closeRegisterModal();
-                    loadSessionDetail();
+                    loadSessionDetail();  // Refresh halaman
                 }, 2000);
 
             } catch (err) {
@@ -1089,7 +1192,7 @@
                 showRegisterMessage('❌ Gagal mendaftar: ' + err.message, 'error');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Pendaftaran';
+                submitBtn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Daftar Sekarang';
             }
         });
 
@@ -1104,7 +1207,7 @@
         }
 
         // ============================================
-        // 9. ULASAN ONBOARDING
+        // 10. ULASAN ONBOARDING
         // ============================================
 
         let materialRatingValue = 0;
@@ -1234,7 +1337,7 @@
         }
 
         // ============================================
-        // 10. KLAIM SERTIFIKAT
+        // 11. KLAIM SERTIFIKAT
         // ============================================
 
         async function claimCertificate(sessionId) {
@@ -1338,7 +1441,7 @@
         }
 
         // ============================================
-        // 11. LOGOUT
+        // 12. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -1356,7 +1459,7 @@
         }
 
         // ============================================
-        // 12. EVENT LISTENERS
+        // 13. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadSessionDetail();
