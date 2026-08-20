@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Presensi Onboarding — Yatta Admin</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .sidebar-link.active { background-color: #065F46; color: white; }
+        .sidebar-link.active i { color: white; }
+        .sidebar-link:hover:not(.active) { background-color: #e2e8f0; }
+        .status-present { background: #D1FAE5; color: #065F46; }
+        .status-absent { background: #FEE2E2; color: #991B1B; }
+        .status-pending { background: #FEF3C7; color: #92400E; }
+        .badge-completed { background: #D1FAE5; color: #065F46; }
+        .badge-incomplete { background: #F1F5F9; color: #64748B; }
+        .table-container { overflow-x: auto; }
+        .presensi-table th { 
+            position: sticky; 
+            top: 0; 
+            background: white; 
+            z-index: 10;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .session-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .session-badge.attended { background: #D1FAE5; color: #065F46; }
+        .session-badge.not-attended { background: #F1F5F9; color: #94A3B8; }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- SIDEBAR ADMIN -->
+    <!-- ============================================ -->
+    <aside class="fixed top-0 left-0 z-40 w-64 h-screen bg-white border-r border-emerald-100/60 hidden md:block">
+        <div class="flex flex-col h-full">
+            <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
+                <a href="admin.html" class="flex items-center space-x-2 group">
+                    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30" />
+                    <span class="text-xl font-extrabold text-emerald-800">Yatta Admin</span>
+                </a>
+            </div>
+
+            <nav class="flex-1 px-4 py-6 space-y-1">
+                <a href="admin.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-gauge-high w-5"></i> Dashboard
+                </a>
+                <a href="admin-presensi.html" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-sm font-semibold text-emerald-800 rounded-xl transition">
+                    <i class="fa-solid fa-clipboard-check w-5 text-emerald-600"></i> Presensi Onboarding
+                </a>
+                <a href="#" onclick="switchAdminTab('notifications')" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-regular fa-bell w-5"></i> Kirim Notifikasi
+                </a>
+                <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-arrow-left w-5"></i> Kembali ke Yatta
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-emerald-100/60">
+                <button id="btnLogout" class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition text-left">
+                    <i class="fa-solid fa-right-from-bracket w-5"></i> Keluar
+                </button>
+                <p class="text-xs text-slate-400 text-center mt-4">Yatta Admin v1.0</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ============================================ -->
+    <!-- MOBILE HEADER -->
+    <!-- ============================================ -->
+    <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
+        <div class="flex items-center justify-between px-4 h-16">
+            <a href="admin.html" class="flex items-center space-x-2">
+                <img src="assets/favicon.png" alt="Yatta" class="h-8 w-8 rounded-xl object-cover" />
+                <span class="text-lg font-extrabold text-emerald-800">Admin</span>
+            </a>
+            <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+
+        <div id="mobileMenu" class="hidden bg-white border-t border-emerald-100/60 px-4 py-4 space-y-2">
+            <a href="admin.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Dashboard</a>
+            <a href="admin-presensi.html" class="block px-4 py-2.5 bg-emerald-50 text-emerald-800 font-semibold rounded-xl">Presensi Onboarding</a>
+            <hr class="my-2 border-emerald-100" />
+            <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kembali ke Yatta</a>
+            <button id="btnLogoutMobile" class="block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
+        </div>
+    </header>
+
+    <!-- ============================================ -->
+    <!-- KONTEN UTAMA -->
+    <!-- ============================================ -->
+    <main class="md:ml-64 pt-4 md:pt-8 min-h-screen bg-slate-50/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+            <!-- Header -->
+            <div class="mb-6">
+                <h1 class="text-2xl font-black text-slate-800">🎓 Presensi Onboarding</h1>
+                <p class="text-sm text-slate-500">Kelola kehadiran peserta kelas onboarding YATTA.</p>
+            </div>
+
+            <!-- Pilih Kelas -->
+            <div class="bg-white rounded-2xl p-4 border border-emerald-100/60 shadow-sm mb-6">
+                <div class="flex flex-col sm:flex-row items-center gap-4">
+                    <label class="text-sm font-semibold text-slate-700">Pilih Kelas:</label>
+                    <select id="sessionSelect" class="flex-1 px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white">
+                        <option value="">-- Pilih Kelas --</option>
+                    </select>
+                    <button onclick="loadAttendance()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2 rounded-xl text-sm transition">
+                        <i class="fa-solid fa-refresh mr-1"></i> Muat Data
+                    </button>
+                </div>
+                <div id="sessionInfo" class="mt-3 text-sm text-slate-500 hidden">
+                    <span id="sessionDetailTitle" class="font-bold text-slate-700"></span>
+                    <span id="sessionDetailSchedule" class="ml-3"></span>
+                    <span id="sessionDetailZoom" class="ml-3 text-emerald-600"></span>
+                    <span id="sessionDetailCount" class="ml-3"></span>
+                </div>
+            </div>
+
+            <!-- Statistik -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="statsContainer">
+                <div class="bg-white rounded-2xl p-4 border border-emerald-100/60 shadow-sm text-center">
+                    <p class="text-2xl font-black text-slate-800" id="statTotal">0</p>
+                    <p class="text-xs text-slate-500">Total Peserta</p>
+                </div>
+                <div class="bg-white rounded-2xl p-4 border border-green-200 shadow-sm text-center">
+                    <p class="text-2xl font-black text-emerald-600" id="statPresent">0</p>
+                    <p class="text-xs text-slate-500">✅ Hadir</p>
+                </div>
+                <div class="bg-white rounded-2xl p-4 border border-red-200 shadow-sm text-center">
+                    <p class="text-2xl font-black text-red-500" id="statAbsent">0</p>
+                    <p class="text-xs text-slate-500">❌ Absen</p>
+                </div>
+                <div class="bg-white rounded-2xl p-4 border border-yellow-200 shadow-sm text-center">
+                    <p class="text-2xl font-black text-yellow-600" id="statPending">0</p>
+                    <p class="text-xs text-slate-500">⏳ Belum Diisi</p>
+                </div>
+            </div>
+
+            <!-- Tabel Presensi -->
+            <div class="bg-white rounded-2xl border border-emerald-100/60 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-emerald-100/60 flex items-center justify-between">
+                    <h2 class="font-bold text-slate-800">📋 Data Presensi</h2>
+                    <div class="flex items-center gap-2">
+                        <button onclick="markAllPresent()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition">
+                            <i class="fa-solid fa-check-double mr-1"></i> Hadir Semua
+                        </button>
+                        <button onclick="refreshData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-xl text-xs transition">
+                            <i class="fa-solid fa-refresh mr-1"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container p-4">
+                    <div id="attendanceTable" class="text-center py-8 text-slate-400 text-sm">
+                        <i class="fa-solid fa-hand-pointer text-2xl block mb-2"></i>
+                        Pilih kelas di atas untuk melihat data presensi.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        let currentSessionId = null;
+        let attendanceData = [];
+        let allSessions = [];
+
+        // ============================================
+        // CEK ADMIN
+        // ============================================
+        async function checkAdmin() {
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return null;
+                }
+
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('role')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error || profile.role !== 'admin') {
+                    alert('Akses ditolak. Hanya admin Yatta yang bisa mengakses halaman ini.');
+                    window.location.href = 'dashboard.html';
+                    return null;
+                }
+
+                return session;
+            } catch (err) {
+                console.error('Admin check error:', err);
+                window.location.href = 'dashboard.html';
+                return null;
+            }
+        }
+
+        // ============================================
+        // LOAD SESSIONS
+        // ============================================
+        async function loadSessions() {
+            try {
+                const { data: sessions, error } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('*')
+                    .eq('is_onboarding', true)
+                    .eq('status', 'published')
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+
+                allSessions = sessions || [];
+
+                const select = document.getElementById('sessionSelect');
+                select.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+
+                allSessions.forEach(s => {
+                    const option = document.createElement('option');
+                    option.value = s.id;
+                    option.textContent = s.title;
+                    select.appendChild(option);
+                });
+
+                if (allSessions.length > 0) {
+                    select.value = allSessions[0].id;
+                    currentSessionId = allSessions[0].id;
+                    loadAttendance();
+                }
+
+            } catch (err) {
+                console.error('Load sessions error:', err);
+                showError('Gagal memuat daftar kelas.');
+            }
+        }
+
+        // ============================================
+        // LOAD ATTENDANCE
+        // ============================================
+        async function loadAttendance() {
+            const sessionId = document.getElementById('sessionSelect').value;
+            if (!sessionId) {
+                document.getElementById('attendanceTable').innerHTML = `
+                    <div class="text-center py-8 text-slate-400 text-sm">
+                        <i class="fa-solid fa-hand-pointer text-2xl block mb-2"></i>
+                        Silakan pilih kelas terlebih dahulu.
+                    </div>
+                `;
+                document.getElementById('sessionInfo').classList.add('hidden');
+                return;
+            }
+
+            currentSessionId = sessionId;
+            const container = document.getElementById('attendanceTable');
+            container.innerHTML = `
+                <div class="text-center py-8 text-slate-400 text-sm">
+                    <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data presensi...
+                </div>
+            `;
+
+            try {
+                // Ambil data peserta
+                const { data: participants, error } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select(`
+                        id,
+                        user_id,
+                        phone,
+                        status,
+                        attended,
+                        attendance_status,
+                        attendance_time,
+                        profile:user_id (full_name, member_id, email)
+                    `)
+                    .eq('session_id', sessionId)
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+
+                attendanceData = participants || [];
+
+                // Update statistik
+                updateStats();
+
+                // Update info sesi
+                updateSessionInfo();
+
+                // Render tabel
+                renderTable();
+
+            } catch (err) {
+                console.error('Load attendance error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-8 text-red-400 text-sm">
+                        <i class="fa-solid fa-circle-exclamation text-2xl block mb-2"></i>
+                        Gagal memuat data: ${err.message}
+                        <button onclick="loadAttendance()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // UPDATE STATS
+        // ============================================
+        function updateStats() {
+            const total = attendanceData.length;
+            const present = attendanceData.filter(p => p.attendance_status === 'present').length;
+            const absent = attendanceData.filter(p => p.attendance_status === 'absent').length;
+            const pending = attendanceData.filter(p => p.attendance_status === 'pending' || !p.attendance_status).length;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statPresent').textContent = present;
+            document.getElementById('statAbsent').textContent = absent;
+            document.getElementById('statPending').textContent = pending;
+        }
+
+        // ============================================
+        // UPDATE SESSION INFO
+        // ============================================
+        function updateSessionInfo() {
+            const session = allSessions.find(s => s.id === currentSessionId);
+            if (!session) return;
+
+            const info = document.getElementById('sessionInfo');
+            info.classList.remove('hidden');
+
+            document.getElementById('sessionDetailTitle').textContent = session.title;
+            document.getElementById('sessionDetailSchedule').textContent = session.schedule || 'Jadwal TBA';
+            document.getElementById('sessionDetailZoom').textContent = session.meeting_link ? '🔗 Zoom Tersedia' : '';
+            document.getElementById('sessionDetailZoom').className = `ml-3 ${session.meeting_link ? 'text-emerald-600' : 'text-slate-400'}`;
+            document.getElementById('sessionDetailCount').textContent = `${attendanceData.length} peserta`;
+        }
+
+        // ============================================
+        // RENDER TABLE
+        // ============================================
+        function renderTable() {
+            const container = document.getElementById('attendanceTable');
+
+            if (attendanceData.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-400 text-sm">
+                        <i class="fa-regular fa-user-slash text-2xl block mb-2"></i>
+                        Belum ada peserta yang mendaftar di kelas ini.
+                    </div>
+                `;
+                return;
+            }
+
+            const session = allSessions.find(s => s.id === currentSessionId);
+
+            let html = `
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm presensi-table">
+                        <thead>
+                            <tr class="bg-slate-50">
+                                <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">No</th>
+                                <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">Nama</th>
+                                <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">ID Anggota</th>
+                                <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">WA</th>
+                                <th class="px-3 py-3 text-center text-xs font-semibold text-slate-500">Status Daftar</th>
+                                <th class="px-3 py-3 text-center text-xs font-semibold text-slate-500">Presensi</th>
+                                <th class="px-3 py-3 text-center text-xs font-semibold text-slate-500">Riwayat Kelas</th>
+                                <th class="px-3 py-3 text-center text-xs font-semibold text-slate-500">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            attendanceData.forEach((p, index) => {
+                const profile = p.profile || {};
+                const name = profile.full_name || 'User';
+                const memberId = profile.member_id || '-';
+                const email = profile.email || '-';
+                const phone = p.phone || '-';
+                const regStatus = p.status || 'pending';
+                
+                // Status presensi
+                const attStatus = p.attendance_status || 'pending';
+                const attLabel = attStatus === 'present' ? '✅ Hadir' : attStatus === 'absent' ? '❌ Absen' : '⏳ Belum';
+                const attClass = attStatus === 'present' ? 'status-present' : attStatus === 'absent' ? 'status-absent' : 'status-pending';
+
+                // Riwayat kelas (jumlah yang sudah dihadiri)
+                const attendedCount = attendanceData.filter(a => a.user_id === p.user_id && a.attended === true).length;
+
+                // Cek apakah user sudah selesai semua (3 kelas)
+                const allSessionsCount = allSessions.length;
+                const isComplete = attendedCount >= allSessionsCount;
+
+                // Tombol aksi
+                let actionButtons = '';
+                if (attStatus === 'pending') {
+                    actionButtons = `
+                        <button onclick="markAttendance('${p.id}', 'present')" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-semibold px-2 py-1 rounded transition">Hadir</button>
+                        <button onclick="markAttendance('${p.id}', 'absent')" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-2 py-1 rounded transition">Absen</button>
+                    `;
+                } else {
+                    actionButtons = `
+                        <button onclick="markAttendance('${p.id}', 'pending')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold px-2 py-1 rounded transition">Reset</button>
+                    `;
+                }
+
+                html += `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="px-3 py-3 text-xs text-slate-400">${index + 1}</td>
+                        <td class="px-3 py-3 font-medium text-slate-800">${name}</td>
+                        <td class="px-3 py-3 text-xs text-slate-500">${memberId}</td>
+                        <td class="px-3 py-3 text-xs text-slate-500">${phone}</td>
+                        <td class="px-3 py-3 text-center">
+                            <span class="text-xs px-2 py-0.5 rounded-full ${regStatus === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}">
+                                ${regStatus === 'approved' ? '✅ Approved' : '⏳ ${regStatus}'}
+                            </span>
+                        </td>
+                        <td class="px-3 py-3 text-center">
+                            <span class="text-xs px-3 py-1 rounded-full font-semibold ${attClass}">
+                                ${attLabel}
+                            </span>
+                        </td>
+                        <td class="px-3 py-3 text-center">
+                            <div class="flex items-center justify-center gap-1">
+                                ${Array.from({ length: allSessionsCount }, (_, i) => {
+                                    // Cek apakah user hadir di session ke-i
+                                    const isAttended = attendanceData.some(a => 
+                                        a.user_id === p.user_id && 
+                                        a.attended === true && 
+                                        a.session_id === allSessions[i]?.id
+                                    );
+                                    return `<span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${isAttended ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}">${i + 1}</span>`;
+                                }).join('')}
+                            </div>
+                            <div class="text-[10px] text-slate-400 mt-1">
+                                ${isComplete ? '🎉 Selesai 3!' : `${attendedCount}/${allSessionsCount} kelas`}
+                            </div>
+                        </td>
+                        <td class="px-3 py-3 text-center">
+                            <div class="flex items-center justify-center gap-1 flex-wrap">
+                                ${actionButtons}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4 text-xs text-slate-400">
+                    <p>💡 Klik "Hadir" atau "Absen" untuk mengisi presensi peserta.</p>
+                    <p>📊 Riwayat kelas menunjukkan kelas yang sudah dihadiri (warna hijau = sudah, abu-abu = belum).</p>
+                    <p>🎉 Jika sudah 3 kelas, sertifikat akan otomatis tersedia di menu Sertifikat.</p>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // ============================================
+        // MARK ATTENDANCE
+        // ============================================
+        async function markAttendance(participantId, status) {
+            const rateCheck = checkRateLimit('attendance');
+            if (!rateCheck.allowed) {
+                showError(rateCheck.message, '⏳ Terlalu Cepat');
+                return;
+            }
+
+            const isPresent = status === 'present';
+            const attStatus = status;
+
+            try {
+                const { error } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .update({
+                        attended: isPresent,
+                        attendance_status: attStatus,
+                        attendance_time: status === 'present' ? new Date().toISOString() : null
+                    })
+                    .eq('id', participantId);
+
+                if (error) throw error;
+
+                saveRateLimit('attendance');
+                showError(`✅ Presensi ${status === 'present' ? 'Hadir' : 'Absen'} berhasil!`, 'Sukses');
+
+                // Refresh data
+                await loadAttendance();
+
+                // Cek apakah ada yang sudah complete (3 kelas)
+                await checkAndGenerateCertificate();
+
+            } catch (err) {
+                console.error('Mark attendance error:', err);
+                showError('❌ Gagal mengupdate presensi: ' + err.message, 'Error');
+            }
+        }
+
+        // ============================================
+        // MARK ALL PRESENT
+        // ============================================
+        async function markAllPresent() {
+            if (!currentSessionId) {
+                showError('Pilih kelas terlebih dahulu.', 'Info');
+                return;
+            }
+
+            if (!confirm('Tandai semua peserta di kelas ini sebagai HADIR?')) return;
+
+            try {
+                const { error } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .update({
+                        attended: true,
+                        attendance_status: 'present',
+                        attendance_time: new Date().toISOString()
+                    })
+                    .eq('session_id', currentSessionId);
+
+                if (error) throw error;
+
+                showError('✅ Semua peserta ditandai HADIR!', 'Sukses');
+                await loadAttendance();
+                await checkAndGenerateCertificate();
+
+            } catch (err) {
+                console.error('Mark all present error:', err);
+                showError('❌ Gagal: ' + err.message, 'Error');
+            }
+        }
+
+        // ============================================
+        // CHECK AND GENERATE CERTIFICATE
+        // ============================================
+        async function checkAndGenerateCertificate() {
+            try {
+                // Ambil semua user yang sudah hadir di semua kelas onboarding
+                const { data: users, error } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('user_id, profile:user_id(full_name, member_id)')
+                    .eq('attended', true)
+                    .eq('session_id', currentSessionId);
+
+                if (error) throw error;
+
+                const allSessionIds = allSessions.map(s => s.id);
+                const totalSessions = allSessionIds.length;
+
+                for (const user of users) {
+                    // Hitung berapa kelas yang sudah dihadiri user ini
+                    const { count } = await _supabase
+                        .from('yata_mentoring_participants')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('user_id', user.user_id)
+                        .eq('attended', true)
+                        .in('session_id', allSessionIds);
+
+                    // Jika sudah 3 kelas, generate sertifikat
+                    if (count >= totalSessions) {
+                        const { data: existingCert } = await _supabase
+                            .from('yata_certificates')
+                            .select('id')
+                            .eq('user_id', user.user_id)
+                            .eq('certificate_type', 'onboarding')
+                            .maybeSingle();
+
+                        if (!existingCert) {
+                            const now = new Date();
+                            const dateStr = now.getFullYear() + 
+                                String(now.getMonth() + 1).padStart(2, '0') + 
+                                String(now.getDate()).padStart(2, '0');
+                            const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+                            const certNumber = `YATTA-${dateStr}-${random}`;
+
+                            const { error: certError } = await _supabase
+                                .from('yata_certificates')
+                                .insert([{
+                                    user_id: user.user_id,
+                                    certificate_type: 'onboarding',
+                                    certificate_number: certNumber,
+                                    is_claimed: true,
+                                    claimed_at: new Date().toISOString(),
+                                    signatory_name: 'Abd. Rahman Danial',
+                                    signatory_title: 'Founder & CEO YATTA'
+                                }]);
+
+                            if (!certError) {
+                                // Kirim notifikasi
+                                await sendNotification(
+                                    user.user_id,
+                                    '🎉 Sertifikat Onboarding YATTA!',
+                                    `Selamat! Anda telah menyelesaikan semua kelas onboarding YATTA. Sertifikat Anda sudah tersedia di menu Sertifikat.`,
+                                    'success'
+                                );
+                            }
+                        }
+                    }
+                }
+
+            } catch (err) {
+                console.error('Check certificate error:', err);
+            }
+        }
+
+        // ============================================
+        // SEND NOTIFICATION
+        // ============================================
+        async function sendNotification(userId, title, content, type = 'success') {
+            try {
+                const { data: notifData } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: title,
+                        content: content,
+                        type: type
+                    }])
+                    .select()
+                    .single();
+
+                if (notifData) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+                }
+                return true;
+            } catch (err) {
+                console.error('Send notification error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // REFRESH
+        // ============================================
+        function refreshData() {
+            loadAttendance();
+        }
+
+        // ============================================
+        // LOGOUT
+        // ============================================
+        async function handleLogout() {
+            if (confirm('Yakin ingin keluar?')) {
+                try {
+                    const { error } = await _supabase.auth.signOut();
+                    if (!error) {
+                        window.location.href = 'login.html';
+                    }
+                } catch (err) {
+                    console.error('Logout error:', err);
+                }
+            }
+        }
+
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAdmin();
+            await loadSessions();
+
+            document.getElementById('btnLogout').addEventListener('click', handleLogout);
+            document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);
+
+            document.getElementById('mobileMenuButton').addEventListener('click', function() {
+                document.getElementById('mobileMenu').classList.toggle('hidden');
+            });
+
+            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(el => {
+                el.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
+            });
+        });
+    </script>
+
+</body>
+</html>
