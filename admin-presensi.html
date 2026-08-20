@@ -284,7 +284,7 @@
             `;
 
             try {
-                // ✅ PERBAIKAN: gunakan 'profiles' bukan 'profile'
+                // ✅ PERBAIKAN: gunakan 'yata_profiles' bukan 'profiles'
                 const { data: participants, error } = await _supabase
                     .from('yata_mentoring_participants')
                     .select(`
@@ -295,7 +295,7 @@
                         attended,
                         attendance_status,
                         attendance_time,
-                        profiles:user_id (full_name, member_id, email)
+                        yata_profiles:user_id (full_name, member_id, email)
                     `)
                     .eq('session_id', sessionId)
                     .order('registered_at', { ascending: true });
@@ -305,7 +305,7 @@
                 // ✅ PERBAIKAN: akses data profile dengan benar
                 attendanceData = participants.map(p => ({
                     ...p,
-                    profile: p.profiles || null
+                    profile: p.yata_profiles || null
                 }));
 
                 // Update statistik
@@ -364,7 +364,7 @@
         }
 
         // ============================================
-        // RENDER TABLE
+        // RENDER TABLE - DIPERBAIKI
         // ============================================
         function renderTable() {
             const container = document.getElementById('attendanceTable');
@@ -400,7 +400,8 @@
             `;
 
             attendanceData.forEach((p, index) => {
-                const profile = p.profile || {};
+                // ✅ PERBAIKAN: ambil profile dengan benar
+                const profile = p.yata_profiles || p.profile || {};
                 const name = profile.full_name || 'User';
                 const memberId = profile.member_id || '-';
                 const email = profile.email || '-';
@@ -560,7 +561,7 @@
                 // Ambil semua user yang sudah hadir di sesi ini
                 const { data: users, error } = await _supabase
                     .from('yata_mentoring_participants')
-                    .select('user_id, profile:user_id(full_name, member_id)')
+                    .select('user_id, yata_profiles:user_id (full_name, member_id)')
                     .eq('attended', true)
                     .eq('session_id', currentSessionId);
 
