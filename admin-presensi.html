@@ -284,7 +284,7 @@
             `;
 
             try {
-                // ✅ PERBAIKAN: gunakan registered_at, bukan created_at
+                // ✅ PERBAIKAN: gunakan 'profiles' bukan 'profile'
                 const { data: participants, error } = await _supabase
                     .from('yata_mentoring_participants')
                     .select(`
@@ -295,14 +295,18 @@
                         attended,
                         attendance_status,
                         attendance_time,
-                        profile:user_id (full_name, member_id, email)
+                        profiles:user_id (full_name, member_id, email)
                     `)
                     .eq('session_id', sessionId)
                     .order('registered_at', { ascending: true });
 
                 if (error) throw error;
 
-                attendanceData = participants || [];
+                // ✅ PERBAIKAN: akses data profile dengan benar
+                attendanceData = participants.map(p => ({
+                    ...p,
+                    profile: p.profiles || null
+                }));
 
                 // Update statistik
                 updateStats();
@@ -432,7 +436,7 @@
                         <td class="px-3 py-3 text-xs text-slate-500">${phone}</td>
                         <td class="px-3 py-3 text-center">
                             <span class="text-xs px-2 py-0.5 rounded-full ${regStatus === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}">
-                                ${regStatus === 'approved' ? '✅ Approved' : '⏳ ${regStatus}'}
+                                ${regStatus === 'approved' ? '✅ Approved' : '⏳ ' + regStatus}
                             </span>
                         </td>
                         <td class="px-3 py-3 text-center">
@@ -553,6 +557,7 @@
         // ============================================
         async function checkAndGenerateCertificate() {
             try {
+                // Ambil semua user yang sudah hadir di sesi ini
                 const { data: users, error } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('user_id, profile:user_id(full_name, member_id)')
@@ -565,6 +570,7 @@
                 const totalSessions = allSessionIds.length;
 
                 for (const user of users) {
+                    // Hitung berapa kelas yang sudah dihadiri user ini
                     const { count } = await _supabase
                         .from('yata_mentoring_participants')
                         .select('*', { count: 'exact', head: true })
@@ -572,6 +578,7 @@
                         .eq('attended', true)
                         .in('session_id', allSessionIds);
 
+                    // Jika sudah 3 kelas, generate sertifikat
                     if (count >= totalSessions) {
                         const { data: existingCert } = await _supabase
                             .from('yata_certificates')
