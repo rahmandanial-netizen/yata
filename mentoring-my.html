@@ -118,9 +118,10 @@
 
             <nav class="flex-1 px-4 py-6 space-y-1">
                 <!-- 🌟 Menuju Jelajahi Yatta -->
-<a href="explore.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-amber-600 hover:text-amber-700 rounded-xl transition">
-    <i class="fa-solid fa-compass w-5 text-amber-500"></i> Menuju Jelajahi Yatta
-</a>
+                <a href="explore.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-amber-600 hover:text-amber-700 rounded-xl transition">
+                    <i class="fa-solid fa-compass w-5 text-amber-500"></i> Menuju Jelajahi Yatta
+                </a>
+                <!-- Beranda -->
                 <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
                     <i class="fa-solid fa-house w-5"></i> Beranda
                 </a>
@@ -172,8 +173,8 @@
 
         <div id="mobileMenu" class="hidden bg-white border-t border-emerald-100/60 px-4 py-4 space-y-2">
             <a href="explore.html" class="block px-4 py-2.5 text-amber-600 font-semibold hover:bg-amber-50 rounded-xl">
-    <i class="fa-solid fa-compass mr-2 text-amber-500"></i> Menuju Jelajahi Yatta
-</a>
+                <i class="fa-solid fa-compass mr-2 text-amber-500"></i> Menuju Jelajahi Yatta
+            </a>
             <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Beranda</a>
             <a href="write.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Tulis</a>
             <a href="#" onclick="checkProjectAccess(event)" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Proyek Buku</a>
@@ -218,7 +219,7 @@
                     </div>
                 </div>
 
-                <!-- FILTER BARU: Semua | Kelas Berlangsung | Kelas Selesai -->
+                <!-- FILTER -->
                 <div class="flex flex-wrap items-center gap-2 mb-4">
                     <button onclick="filterParticipants('all')" class="filter-btn active px-4 py-1.5 rounded-full text-xs font-bold transition bg-emerald-600 text-white" id="filterAll">
                         📋 Semua
@@ -506,7 +507,7 @@
                         if (mentorIds.length > 0) {
                             const { data: mentors, error: mentorError } = await _supabase
                                 .from('yata_profiles')
-                                .select('id, full_name')
+                                .select('id, full_name, avatar_url')
                                 .in('id', mentorIds);
                             if (!mentorError && mentors) {
                                 mentors.forEach(m => { mentorMap[m.id] = m; });
@@ -539,12 +540,11 @@
         }
 
         // ============================================
-        // FILTER PARTICIPANTS (BARU)
+        // FILTER PARTICIPANTS
         // ============================================
         function filterParticipants(filter) {
             currentFilter = filter;
 
-            // Update active button
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.classList.remove('active');
                 btn.classList.add('text-slate-600');
@@ -567,14 +567,12 @@
             if (filter === 'all') {
                 filtered = allParticipants;
             } else if (filter === 'ongoing') {
-                // Kelas dengan status approved dan session status published/ongoing
                 filtered = allParticipants.filter(p => 
                     p.status === 'approved' && 
                     p.session && 
                     (p.session.session_status === 'published' || p.session.session_status === 'ongoing')
                 );
             } else if (filter === 'completed') {
-                // Kelas dengan status completed
                 filtered = allParticipants.filter(p => 
                     p.status === 'completed'
                 );
@@ -585,7 +583,7 @@
         }
 
         // ============================================
-        // RENDER PARTICIPANTS
+        // RENDER PARTICIPANTS - DENGAN AVATAR MENTOR
         // ============================================
         function renderParticipants() {
             const container = document.getElementById('participantList');
@@ -635,10 +633,12 @@
             container.innerHTML = filtered.map(p => {
                 const s = p.session;
                 if (!s) return '';
-                const mentorName = s.mentor?.full_name || 'Mentor';
+                const mentor = s.mentor || null;
+                const mentorName = mentor?.full_name || 'Mentor';
+                const mentorAvatar = mentor?.avatar_url || null;
+                const mentorInitial = mentorName.charAt(0).toUpperCase();
                 const isOnboarding = s.is_onboarding === true;
 
-                // Tentukan status display
                 let displayStatus = p.status;
                 if (p.status === 'approved' && (s.session_status === 'ongoing' || s.session_status === 'published')) {
                     displayStatus = 'ongoing';
@@ -673,7 +673,13 @@
                                     <span class="level-badge ${levelClasses[s.level] || 'level-pemula'}">${levelLabels[s.level] || '🌱 Pemula'}</span>
                                     <span class="status-badge ${displayClass}">${displayLabel}</span>
                                 </div>
-                                <p class="text-xs text-slate-500">Mentor: ${mentorName}</p>
+                                <div class="flex items-center gap-2 mt-1">
+                                    ${mentorAvatar 
+                                        ? `<img src="${mentorAvatar}" class="w-5 h-5 rounded-full object-cover" />`
+                                        : `<div class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold flex-shrink-0">${mentorInitial}</div>`
+                                    }
+                                    <span class="text-xs text-slate-500 font-medium">${mentorName}</span>
+                                </div>
                                 <p class="text-xs text-slate-400 mt-1 line-clamp-1">${s.description || 'Tidak ada deskripsi'}</p>
                                 <div class="flex items-center gap-3 mt-1 text-xs text-slate-400">
                                     <span><i class="fa-regular fa-calendar"></i> ${s.schedule || 'TBA'}</span>

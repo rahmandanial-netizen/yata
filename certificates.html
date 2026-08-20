@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sertifikat Saya — Yatta</title>
+    <title>Sertifikat Saya — YATTA</title>
 
     <!-- ============================================ -->
     <!-- FAVICON YATTA -->
@@ -11,6 +11,12 @@
     <link rel="icon" type="image/png" href="assets/favicon.png" />
     <link rel="apple-touch-icon" href="assets/favicon.png" />
     <link rel="shortcut icon" href="assets/favicon.png" />
+
+    <!-- ============================================ -->
+    <!-- LIBRARY QR CODE & PDF -->
+    <!-- ============================================ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -23,6 +29,8 @@
                         sage: '#A3E4D7',
                         cream: '#FEF3C7',
                         mint: '#B2F2BB',
+                        gold: '#D4AF37',
+                        platinum: '#E5E4E2',
                     }
                 }
             }
@@ -65,86 +73,287 @@
             from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .cert-preview {
-            max-width: 500px;
-            margin: 0 auto;
+
+        /* ========================================== */
+        /* DESAIN SERTIFIKAT PREMIUM DENGAN QR CODE */
+        /* ========================================== */
+        .certificate-paper {
+            background: #ffffff;
+            padding: 20px;
             border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-            padding: 40px 32px 32px;
-            background: white;
-            border: 4px solid #065F46;
-            position: relative;
+            max-width: 900px;
+            margin: 0 auto;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.1);
         }
-        .cert-preview .cert-border {
-            border: 2px solid #D1FAE5;
-            padding: 24px;
+
+        .cert-border-gold {
+            border: 8px solid #D4AF37;
             border-radius: 12px;
+            padding: 24px;
+            position: relative;
+            background: linear-gradient(135deg, #faf8f5 0%, #ffffff 50%, #faf8f5 100%);
+        }
+
+        .cert-border-gold::before {
+            content: '';
+            position: absolute;
+            inset: 4px;
+            border: 2px solid #D4AF37;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        .cert-inner {
+            position: relative;
+            z-index: 1;
             text-align: center;
+            padding: 20px 10px;
         }
-        .cert-preview .cert-logo {
-            font-size: 28px;
-            font-weight: 900;
-            color: #065F46;
-            letter-spacing: 2px;
-        }
-        .cert-preview .cert-title {
-            font-size: 22px;
-            font-weight: 800;
-            color: #065F46;
-            margin-top: 8px;
-            letter-spacing: 4px;
-            border-top: 2px solid #D1FAE5;
-            border-bottom: 2px solid #D1FAE5;
-            padding: 8px 0;
-            display: inline-block;
-        }
-        .cert-preview .cert-name {
-            font-size: 26px;
-            font-weight: 900;
-            color: #1F2937;
-            margin: 16px 0 4px;
-        }
-        .cert-preview .cert-desc {
-            font-size: 14px;
-            color: #6B7280;
+
+        .cert-header {
             margin-bottom: 16px;
         }
-        .cert-preview .cert-sign {
-            margin-top: 20px;
-            padding-top: 16px;
-            border-top: 1px solid #E5E7EB;
-        }
-        .cert-preview .cert-sign .sign-name {
-            font-size: 16px;
-            font-weight: 700;
-            color: #1F2937;
-        }
-        .cert-preview .cert-sign .sign-title {
-            font-size: 12px;
-            color: #6B7280;
-        }
-        .cert-preview .cert-number {
-            font-size: 10px;
-            color: #9CA3AF;
-            margin-top: 8px;
-        }
-        .cert-preview .cert-stamp {
-            position: absolute;
-            bottom: 60px;
-            right: 50px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: 3px solid #D4AF37;
+
+        .cert-logo {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .cert-icon {
+            font-size: 32px;
+        }
+
+        .cert-brand {
+            font-size: 28px;
+            font-weight: 900;
+            color: #065F46;
+            letter-spacing: 4px;
+        }
+
+        .cert-title {
+            font-size: 36px;
+            font-weight: 900;
+            color: #065F46;
+            letter-spacing: 8px;
+            border-top: 3px solid #D4AF37;
+            border-bottom: 3px solid #D4AF37;
+            padding: 8px 0;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        .cert-subtitle {
+            font-size: 14px;
+            color: #6B7280;
+            margin-top: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .cert-name {
+            font-size: 36px;
+            font-weight: 900;
+            color: #1F2937;
+            margin: 12px 0 8px;
+            font-family: 'Georgia', serif;
+            letter-spacing: 1px;
+        }
+
+        .cert-description {
+            font-size: 14px;
+            color: #4B5563;
+            margin-bottom: 4px;
+        }
+
+        .cert-program {
+            font-size: 20px;
+            font-weight: 700;
+            color: #065F46;
+            margin-top: 4px;
+            padding: 4px 20px;
+            display: inline-block;
+            border-radius: 8px;
+            background: rgba(6, 95, 70, 0.05);
+        }
+
+        .cert-date {
+            font-size: 13px;
+            color: #6B7280;
+            margin-top: 8px;
+        }
+
+        .cert-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #E5E7EB;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .cert-signature {
+            flex: 1;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .sign-line {
+            width: 140px;
+            height: 2px;
+            background: #1F2937;
+            margin: 0 auto 4px;
+            position: relative;
+        }
+
+        .sign-line::before {
+            content: '✍️';
+            position: absolute;
+            left: 50%;
+            top: -12px;
+            transform: translateX(-50%);
+            font-size: 20px;
+            opacity: 0.6;
+        }
+
+        .sign-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1F2937;
+        }
+
+        .sign-title {
+            font-size: 11px;
+            color: #6B7280;
+            font-weight: 600;
+        }
+
+        .cert-stamp {
+            flex-shrink: 0;
+        }
+
+        .stamp-circle {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: 3px solid #D4AF37;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
             font-weight: 800;
             color: #D4AF37;
             text-align: center;
             line-height: 1.2;
-            opacity: 0.6;
+            background: rgba(212, 175, 55, 0.05);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stamp-circle span:first-child {
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .cert-qr {
+            flex-shrink: 0;
+            text-align: center;
+        }
+
+        #qrCodeContainer {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border-radius: 8px;
+            padding: 4px;
+            border: 1px solid #E5E7EB;
+        }
+
+        #qrCodeContainer img {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .qr-label {
+            font-size: 8px;
+            color: #6B7280;
+            margin-top: 2px;
+            letter-spacing: 0.5px;
+        }
+
+        .cert-number {
+            font-size: 11px;
+            color: #9CA3AF;
+            margin-top: 16px;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+            border-top: 1px solid #E5E7EB;
+            padding-top: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .cert-title {
+                font-size: 24px;
+                letter-spacing: 4px;
+            }
+            .cert-name {
+                font-size: 24px;
+            }
+            .cert-footer {
+                flex-direction: column;
+                align-items: center;
+            }
+            #qrCodeContainer {
+                width: 80px;
+                height: 80px;
+            }
+            .stamp-circle {
+                width: 60px;
+                height: 60px;
+            }
+            .cert-border-gold {
+                padding: 12px;
+            }
+        }
+
+        .download-btn {
+            transition: all 0.3s ease;
+        }
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(6, 95, 70, 0.3);
+        }
+        .download-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .line-clamp-1 {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        #certModalContent {
+            max-height: none;
+        }
+        #certModalContent::-webkit-scrollbar {
+            width: 4px;
+        }
+        #certModalContent::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 9999px;
         }
     </style>
 </head>
@@ -157,16 +366,17 @@
         <div class="flex flex-col h-full">
             <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
                 <a href="dashboard.html" class="flex items-center space-x-2 group">
-                    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30" />
-                    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
+                    <img src="assets/favicon.png" alt="YATTA" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30" />
+                    <span class="text-xl font-extrabold text-emerald-800">YATTA</span>
                 </a>
             </div>
 
             <nav class="flex-1 px-4 py-6 space-y-1">
                 <!-- 🌟 Menuju Jelajahi Yatta -->
-<a href="explore.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-amber-600 hover:text-amber-700 rounded-xl transition">
-    <i class="fa-solid fa-compass w-5 text-amber-500"></i> Menuju Jelajahi Yatta
-</a>
+                <a href="explore.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-amber-600 hover:text-amber-700 rounded-xl transition">
+                    <i class="fa-solid fa-compass w-5 text-amber-500"></i> Menuju Jelajahi YATTA
+                </a>
+                <!-- Beranda -->
                 <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
                     <i class="fa-solid fa-house w-5"></i> Beranda
                 </a>
@@ -183,8 +393,8 @@
                     <i class="fa-solid fa-users w-5"></i> Komunitas
                 </a>
                 <a href="mentoring-my.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
-    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring Saya
-</a>
+                    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring Saya
+                </a>
                 <a href="certificates.html" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-sm font-semibold text-emerald-800 rounded-xl transition">
                     <i class="fa-solid fa-certificate w-5 text-emerald-600"></i> Sertifikat
                 </a>
@@ -197,7 +407,7 @@
                 <button id="btnLogout" class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition text-left">
                     <i class="fa-solid fa-right-from-bracket w-5"></i> Keluar
                 </button>
-                <p class="text-xs text-slate-400 text-center mt-4">Yatta v1.0 • Beta</p>
+                <p class="text-xs text-slate-400 text-center mt-4">YATTA v1.0 • Beta</p>
             </div>
         </div>
     </aside>
@@ -208,8 +418,8 @@
     <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
         <div class="flex items-center justify-between px-4 h-16">
             <a href="dashboard.html" class="flex items-center space-x-2">
-                <img src="assets/favicon.png" alt="Yatta" class="h-8 w-8 rounded-xl object-cover" />
-                <span class="text-lg font-extrabold text-emerald-800">Yatta</span>
+                <img src="assets/favicon.png" alt="YATTA" class="h-8 w-8 rounded-xl object-cover" />
+                <span class="text-lg font-extrabold text-emerald-800">YATTA</span>
             </a>
             <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
                 <i class="fa-solid fa-bars text-xl"></i>
@@ -218,8 +428,8 @@
 
         <div id="mobileMenu" class="hidden bg-white border-t border-emerald-100/60 px-4 py-4 space-y-2">
             <a href="explore.html" class="block px-4 py-2.5 text-amber-600 font-semibold hover:bg-amber-50 rounded-xl">
-    <i class="fa-solid fa-compass mr-2 text-amber-500"></i> Menuju Jelajahi Yatta
-</a>
+                <i class="fa-solid fa-compass mr-2 text-amber-500"></i> Menuju Jelajahi YATTA
+            </a>
             <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Beranda</a>
             <a href="write.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Tulis</a>
             <a href="#" onclick="checkProjectAccess(event)" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Proyek Buku</a>
@@ -270,31 +480,93 @@
     </main>
 
     <!-- ============================================ -->
-    <!-- MODAL DETAIL SERTIFIKAT -->
+    <!-- MODAL SERTIFIKAT DENGAN QR CODE & PDF -->
     <!-- ============================================ -->
     <div id="certificateModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 relative shadow-2xl modal-enter max-h-[90vh] overflow-y-auto">
-            <button onclick="closeCertificateModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+        <div class="bg-white rounded-3xl max-w-4xl w-full p-6 md:p-8 relative shadow-2xl modal-enter max-h-[95vh] overflow-y-auto">
+            <button onclick="closeCertificateModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl z-10">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
             <div class="text-center mb-6">
                 <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Sertifikat</span>
-                <h3 id="certModalTitle" class="text-xl font-black text-slate-800 mt-1">Detail Sertifikat</h3>
+                <h3 id="certModalTitle" class="text-xl font-black text-slate-800 mt-1">Sertifikat YATTA</h3>
             </div>
 
-            <div id="certModalContent" class="flex justify-center">
-                <!-- Preview sertifikat akan diisi JavaScript -->
+            <!-- ========================================== -->
+            <!-- PREVIEW SERTIFIKAT DENGAN QR CODE -->
+            <!-- ========================================== -->
+            <div id="certificatePreview" class="certificate-paper-wrapper">
+                <div class="certificate-paper" id="certificateContent">
+                    <!-- Border Emas -->
+                    <div class="cert-border-gold">
+                        <div class="cert-inner">
+                            <!-- Header -->
+                            <div class="cert-header">
+                                <div class="cert-logo">
+                                    <span class="cert-icon">🏛️</span>
+                                    <span class="cert-brand">YATTA</span>
+                                </div>
+                                <div class="cert-title">SERTIFIKAT</div>
+                                <div class="cert-subtitle">Diberikan kepada</div>
+                            </div>
+
+                            <!-- Nama Member -->
+                            <div class="cert-name" id="certName">Nama Member</div>
+
+                            <!-- Deskripsi -->
+                            <div class="cert-description">
+                                Telah menyelesaikan program
+                                <div class="cert-program" id="certProgram">Onboarding YATTA</div>
+                            </div>
+
+                            <!-- Tanggal -->
+                            <div class="cert-date" id="certDate">Diberikan pada 20 Agustus 2026</div>
+
+                            <!-- Footer: Tanda Tangan, Stempel, QR Code -->
+                            <div class="cert-footer">
+                                <div class="cert-signature">
+                                    <div class="sign-line"></div>
+                                    <div class="sign-name">Abd. Rahman Danial</div>
+                                    <div class="sign-title">Founder &amp; CEO YATTA</div>
+                                </div>
+
+                                <div class="cert-stamp">
+                                    <div class="stamp-circle">
+                                        <span>YATTA</span>
+                                        <span>TERVERIFIKASI</span>
+                                    </div>
+                                </div>
+
+                                <div class="cert-qr">
+                                    <div id="qrCodeContainer"></div>
+                                    <div class="qr-label">Scan untuk verifikasi</div>
+                                </div>
+                            </div>
+
+                            <!-- Nomor Sertifikat -->
+                            <div class="cert-number" id="certNumber">No. YATTA-2026-0001</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
+            <!-- ========================================== -->
+            <!-- TOMBOL AKSI -->
+            <!-- ========================================== -->
             <div class="mt-6 flex flex-col sm:flex-row gap-3">
-                <button onclick="downloadCertificate()" id="downloadCertBtn" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-download"></i> Unduh Sertifikat (PDF)
+                <button onclick="downloadCertificatePDF()" id="downloadCertBtn" class="download-btn flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-pdf"></i> Unduh PDF
+                </button>
+                <button onclick="sendCertificateEmail()" id="sendCertEmailBtn" class="download-btn flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2">
+                    <i class="fa-regular fa-envelope"></i> Kirim ke Email
                 </button>
                 <button onclick="closeCertificateModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition text-sm">
                     Tutup
                 </button>
             </div>
+
+            <div id="certMessage" class="mt-3 text-sm text-center hidden"></div>
         </div>
     </div>
 
@@ -324,6 +596,38 @@
                 console.error('Auth check error:', err);
                 window.location.href = 'login.html';
                 return null;
+            }
+        }
+
+        // ============================================
+        // CEK AKSES PROYEK BUKU
+        // ============================================
+        async function checkProjectAccess(e) {
+            if (e) e.preventDefault();
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('member_level')
+                    .eq('id', session.user.id)
+                    .single();
+                if (error) {
+                    window.location.href = 'projects.html';
+                    return;
+                }
+                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
+                if (allowedLevels.includes(profile.member_level)) {
+                    window.location.href = 'projects.html';
+                } else {
+                    showError('⚠️ Fitur Proyek Buku hanya untuk Member level Penulis ke atas!', 'Akses Ditolak');
+                }
+            } catch (err) {
+                console.error('Error checking access:', err);
+                window.location.href = 'projects.html';
             }
         }
 
@@ -373,7 +677,7 @@
         }
 
         // ============================================
-        // RENDER SERTIFIKAT
+        // RENDER SERTIFIKAT - DENGAN AVATAR
         // ============================================
         function renderCertificates() {
             const container = document.getElementById('certificatesGrid');
@@ -392,39 +696,55 @@
                 mentor: 'bg-amber-100 text-amber-700'
             };
 
-            container.innerHTML = allCertificates.map(c => `
-                <div class="certificate-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm relative" onclick="openCertificateModal('${c.id}')">
-                    <div class="flex items-start gap-4">
-                        <div class="w-14 h-14 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 text-3xl flex-shrink-0">
-                            🎓
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <h4 class="font-bold text-slate-800 text-sm">${c.certificate_type ? (typeLabels[c.certificate_type] || c.certificate_type) : 'Sertifikat'}</h4>
-                                <span class="cert-badge ${c.is_claimed ? 'cert-badge-claimed' : 'cert-badge-pending'}">
-                                    ${c.is_claimed ? '✅ Diklaim' : '⏳ Belum Diklaim'}
-                                </span>
+            // Ambil avatar dari currentUser
+            const avatarUrl = currentUser?.user_metadata?.avatar_url || null;
+            const fullName = currentUser?.user_metadata?.full_name || currentUser?.email || 'Member';
+            const initial = fullName.charAt(0).toUpperCase();
+
+            container.innerHTML = allCertificates.map(c => {
+                return `
+                    <div class="certificate-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm relative" onclick="openCertificateModal('${c.id}')">
+                        <div class="flex items-start gap-4">
+                            <div class="w-14 h-14 rounded-xl ${typeColors[c.certificate_type] || 'bg-emerald-100'} flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
+                                ${avatarUrl 
+                                    ? `<img src="${avatarUrl}" class="w-full h-full object-cover" />` 
+                                    : `<span class="font-bold text-emerald-700">${initial}</span>`
+                                }
                             </div>
-                            <p class="text-xs text-slate-500 mt-1">No. ${c.certificate_number || '-'}</p>
-                            <p class="text-xs text-slate-400 mt-1">
-                                <i class="fa-regular fa-calendar mr-1"></i> 
-                                ${new Date(c.issued_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                            </p>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h4 class="font-bold text-slate-800 text-sm">${c.certificate_type ? (typeLabels[c.certificate_type] || c.certificate_type) : 'Sertifikat'}</h4>
+                                    <span class="cert-badge ${c.is_claimed ? 'cert-badge-claimed' : 'cert-badge-pending'}">
+                                        ${c.is_claimed ? '✅ Diklaim' : '⏳ Belum Diklaim'}
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-500 mt-1">No. ${c.certificate_number || '-'}</p>
+                                <p class="text-xs text-slate-400 mt-1">
+                                    <i class="fa-regular fa-calendar mr-1"></i> 
+                                    ${new Date(c.issued_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                </p>
+                                ${c.is_claimed ? `
+                                    <div class="mt-2 flex items-center gap-1 text-[10px] text-emerald-600">
+                                        <i class="fa-regular fa-check-circle"></i>
+                                        <span>Telah diverifikasi</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-100 flex justify-end">
+                            <button onclick="event.stopPropagation(); downloadCertificateById('${c.id}')" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1">
+                                <i class="fa-solid fa-file-pdf"></i> Unduh PDF
+                            </button>
                         </div>
                     </div>
-                    <div class="mt-3 pt-3 border-t border-slate-100 flex justify-end">
-                        <button onclick="event.stopPropagation(); downloadCertificateById('${c.id}')" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1">
-                            <i class="fa-solid fa-download"></i> Unduh
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // ============================================
-        // OPEN CERTIFICATE MODAL
+        // OPEN CERTIFICATE MODAL DENGAN QR CODE
         // ============================================
-        function openCertificateModal(certId) {
+        async function openCertificateModal(certId) {
             const cert = allCertificates.find(c => c.id === certId);
             if (!cert) {
                 showError('Sertifikat tidak ditemukan.', 'Error');
@@ -440,35 +760,19 @@
                 mentor: 'Mentor'
             };
 
-            document.getElementById('certModalTitle').textContent = typeLabels[cert.certificate_type] || 'Sertifikat';
+            // Isi data
+            document.getElementById('certName').textContent = currentUser?.user_metadata?.full_name || 'Member';
+            document.getElementById('certProgram').textContent = typeLabels[cert.certificate_type] || 'Program YATTA';
+            document.getElementById('certDate').textContent = `Diberikan pada ${new Date(cert.issued_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+            document.getElementById('certNumber').textContent = `No. ${cert.certificate_number || 'YATTA-2026-0001'}`;
 
-            const content = document.getElementById('certModalContent');
-            content.innerHTML = `
-                <div class="cert-preview">
-                    <div class="cert-border">
-                        <div class="cert-logo">🏛️ YATTA</div>
-                        <div class="cert-title">SERTIFIKAT</div>
-                        <div class="cert-name">${currentUser?.user_metadata?.full_name || 'Member'}</div>
-                        <div class="cert-desc">Telah menyelesaikan</div>
-                        <div style="font-size:18px;font-weight:700;color:#065F46;">${typeLabels[cert.certificate_type] || 'Program YATTA'}</div>
-                        <div style="font-size:12px;color:#6B7280;margin-top:4px;">
-                            Diberikan pada ${new Date(cert.issued_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </div>
-                        <div class="cert-sign">
-                            <div style="display:flex;flex-direction:column;align-items:center;">
-                                <div style="font-family:'Georgia',serif;font-size:20px;font-weight:700;color:#1F2937;letter-spacing:1px;border-bottom:2px solid #065F46;padding-bottom:4px;margin-bottom:2px;">
-                                    ${cert.signatory_name || 'Abd. Rahman Danial'}
-                                </div>
-                                <div style="font-size:11px;color:#6B7280;font-weight:600;letter-spacing:1px;">
-                                    ${cert.signatory_title || 'Founder & CEO YATTA'}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="cert-number">No. ${cert.certificate_number || '-'}</div>
-                    </div>
-                    <div class="cert-stamp">YATTA<br>TERVERIFIKASI</div>
-                </div>
-            `;
+            // Generate QR Code
+            const userId = currentUser?.id || 'guest';
+            const certNumber = cert.certificate_number || `YATTA-${Date.now()}`;
+            
+            setTimeout(() => {
+                generateQRForCertificate(certNumber, userId);
+            }, 200);
 
             document.getElementById('certificateModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
@@ -478,24 +782,174 @@
             document.getElementById('certificateModal').classList.add('hidden');
             document.body.style.overflow = 'auto';
             selectedCertificate = null;
+            document.getElementById('certMessage').className = 'text-sm text-center hidden';
         }
 
         // ============================================
-        // DOWNLOAD SERTIFIKAT
+        // QR CODE GENERATOR
         // ============================================
-        function downloadCertificate() {
-            if (!selectedCertificate) {
-                showError('Sertifikat tidak ditemukan.', 'Error');
+        function generateQRForCertificate(certificateNumber, userId) {
+            const container = document.getElementById('qrCodeContainer');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            const verificationUrl = `https://yata-gold.vercel.app/verify.html?cert=${certificateNumber}&user=${userId}`;
+
+            try {
+                if (typeof QRCode !== 'undefined') {
+                    new QRCode(container, {
+                        text: verificationUrl,
+                        width: 100,
+                        height: 100,
+                        colorDark: "#065F46",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                } else {
+                    container.innerHTML = `
+                        <div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:#f1f5f9;border-radius:8px;font-size:10px;text-align:center;color:#64748b;padding:8px;">
+                            <div>
+                                <i class="fa-regular fa-qrcode text-2xl block mb-1"></i>
+                                Scan QR untuk verifikasi
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('QR Code generation error:', err);
+                container.innerHTML = `
+                    <div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:#fef3c7;border-radius:8px;font-size:10px;text-align:center;color:#92400e;padding:8px;">
+                        <div>
+                            <i class="fa-regular fa-qrcode text-2xl block mb-1"></i>
+                            ${verificationUrl.substring(0, 20)}...
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // DOWNLOAD SERTIFIKAT PDF
+        // ============================================
+        async function downloadCertificatePDF() {
+            const element = document.getElementById('certificateContent');
+            if (!element) {
+                showCertMessage('Sertifikat tidak ditemukan.', 'error');
                 return;
             }
 
-            // Untuk sementara, gunakan print/save as PDF
-            const content = document.getElementById('certModalContent');
-            const preview = content.querySelector('.cert-preview');
-            if (preview) {
-                // Simpan sebagai gambar atau PDF
-                showError('📥 Fitur download PDF akan segera hadir!', 'Info');
+            const btn = document.getElementById('downloadCertBtn');
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Generating PDF...';
+
+            try {
+                if (typeof html2pdf !== 'undefined') {
+                    const opt = {
+                        margin:        [0.5, 0.5, 0.5, 0.5],
+                        filename:      `Sertifikat_YATTA_${selectedCertificate?.certificate_number || Date.now()}.pdf`,
+                        image:         { type: 'jpeg', quality: 0.98 },
+                        html2canvas:   { scale: 3, useCORS: true, logging: false },
+                        jsPDF:         { unit: 'in', format: 'a4', orientation: 'landscape' }
+                    };
+                    await html2pdf().set(opt).from(element).save();
+                    showCertMessage('✅ Sertifikat berhasil diunduh!', 'success');
+                } else {
+                    showCertMessage('⚠️ Fitur PDF akan segera hadir. Gunakan print/save as PDF.', 'info');
+                    window.print();
+                }
+
+            } catch (err) {
+                console.error('PDF generation error:', err);
+                showCertMessage('❌ Gagal mengunduh PDF: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
             }
+        }
+
+        // ============================================
+        // KIRIM SERTIFIKAT VIA EMAIL
+        // ============================================
+        async function sendCertificateEmail() {
+            if (!selectedCertificate) {
+                showCertMessage('❌ Sertifikat tidak ditemukan.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('sendCertEmailBtn');
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+
+            try {
+                const session = await checkAuth();
+                if (!session) {
+                    showCertMessage('Silakan login terlebih dahulu.', 'error');
+                    return;
+                }
+
+                const { data: profile } = await _supabase
+                    .from('yata_profiles')
+                    .select('email')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (!profile?.email) {
+                    showCertMessage('Email tidak ditemukan di profil Anda.', 'error');
+                    return;
+                }
+
+                const certNumber = selectedCertificate.certificate_number || 'YATTA-2026-0001';
+                const notifContent = `📧 Sertifikat Anda (${certNumber}) akan dikirim ke email ${profile.email}. 
+                
+Jika tidak muncul dalam 5 menit, periksa folder SPAM atau hubungi admin YATTA.
+
+💡 Tips: Anda juga bisa mengunduh sertifikat langsung dari menu Sertifikat.`;
+
+                const { data: notifData } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: '📧 Sertifikat Dikirim ke Email',
+                        content: notifContent,
+                        type: 'success'
+                    }])
+                    .select()
+                    .single();
+
+                if (notifData) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: session.user.id,
+                            is_read: false
+                        }]);
+                }
+
+                showCertMessage(`✅ Sertifikat akan dikirim ke ${profile.email}! Cek kotak masuk (termasuk SPAM).`, 'success');
+
+            } catch (err) {
+                console.error('Send certificate email error:', err);
+                showCertMessage('❌ Gagal mengirim: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        function showCertMessage(text, type) {
+            const msg = document.getElementById('certMessage');
+            msg.textContent = text;
+            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
+                type === 'success' ? 'text-emerald-600' :
+                type === 'error' ? 'text-red-600' :
+                type === 'info' ? 'text-amber-600' :
+                ''
+            }`;
         }
 
         function downloadCertificateById(certId) {
@@ -505,40 +959,7 @@
                 return;
             }
             openCertificateModal(certId);
-            // Tunggu modal terbuka, lalu download
-            setTimeout(downloadCertificate, 500);
-        }
-
-        // ============================================
-        // CEK AKSES PROYEK BUKU
-        // ============================================
-        async function checkProjectAccess(e) {
-            if (e) e.preventDefault();
-            try {
-                const { data: { session } } = await _supabase.auth.getSession();
-                if (!session) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-                const { data: profile, error } = await _supabase
-                    .from('yata_profiles')
-                    .select('member_level')
-                    .eq('id', session.user.id)
-                    .single();
-                if (error) {
-                    window.location.href = 'projects.html';
-                    return;
-                }
-                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
-                if (allowedLevels.includes(profile.member_level)) {
-                    window.location.href = 'projects.html';
-                } else {
-                    showError('⚠️ Fitur Proyek Buku hanya untuk Member level Penulis ke atas!', 'Akses Ditolak');
-                }
-            } catch (err) {
-                console.error('Error checking access:', err);
-                window.location.href = 'projects.html';
-            }
+            setTimeout(downloadCertificatePDF, 500);
         }
 
         // ============================================

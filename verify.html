@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verifikasi Sertifikat - YATTA</title>
+
+    <!-- ============================================ -->
+    <!-- FAVICON YATTA -->
+    <!-- ============================================ -->
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
+    <link rel="apple-touch-icon" href="assets/favicon.png" />
+    <link rel="shortcut icon" href="assets/favicon.png" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6EE7B7',
+                        primaryDark: '#065F46',
+                        gold: '#D4AF37',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        
+        .verify-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px 32px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            max-width: 520px;
+            margin: 0 auto;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .verify-icon {
+            font-size: 72px;
+            margin-bottom: 12px;
+            display: block;
+        }
+        
+        .verify-card .status-valid {
+            color: #065F46;
+        }
+        .verify-card .status-invalid {
+            color: #991B1B;
+        }
+        .verify-card .status-pending {
+            color: #92400E;
+        }
+        
+        .cert-detail {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 16px 20px;
+            text-align: left;
+            margin-top: 16px;
+        }
+        
+        .cert-detail .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 13px;
+        }
+        .cert-detail .detail-row:last-child {
+            border-bottom: none;
+        }
+        .cert-detail .label {
+            color: #64748b;
+            font-weight: 500;
+        }
+        .cert-detail .value {
+            color: #0f172a;
+            font-weight: 600;
+            text-align: right;
+            max-width: 60%;
+            word-break: break-word;
+        }
+        
+        .verify-shield {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-top: 12px;
+        }
+        .shield-valid {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+        .shield-invalid {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+        .shield-pending {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+        
+        .print-btn {
+            transition: all 0.3s ease;
+        }
+        .print-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Loading spinner */
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #065F46;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .verify-card {
+                padding: 24px 16px;
+            }
+            .verify-icon {
+                font-size: 48px;
+            }
+            .cert-detail .detail-row {
+                flex-direction: column;
+                gap: 2px;
+                padding: 8px 0;
+            }
+            .cert-detail .value {
+                max-width: 100%;
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-50 to-white p-4">
+
+    <div class="max-w-2xl w-full">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <a href="index.html" class="inline-flex items-center gap-2 group">
+                <img src="assets/favicon.png" alt="YATTA" class="h-12 w-12 rounded-xl object-cover shadow-md shadow-emerald-500/30 group-hover:scale-105 transition" />
+                <span class="text-2xl font-extrabold text-emerald-800">YATTA</span>
+                <span class="text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Verifikasi</span>
+            </a>
+            <p class="text-sm text-slate-500 mt-2">Cek keaslian sertifikat YATTA</p>
+        </div>
+
+        <!-- Hasil Verifikasi -->
+        <div id="verificationResult" class="verify-card">
+            <!-- Akan diisi JavaScript -->
+            <div class="flex flex-col items-center justify-center py-8">
+                <div class="spinner"></div>
+                <p class="text-slate-500 text-sm">Memverifikasi sertifikat...</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="index.html" class="text-sm text-slate-400 hover:text-emerald-600 transition">
+                <i class="fa-solid fa-arrow-left mr-1"></i> Kembali ke Beranda
+            </a>
+            <span class="text-slate-300 hidden sm:inline">•</span>
+            <a href="certificates.html" class="text-sm text-slate-400 hover:text-emerald-600 transition">
+                <i class="fa-regular fa-certificate mr-1"></i> Lihat Sertifikat Saya
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        // ============================================
+        // AMBIL PARAMETER DARI URL
+        // ============================================
+        function getParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                cert: params.get('cert'),
+                user: params.get('user')
+            };
+        }
+
+        // ============================================
+        // FORMAT TANGGAL
+        // ============================================
+        function formatDate(dateString) {
+            if (!dateString) return 'Tanggal tidak tersedia';
+            try {
+                return new Date(dateString).toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+            } catch {
+                return dateString;
+            }
+        }
+
+        // ============================================
+        // VERIFIKASI SERTIFIKAT
+        // ============================================
+        async function verifyCertificate() {
+            const { cert, user } = getParams();
+            const resultContainer = document.getElementById('verificationResult');
+
+            // Validasi parameter
+            if (!cert || !user) {
+                resultContainer.innerHTML = `
+                    <div>
+                        <span class="verify-icon">❌</span>
+                        <h2 class="text-2xl font-black text-red-600">Link Tidak Valid</h2>
+                        <p class="text-slate-500 text-sm mt-2">Parameter verifikasi tidak lengkap.</p>
+                        <p class="text-xs text-slate-400 mt-1">Pastikan Anda menggunakan link yang benar dari sertifikat YATTA.</p>
+                        <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                            <a href="index.html" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                                <i class="fa-solid fa-house mr-1"></i> Kembali ke Beranda
+                            </a>
+                            <a href="certificates.html" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                                <i class="fa-regular fa-certificate mr-1"></i> Sertifikat Saya
+                            </a>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                // Cari sertifikat di database
+                const { data: certificate, error } = await _supabase
+                    .from('yata_certificates')
+                    .select(`
+                        *,
+                        user:user_id (
+                            full_name,
+                            username,
+                            email
+                        ),
+                        session:session_id (
+                            title,
+                            is_onboarding
+                        )
+                    `)
+                    .eq('certificate_number', cert)
+                    .eq('user_id', user)
+                    .maybeSingle();
+
+                if (error) {
+                    console.error('Query error:', error);
+                    throw error;
+                }
+
+                // Jika sertifikat tidak ditemukan
+                if (!certificate) {
+                    resultContainer.innerHTML = `
+                        <div>
+                            <span class="verify-icon">❌</span>
+                            <h2 class="text-2xl font-black text-red-600">Sertifikat Tidak Ditemukan</h2>
+                            <p class="text-slate-500 text-sm mt-2">Sertifikat dengan nomor <strong class="text-slate-800">${cert}</strong> tidak terdaftar di sistem YATTA.</p>
+                            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4 text-left">
+                                <p class="text-sm text-amber-700 flex items-start gap-2">
+                                    <i class="fa-regular fa-lightbulb mt-0.5"></i>
+                                    <span>Pastikan nomor sertifikat yang Anda masukkan benar. Jika yakin sudah benar, hubungi admin YATTA untuk bantuan.</span>
+                                </p>
+                            </div>
+                            <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                                <a href="index.html" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                                    <i class="fa-solid fa-house mr-1"></i> Kembali ke Beranda
+                                </a>
+                                <a href="certificates.html" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                                    <i class="fa-regular fa-certificate mr-1"></i> Sertifikat Saya
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Cek apakah sertifikat sudah diklaim
+                const isClaimed = certificate.is_claimed === true;
+                
+                // Tentukan status
+                let statusText, statusColor, statusIcon, shieldClass;
+                if (isClaimed) {
+                    statusText = 'VALID';
+                    statusColor = 'text-emerald-600';
+                    statusIcon = '✅';
+                    shieldClass = 'shield-valid';
+                } else {
+                    statusText = 'BELUM DIKLAIM';
+                    statusColor = 'text-amber-600';
+                    statusIcon = '⏳';
+                    shieldClass = 'shield-pending';
+                }
+
+                // Format data
+                const issuedDate = formatDate(certificate.issued_at);
+                const memberName = certificate.user?.full_name || 'Member';
+                const memberUsername = certificate.user?.username || 'username';
+                
+                // Tipe sertifikat
+                const typeMap = {
+                    'onboarding': 'Onboarding YATTA',
+                    'mentoring': 'Kelas Mentoring',
+                    'penulis': 'Penulis',
+                    'mentor': 'Mentor'
+                };
+                const typeName = typeMap[certificate.certificate_type] || 'Program YATTA';
+                const programName = certificate.session?.title || typeName;
+
+                // Penandatangan
+                const signatory = certificate.signatory_name || 'Abd. Rahman Danial';
+                const signatoryTitle = certificate.signatory_title || 'Founder & CEO YATTA';
+
+                resultContainer.innerHTML = `
+                    <div>
+                        <span class="verify-icon">${statusIcon}</span>
+                        <h2 class="text-2xl font-black ${statusColor}">${statusText}</h2>
+                        <p class="text-sm text-slate-500 mt-1">Sertifikat ini terdaftar di sistem YATTA</p>
+                        
+                        <span class="verify-shield ${shieldClass}">
+                            <i class="fa-regular fa-shield-check"></i>
+                            ${isClaimed ? 'Terverifikasi' : 'Menunggu Klaim'}
+                        </span>
+
+                        <div class="cert-detail">
+                            <div class="detail-row">
+                                <span class="label">Nomor Sertifikat</span>
+                                <span class="value">${cert}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Nama Penerima</span>
+                                <span class="value">${memberName}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Username</span>
+                                <span class="value">@${memberUsername}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Program</span>
+                                <span class="value">${programName}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Tipe Sertifikat</span>
+                                <span class="value">${typeName}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Tanggal Diberikan</span>
+                                <span class="value">${issuedDate}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Status</span>
+                                <span class="value ${isClaimed ? 'text-emerald-600' : 'text-amber-600'}">
+                                    ${isClaimed ? '✅ Telah Diklaim' : '⏳ Belum Diklaim'}
+                                </span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Penandatangan</span>
+                                <span class="value">${signatory}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Jabatan</span>
+                                <span class="value">${signatoryTitle}</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs text-slate-400">
+                            <span><i class="fa-regular fa-clock mr-1"></i> Diverifikasi ${new Date().toLocaleDateString('id-ID')}</span>
+                            <span>•</span>
+                            <span><i class="fa-regular fa-shield-check mr-1"></i> Sistem YATTA v1.0</span>
+                        </div>
+
+                        <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                            <a href="https://yata-gold.vercel.app" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                                <i class="fa-solid fa-globe mr-1"></i> Kunjungi YATTA
+                            </a>
+                            <button onclick="window.print()" class="print-btn bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                                <i class="fa-solid fa-print mr-1"></i> Cetak Halaman
+                            </button>
+                            <a href="certificates.html" class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                                <i class="fa-regular fa-certificate mr-1"></i> Sertifikat Saya
+                            </a>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-emerald-50/50 border border-emerald-200 rounded-xl">
+                            <p class="text-xs text-emerald-700">
+                                <i class="fa-regular fa-circle-check mr-1"></i>
+                                Sertifikat ini diterbitkan secara resmi oleh YATTA dan dapat diverifikasi kapan saja.
+                            </p>
+                        </div>
+                    </div>
+                `;
+
+            } catch (err) {
+                console.error('Verification error:', err);
+                resultContainer.innerHTML = `
+                    <div>
+                        <span class="verify-icon">❌</span>
+                        <h2 class="text-2xl font-black text-red-600">Terjadi Kesalahan</h2>
+                        <p class="text-slate-500 text-sm mt-2">Gagal memverifikasi sertifikat: ${err.message}</p>
+                        <div class="bg-red-50 border border-red-200 rounded-xl p-4 mt-4 text-left">
+                            <p class="text-sm text-red-700 flex items-start gap-2">
+                                <i class="fa-regular fa-circle-exclamation mt-0.5"></i>
+                                <span>Silakan coba lagi beberapa saat. Jika masalah berlanjut, hubungi admin YATTA.</span>
+                            </p>
+                        </div>
+                        <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                            <button onclick="verifyCertificate()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                                <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                            </button>
+                            <a href="index.html" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                                <i class="fa-solid fa-house mr-1"></i> Beranda
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // INIT
+        // ============================================
+        document.addEventListener('DOMContentLoaded', verifyCertificate);
+
+        // ============================================
+        // PRINT STYLING
+        // ============================================
+        const printStyle = document.createElement('style');
+        printStyle.textContent = `
+            @media print {
+                body { background: white !important; padding: 20px !important; }
+                .verify-card { box-shadow: none !important; border: 2px solid #D4AF37 !important; }
+                .print-btn, .no-print { display: none !important; }
+                .cert-detail .detail-row { break-inside: avoid; }
+            }
+        `;
+        document.head.appendChild(printStyle);
+    </script>
+
+</body>
+</html>

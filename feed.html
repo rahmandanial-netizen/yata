@@ -218,17 +218,17 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <a href="explore.html" class="flex items-center space-x-2 group">
-    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30 group-hover:scale-105 transition" />
-    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
-    <span class="hidden sm:inline text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Publik</span>
-</a>
+                    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30 group-hover:scale-105 transition" />
+                    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
+                    <span class="hidden sm:inline text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Publik</span>
+                </a>
 
                 <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-600">
                     <a href="explore.html" class="hover:text-emerald-600 transition">Beranda</a>
                     <a href="feed.html" class="nav-link-jelajahi">📖 Feed</a>
                     <a href="campaigns.html" class="hover:text-emerald-600 transition">Kampanye</a>
                     <a href="penulis.html" class="hover:text-emerald-600 transition">Penulis</a>
-                    <a href="#mentoring" class="hover:text-emerald-600 transition">Mentoring</a>
+                    <a href="mentoring.html" class="hover:text-emerald-600 transition">Mentoring</a>
                     <a href="#tentang" class="hover:text-emerald-600 transition">Tentang</a>
                     <a href="login.html" class="text-emerald-600 hover:text-emerald-700 font-semibold transition">Masuk</a>
                     <a href="register.html" class="btn-daftar-komunitas px-5 py-2 rounded-full text-sm flex items-center justify-center gap-2">
@@ -247,7 +247,7 @@
             <a href="feed.html" class="block text-sm font-medium text-amber-600 font-semibold">📖 Feed</a>
             <a href="campaigns.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Kampanye</a>
             <a href="penulis.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Penulis</a>
-            <a href="#mentoring" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Mentoring</a>
+            <a href="mentoring.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Mentoring</a>
             <a href="#tentang" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Tentang</a>
             <a href="login.html" class="block text-sm font-medium text-emerald-600 hover:text-emerald-700">Masuk</a>
             <a href="register.html" class="block bg-emerald-700 hover:bg-emerald-800 text-white text-center px-4 py-2.5 rounded-full text-sm font-bold transition">
@@ -468,10 +468,10 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div class="flex items-center space-x-2">
-    <img src="assets/footer.png" alt="Yatta" class="w-8 h-8 rounded-xl object-cover" />
-    <span class="text-white font-bold text-lg">Yatta</span>
-    <span class="text-xs text-emerald-400/60">Kata yang Menggerakkan</span>
-</div>
+                    <img src="assets/favicon.png" alt="Yatta" class="w-8 h-8 rounded-xl object-cover" />
+                    <span class="text-white font-bold text-lg">Yatta</span>
+                    <span class="text-xs text-emerald-400/60">Kata yang Menggerakkan</span>
+                </div>
                 <div class="flex space-x-4 text-emerald-400/60">
                     <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-instagram text-lg"></i></a>
                     <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-tiktok text-lg"></i></a>
@@ -576,7 +576,7 @@
                     if (authorIds.length > 0) {
                         const { data: authors, error: authorError } = await _supabase
                             .from('yata_profiles')
-                            .select('id, full_name, username, member_level')
+                            .select('id, full_name, username, member_level, avatar_url')
                             .in('id', authorIds);
                         
                         if (!authorError && authors) {
@@ -659,7 +659,7 @@
         }
 
         // ============================================
-        // 4. RENDER FEED (GRID COVER)
+        // 4. RENDER FEED (GRID COVER) - DENGAN AVATAR
         // ============================================
         function renderFeed() {
             const container = document.getElementById('feedGrid');
@@ -691,7 +691,11 @@
                 const coverUrl = b.cover_url || null;
                 const categoryLabel = b.category || 'Umum';
                 const statusInfo = statusBadgeMap[b.status] || { label: b.status, class: 'badge-review' };
+                
+                // ✅ PERBAIKAN: Avatar author dengan avatar_url
                 const authorName = b.author?.full_name || 'Penulis';
+                const avatarUrl = b.author?.avatar_url || null;
+                const initial = authorName.charAt(0).toUpperCase();
                 
                 return `
                     <div class="book-card" onclick="window.location.href='book-read.html?id=${b.id}'">
@@ -703,7 +707,13 @@
                         </div>
                         <div class="p-3">
                             <h3 class="font-bold text-slate-800 text-sm line-clamp-1">${b.title}</h3>
-                            <p class="text-xs text-slate-500">${authorName}</p>
+                            <p class="text-xs text-slate-500 flex items-center gap-1">
+                                ${avatarUrl 
+                                    ? `<img src="${avatarUrl}" class="w-4 h-4 rounded-full object-cover" />` 
+                                    : `<span class="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center text-[8px] font-bold text-emerald-700 flex-shrink-0">${initial}</span>`
+                                }
+                                ${authorName}
+                            </p>
                             <div class="flex items-center justify-between mt-2">
                                 <div class="flex items-center gap-2 text-[10px] text-slate-400">
                                     <span><i class="fa-regular fa-file-lines mr-1"></i> ${b.chapter_count || 0} chapter</span>

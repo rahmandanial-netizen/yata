@@ -38,13 +38,9 @@ function timeAgo(date) {
     });
 }
 
-// Generate ID Anggota
-function generateMemberId(prefix, count) {
-    const padded = String(count).padStart(5, '0');
-    return `${prefix}-${padded}`;
-}
-
-// Get Level Icon
+// ============================================
+// GET LEVEL ICON
+// ============================================
 function getLevelIcon(level) {
     const icons = {
         'Tamu': '🌱',
@@ -56,9 +52,281 @@ function getLevelIcon(level) {
 }
 
 // ============================================
+// GENERATE MEMBER ID
+// ============================================
+function generateMemberId(prefix, count) {
+    const padded = String(count).padStart(5, '0');
+    return `${prefix}-${padded}`;
+}
+
+async function generateMemberIdWithLevel(levelKey) {
+    const prefixMap = {
+        'tamu': 'Yatta-T',
+        'penulis': 'Yatta-P',
+        'penulis_profesional': 'Yatta-PP',
+        'mentor': 'Yatta-M'
+    };
+    
+    const prefix = prefixMap[levelKey] || 'Yatta-T';
+    
+    const now = new Date();
+    const tanggal = String(now.getDate()).padStart(2, '0');
+    const bulan = String(now.getMonth() + 1).padStart(2, '0');
+    const tahun = String(now.getFullYear()).slice(-2);
+    const dateSuffix = `${tanggal}${bulan}${tahun}`;
+    
+    try {
+        const { count, error } = await _supabase
+            .from('yata_profiles')
+            .select('*', { count: 'exact', head: true })
+            .ilike('member_id', `${prefix}-%`);
+        
+        if (error) {
+            console.error('Error counting members:', error);
+            const timestamp = String(Date.now()).slice(-2);
+            return `${prefix}-${timestamp}${dateSuffix}`;
+        }
+        
+        const number = (count || 0) + 1;
+        const urutan = number < 10 ? `0${number}` : String(number);
+        
+        return `${prefix}-${urutan}${dateSuffix}`;
+        
+    } catch (err) {
+        console.error('Generate member ID error:', err);
+        const timestamp = String(Date.now()).slice(-2);
+        return `${prefix}-${timestamp}${dateSuffix}`;
+    }
+}
+
+function formatMemberId(memberId) {
+    if (!memberId) {
+        const now = new Date();
+        const tanggal = String(now.getDate()).padStart(2, '0');
+        const bulan = String(now.getMonth() + 1).padStart(2, '0');
+        const tahun = String(now.getFullYear()).slice(-2);
+        return `Yatta-T-01${tanggal}${bulan}${tahun}`;
+    }
+    return memberId;
+}
+
+function getKTAValidDate() {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() + 2);
+    return date.toLocaleDateString('id-ID', { 
+        day: 'numeric', 
+        month: 'short', 
+        year: 'numeric' 
+    });
+}
+
+// ============================================
+// ✅ QR CODE GENERATOR UNTUK SERTIFIKAT
+// ============================================
+function generateQRForCertificate(certificateNumber, userId) {
+    const container = document.getElementById('qrCodeContainer');
+    if (!container) {
+        console.warn('QR Code container not found');
+        return;
+    }
+
+    // Hapus QR lama
+    container.innerHTML = '';
+
+    // Buat link verifikasi
+    const verificationUrl = `https://yata-gold.vercel.app/verify.html?cert=${certificateNumber}&user=${userId}`;
+
+    try {
+        // Gunakan QRCode.js jika tersedia
+        if (typeof QRCode !== 'undefined') {
+            new QRCode(container, {
+                text: verificationUrl,
+                width: 100,
+                height: 100,
+                colorDark: "#065F46",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            console.log('✅ QR Code generated successfully');
+        } else {
+            // Fallback: tampilkan link
+            container.innerHTML = `
+                <div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:#f1f5f9;border-radius:8px;font-size:10px;text-align:center;color:#64748b;padding:8px;">
+                    <div>
+                        <i class="fa-regular fa-qrcode text-2xl block mb-1"></i>
+                        Scan QR untuk verifikasi
+                    </div>
+                </div>
+            `;
+            console.warn('QRCode library not loaded. Please add qrcode.min.js');
+        }
+    } catch (err) {
+        console.error('QR Code generation error:', err);
+        container.innerHTML = `
+            <div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:#fef3c7;border-radius:8px;font-size:10px;text-align:center;color:#92400e;padding:8px;">
+                <div>
+                    <i class="fa-regular fa-qrcode text-2xl block mb-1"></i>
+                    ${verificationUrl.substring(0, 20)}...
+                </div>
+            </div>
+        `;
+    }
+}
+
+// ============================================
+// ✅ DOWNLOAD SERTIFIKAT PDF
+// ============================================
+async function downloadCertificatePDF(elementId, filename) {
+    const element = document.getElementById(elementId);
+    if (!element) {
+        showError('Sertifikat tidak ditemukan.', 'Error');
+        return false;
+    }
+
+    const btn = document.getElementById('downloadCertBtn');
+    const originalText = btn ? btn.innerHTML : '';
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Generating PDF...';
+    }
+
+    try {
+        // Gunakan html2pdf.js jika tersedia
+        if (typeof html2pdf !== 'undefined') {
+            const opt = {
+                margin:        [0.5, 0.5, 0.5, 0.5],
+                filename:      filename || `Sertifikat_YATTA_${Date.now()}.pdf`,
+                image:         { type: 'jpeg', quality: 0.98 },
+                html2canvas:   { scale: 3, useCORS: true, logging: false },
+                jsPDF:         { unit: 'in', format: 'a4', orientation: 'landscape' }
+            };
+            await html2pdf().set(opt).from(element).save();
+            
+            if (btn) {
+                btn.innerHTML = '✅ Berhasil!';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                }, 2000);
+            }
+            return true;
+        } else {
+            // Fallback: gunakan print
+            showError('⚠️ Fitur PDF akan segera hadir. Gunakan print/save as PDF.', 'Info');
+            window.print();
+            return false;
+        }
+
+    } catch (err) {
+        console.error('PDF generation error:', err);
+        showError('❌ Gagal mengunduh PDF: ' + err.message, 'error');
+        return false;
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+}
+
+// ============================================
+// ✅ KIRIM SERTIFIKAT VIA EMAIL
+// ============================================
+async function sendCertificateEmail(certificateData, userId) {
+    if (!certificateData) {
+        showError('❌ Sertifikat tidak ditemukan.', 'error');
+        return false;
+    }
+
+    const btn = document.getElementById('sendCertEmailBtn');
+    const originalText = btn ? btn.innerHTML : '';
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+    }
+
+    try {
+        // Ambil email user
+        const { data: profile, error } = await _supabase
+            .from('yata_profiles')
+            .select('email')
+            .eq('id', userId)
+            .single();
+
+        if (error) {
+            console.error('Profile error:', error);
+            showError('Gagal mengambil data profil.', 'error');
+            return false;
+        }
+
+        if (!profile?.email) {
+            showError('Email tidak ditemukan di profil Anda.', 'error');
+            return false;
+        }
+
+        // Kirim notifikasi ke user (sebagai placeholder untuk email)
+        const certNumber = certificateData.certificate_number || 'YATTA-2026-0001';
+        const notifContent = `📧 Sertifikat Anda (${certNumber}) akan dikirim ke email ${profile.email}. 
+        
+Jika tidak muncul dalam 5 menit, periksa folder SPAM atau hubungi admin YATTA.
+
+💡 Tips: Anda juga bisa mengunduh sertifikat langsung dari menu Sertifikat.`;
+
+        const { data: notifData } = await _supabase
+            .from('yata_notifications')
+            .insert([{
+                title: '📧 Sertifikat Dikirim ke Email',
+                content: notifContent,
+                type: 'success'
+            }])
+            .select()
+            .single();
+
+        if (notifData) {
+            await _supabase
+                .from('yata_user_notifications')
+                .insert([{
+                    notification_id: notifData.id,
+                    user_id: userId,
+                    is_read: false
+                }]);
+        }
+
+        showError(`✅ Sertifikat akan dikirim ke ${profile.email}! Cek kotak masuk (termasuk SPAM).`, 'success');
+        return true;
+
+    } catch (err) {
+        console.error('Send certificate email error:', err);
+        showError('❌ Gagal mengirim: ' + err.message, 'error');
+        return false;
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+}
+
+// ============================================
+// ✅ SHOW CERT MESSAGE
+// ============================================
+function showCertMessage(text, type) {
+    const msg = document.getElementById('certMessage');
+    if (!msg) return;
+    
+    msg.textContent = text;
+    msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
+        type === 'success' ? 'text-emerald-600' :
+        type === 'error' ? 'text-red-600' :
+        type === 'info' ? 'text-amber-600' :
+        ''
+    }`;
+}
+
+// ============================================
 // UTILITY - ERROR HANDLING TERPUSAT
 // ============================================
-
 function showError(message, title = 'Terjadi Kesalahan') {
     let toast = document.getElementById('errorToast');
     
@@ -185,7 +453,6 @@ function validateForm(formId) {
 // ============================================
 // LOADING STATE - KOMPONEN REUSABLE
 // ============================================
-
 function injectSkeletonStyles() {
     if (document.getElementById('skeleton-styles')) return;
 
@@ -391,71 +658,9 @@ function hideButtonLoading(buttonId) {
     }
 }
 
-async function generateMemberId(levelKey) {
-    const prefixMap = {
-        'tamu': 'Yatta-T',
-        'penulis': 'Yatta-P',
-        'penulis_profesional': 'Yatta-PP',
-        'mentor': 'Yatta-M'
-    };
-    
-    const prefix = prefixMap[levelKey] || 'Yatta-T';
-    
-    const now = new Date();
-    const tanggal = String(now.getDate()).padStart(2, '0');
-    const bulan = String(now.getMonth() + 1).padStart(2, '0');
-    const tahun = String(now.getFullYear()).slice(-2);
-    const dateSuffix = `${tanggal}${bulan}${tahun}`;
-    
-    try {
-        const { count, error } = await _supabase
-            .from('yata_profiles')
-            .select('*', { count: 'exact', head: true })
-            .ilike('member_id', `${prefix}-%`);
-        
-        if (error) {
-            console.error('Error counting members:', error);
-            const timestamp = String(Date.now()).slice(-2);
-            return `${prefix}-${timestamp}${dateSuffix}`;
-        }
-        
-        const number = (count || 0) + 1;
-        const urutan = number < 10 ? `0${number}` : String(number);
-        
-        return `${prefix}-${urutan}${dateSuffix}`;
-        
-    } catch (err) {
-        console.error('Generate member ID error:', err);
-        const timestamp = String(Date.now()).slice(-2);
-        return `${prefix}-${timestamp}${dateSuffix}`;
-    }
-}
-
-function formatMemberId(memberId) {
-    if (!memberId) {
-        const now = new Date();
-        const tanggal = String(now.getDate()).padStart(2, '0');
-        const bulan = String(now.getMonth() + 1).padStart(2, '0');
-        const tahun = String(now.getFullYear()).slice(-2);
-        return `Yatta-T-01${tanggal}${bulan}${tahun}`;
-    }
-    return memberId;
-}
-
-function getKTAValidDate() {
-    const date = new Date();
-    date.setFullYear(date.getFullYear() + 2);
-    return date.toLocaleDateString('id-ID', { 
-        day: 'numeric', 
-        month: 'short', 
-        year: 'numeric' 
-    });
-}
-
 // ============================================
 // RATE LIMITING - CEGAH SPAM
 // ============================================
-
 const RATE_LIMITS = {
     comment: 30,
     testimonial: 60,
@@ -562,7 +767,6 @@ async function ensureGuestProfile(userId) {
 // ============================================
 // FITUR SHARE - MEDIA SOSIAL
 // ============================================
-
 function openShareDialog(title, url, type = 'karya') {
     let dialog = document.getElementById('shareDialog');
     if (dialog) {
@@ -689,8 +893,8 @@ function shareToInstagram(url) {
 }
 
 function shareToEmail(url, title) {
-    const subject = encodeURIComponent(`Yatta: ${title}`);
-    const body = encodeURIComponent(`Halo,\n\nSaya ingin berbagi ${title} dari Yatta:\n\n${url}\n\nYatta — Kata yang Menggerakkan`);
+    const subject = encodeURIComponent(`YATTA: ${title}`);
+    const body = encodeURIComponent(`Halo,\n\nSaya ingin berbagi ${title} dari YATTA:\n\n${url}\n\nYATTA — Kata yang Menggerakkan`);
     window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
 }
 
@@ -710,12 +914,8 @@ function copyLink(url) {
 }
 
 // ============================================
-// FUNGSI KHUSUS MENTORING - TAMBAHAN BARU
+// FUNGSI KHUSUS MENTORING
 // ============================================
-
-/**
- * Format status partisipasi mentoring
- */
 function getMentoringStatusLabel(status) {
     const labels = {
         pending: '⏳ Menunggu Konfirmasi',
@@ -726,9 +926,6 @@ function getMentoringStatusLabel(status) {
     return labels[status] || '⏳ Menunggu';
 }
 
-/**
- * Format status sesi mentoring
- */
 function getMentoringSessionStatusLabel(status) {
     const labels = {
         draft: '📝 Draft',
@@ -740,9 +937,6 @@ function getMentoringSessionStatusLabel(status) {
     return labels[status] || '📝 Draft';
 }
 
-/**
- * Format level mentoring
- */
 function getMentoringLevelLabel(level) {
     const labels = {
         pemula: '🌱 Pemula',
@@ -752,9 +946,6 @@ function getMentoringLevelLabel(level) {
     return labels[level] || '🌱 Pemula';
 }
 
-/**
- * Format kategori mentoring dengan icon
- */
 function getMentoringCategoryIcon(category) {
     const icons = {
         'menulis-cerpen': '📝',
@@ -767,40 +958,25 @@ function getMentoringCategoryIcon(category) {
     return icons[category] || '📌';
 }
 
-/**
- * Format harga mentoring
- */
 function formatMentoringPrice(price) {
     if (price === 0) return '🆓 Gratis';
     return '💰 Rp' + (price || 0).toLocaleString('id-ID');
 }
 
-/**
- * Format kuota peserta mentoring
- */
 function formatMentoringQuota(current, max) {
     if (!max || max === 0) return `${current || 0} / ∞`;
     return `${current || 0} / ${max}`;
 }
 
-/**
- * Cek apakah user bisa menjadi mentor
- */
 function canUserBeMentor(memberLevel) {
     const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
     return allowedLevels.includes(memberLevel);
 }
 
-/**
- * Cek apakah user bisa mengikuti mentoring (semua member bisa)
- */
 function canUserJoinMentoring(memberLevel) {
     return true;
 }
 
-/**
- * Generate slug untuk mentoring dari judul
- */
 function generateMentoringSlug(title) {
     return title
         .toLowerCase()
@@ -810,16 +986,10 @@ function generateMentoringSlug(title) {
         .replace(/^-|-$/g, '');
 }
 
-/**
- * Validasi slug mentoring
- */
 function isValidMentoringSlug(slug) {
     return /^[a-z0-9-]+$/.test(slug) && slug.length >= 3;
 }
 
-/**
- * Get status badge class untuk mentoring
- */
 function getMentoringStatusClass(status) {
     const classes = {
         pending: 'status-pending',
@@ -834,9 +1004,6 @@ function getMentoringStatusClass(status) {
     return classes[status] || 'status-pending';
 }
 
-/**
- * Get level badge class untuk mentoring
- */
 function getMentoringLevelClass(level) {
     const classes = {
         pemula: 'level-pemula',
@@ -846,9 +1013,6 @@ function getMentoringLevelClass(level) {
     return classes[level] || 'level-pemula';
 }
 
-/**
- * Format waktu untuk jadwal mentoring
- */
 function formatMentoringSchedule(schedule, startDate) {
     if (schedule) return schedule;
     if (startDate) {
@@ -861,9 +1025,6 @@ function formatMentoringSchedule(schedule, startDate) {
     return 'TBA';
 }
 
-/**
- * Cek apakah sesi mentoring sudah penuh
- */
 function isMentoringFull(currentParticipants, maxParticipants) {
     if (!maxParticipants || maxParticipants === 0) return false;
     return currentParticipants >= maxParticipants;
@@ -875,3 +1036,16 @@ function isMentoringFull(currentParticipants, maxParticipants) {
 if (typeof document !== 'undefined') {
     injectSkeletonStyles();
 }
+
+console.log('✅ utils.js loaded successfully');
+console.log('📦 Functions available:');
+console.log('  - timeAgo()');
+console.log('  - getLevelIcon()');
+console.log('  - generateQRForCertificate()');
+console.log('  - downloadCertificatePDF()');
+console.log('  - sendCertificateEmail()');
+console.log('  - showCertMessage()');
+console.log('  - showError() / handleSupabaseError()');
+console.log('  - checkRateLimit() / saveRateLimit()');
+console.log('  - openShareDialog() / copyLink()');
+console.log('  - getMentoring* functions');

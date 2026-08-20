@@ -134,10 +134,10 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <a href="explore.html" class="flex items-center space-x-2 group">
-    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30 group-hover:scale-105 transition" />
-    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
-    <span class="hidden sm:inline text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Publik</span>
-</a>
+                    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30 group-hover:scale-105 transition" />
+                    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
+                    <span class="hidden sm:inline text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Publik</span>
+                </a>
 
                 <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-600">
                     <a href="explore.html" class="hover:text-emerald-600 transition">Beranda</a>
@@ -306,10 +306,10 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div class="flex items-center space-x-2">
-    <img src="assets/footer.png" alt="Yatta" class="w-8 h-8 rounded-xl object-cover" />
-    <span class="text-white font-bold text-lg">Yatta</span>
-    <span class="text-xs text-emerald-400/60">Kata yang Menggerakkan</span>
-</div>
+                    <img src="assets/footer.png" alt="Yatta" class="w-8 h-8 rounded-xl object-cover" />
+                    <span class="text-white font-bold text-lg">Yatta</span>
+                    <span class="text-xs text-emerald-400/60">Kata yang Menggerakkan</span>
+                </div>
                 <div class="flex space-x-4 text-emerald-400/60">
                     <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-instagram text-lg"></i></a>
                     <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-tiktok text-lg"></i></a>
@@ -397,7 +397,7 @@
                     if (creatorIds.length > 0) {
                         const { data: creators, error: creatorError } = await _supabase
                             .from('yata_profiles')
-                            .select('id, full_name, username')
+                            .select('id, full_name, username, avatar_url')
                             .in('id', creatorIds);
                         
                         if (!creatorError && creators) {
@@ -467,7 +467,7 @@
         }
 
         // ============================================
-        // 3. RENDER CAMPAIGNS
+        // 3. RENDER CAMPAIGNS - DENGAN AVATAR
         // ============================================
         function renderCampaigns() {
             const container = document.getElementById('campaignGrid');
@@ -519,17 +519,35 @@
             container.innerHTML = filtered.map(c => {
                 const isFull = c.max_participants > 0 && c.participants_count >= c.max_participants;
                 const isApproved = c.verification_status === 'approved';
+                
+                // ✅ PERBAIKAN: Avatar creator dengan avatar_url
+                const creatorName = c.creator?.full_name || 'User';
+                const creatorAvatar = c.creator?.avatar_url || null;
+                const creatorInitial = creatorName.charAt(0).toUpperCase();
 
                 return `
                     <div class="campaign-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm hover:shadow-md">
                         <div class="flex items-start gap-3">
-                            <div class="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 text-2xl flex-shrink-0">🎯</div>
+                            <div class="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 text-2xl flex-shrink-0 overflow-hidden">
+                                ${creatorAvatar 
+                                    ? `<img src="${creatorAvatar}" class="w-full h-full object-cover rounded-xl" />` 
+                                    : '🎯'
+                                }
+                            </div>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <h3 class="font-bold text-slate-800 text-base">${c.title}</h3>
                                     <span class="status-badge ${statusClasses[c.verification_status] || 'status-pending'}">${statusLabels[c.verification_status] || '⏳ Menunggu'}</span>
                                 </div>
-                                <p class="text-xs text-slate-500">${c.community?.name || 'Komunitas'} • ${c.creator?.full_name || 'User'}</p>
+                                <div class="flex items-center gap-2 mt-1">
+                                    ${creatorAvatar 
+                                        ? `<img src="${creatorAvatar}" class="w-5 h-5 rounded-full object-cover" />`
+                                        : `<div class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold flex-shrink-0">${creatorInitial}</div>`
+                                    }
+                                    <span class="text-xs text-slate-500 font-medium">${c.creator?.full_name || 'User'}</span>
+                                    <span class="text-xs text-slate-400">•</span>
+                                    <span class="text-xs text-slate-400">${c.community?.name || 'Komunitas'}</span>
+                                </div>
                                 <p class="text-sm text-slate-600 mt-2 line-clamp-2">${c.description || 'Tidak ada deskripsi.'}</p>
                                 ${c.goal ? `<p class="text-xs text-emerald-600 mt-1 font-semibold">🎯 ${c.goal}</p>` : ''}
                                 ${c.event_date ? `<p class="text-xs text-slate-400 mt-1">📅 ${new Date(c.event_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>` : ''}
