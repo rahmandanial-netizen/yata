@@ -340,7 +340,7 @@
             try {
                 // ✅ PERBAIKAN: redirectTo menggunakan URL absolut
                 const { error } = await _supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: 'https://yata.vercel.app/reset-password.html'
+                    redirectTo: 'https://yata-gold.vercel.app/reset-password.html'
                 });
 
                 if (error) {
