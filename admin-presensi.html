@@ -260,7 +260,7 @@
         }
 
         // ============================================
-        // LOAD ATTENDANCE - DIPERBAIKI
+        // LOAD ATTENDANCE - MANUAL JOIN (2 LANGKAH)
         // ============================================
         async function loadAttendance() {
             const sessionId = document.getElementById('sessionSelect').value;
@@ -284,29 +284,45 @@
             `;
 
             try {
-                // ✅ PERBAIKAN: gunakan 'yata_profiles' bukan 'profiles'
+                // STEP 1: Ambil data peserta
                 const { data: participants, error } = await _supabase
                     .from('yata_mentoring_participants')
-                    .select(`
-                        id,
-                        user_id,
-                        phone,
-                        status,
-                        attended,
-                        attendance_status,
-                        attendance_time,
-                        yata_profiles:user_id (full_name, member_id, email)
-                    `)
+                    .select('*')
                     .eq('session_id', sessionId)
                     .order('registered_at', { ascending: true });
 
                 if (error) throw error;
 
-                // ✅ PERBAIKAN: akses data profile dengan benar
-                attendanceData = participants.map(p => ({
-                    ...p,
-                    profile: p.yata_profiles || null
-                }));
+                console.log('✅ Peserta ditemukan:', participants?.length || 0);
+
+                // STEP 2: Ambil data profile terpisah
+                if (participants && participants.length > 0) {
+                    const userIds = participants.map(p => p.user_id).filter(id => id);
+                    
+                    let profileMap = {};
+                    if (userIds.length > 0) {
+                        const { data: profiles, error: profileError } = await _supabase
+                            .from('yata_profiles')
+                            .select('id, full_name, member_id, email')
+                            .in('id', userIds);
+                        
+                        if (!profileError && profiles) {
+                            profiles.forEach(p => {
+                                profileMap[p.id] = p;
+                            });
+                            console.log('✅ Profile ditemukan:', profiles.length);
+                        } else {
+                            console.error('❌ Profile error:', profileError);
+                        }
+                    }
+                    
+                    attendanceData = participants.map(p => ({
+                        ...p,
+                        profile: profileMap[p.user_id] || null
+                    }));
+                } else {
+                    attendanceData = [];
+                }
 
                 // Update statistik
                 updateStats();
@@ -364,7 +380,7 @@
         }
 
         // ============================================
-        // RENDER TABLE - DIPERBAIKI
+        // RENDER TABLE
         // ============================================
         function renderTable() {
             const container = document.getElementById('attendanceTable');
@@ -400,8 +416,8 @@
             `;
 
             attendanceData.forEach((p, index) => {
-                // ✅ PERBAIKAN: ambil profile dengan benar
-                const profile = p.yata_profiles || p.profile || {};
+                // ✅ AMBIL PROFILE DARI DATA YANG SUDAH DIGABUNG
+                const profile = p.profile || {};
                 const name = profile.full_name || 'User';
                 const memberId = profile.member_id || '-';
                 const email = profile.email || '-';
@@ -561,7 +577,7 @@
                 // Ambil semua user yang sudah hadir di sesi ini
                 const { data: users, error } = await _supabase
                     .from('yata_mentoring_participants')
-                    .select('user_id, yata_profiles:user_id (full_name, member_id)')
+                    .select('user_id')
                     .eq('attended', true)
                     .eq('session_id', currentSessionId);
 
