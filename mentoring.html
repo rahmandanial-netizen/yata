@@ -154,6 +154,13 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px -12px rgba(6, 95, 70, 0.15);
+        }
     </style>
 </head>
 <body>
@@ -171,11 +178,11 @@
                 </a>
 
                 <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-600">
-                    <a href="explore.html" class="hover:text-emerald-600 transition">Beranda</a>
+                    <a href="explore.html" class="nav-link-jelajahi">🌟 Jelajahi Yatta</a>
                     <a href="feed.html" class="hover:text-emerald-600 transition">📖 Feed</a>
                     <a href="campaigns.html" class="hover:text-emerald-600 transition">Kampanye</a>
                     <a href="penulis.html" class="hover:text-emerald-600 transition">Penulis</a>
-                    <a href="mentoring.html" class="nav-link-jelajahi">Mentoring</a>
+                    <a href="mentoring.html" class="hover:text-emerald-600 transition">Mentoring</a>
                     <a href="#tentang" class="hover:text-emerald-600 transition">Tentang</a>
                     <a href="login.html" class="text-emerald-600 hover:text-emerald-700 font-semibold transition">Masuk</a>
                     <a href="register.html" class="btn-daftar-komunitas px-5 py-2 rounded-full text-sm flex items-center justify-center gap-2">
@@ -190,11 +197,11 @@
         </div>
 
         <div id="mobile-menu" class="md:hidden hidden bg-white border-t border-emerald-100 px-4 py-4 space-y-3">
-            <a href="explore.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Beranda</a>
+            <a href="explore.html" class="block text-sm font-medium text-amber-600 font-semibold">🌟 Jelajahi Yatta</a>
             <a href="feed.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">📖 Feed</a>
             <a href="campaigns.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">🎯 Kampanye</a>
             <a href="penulis.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">👥 Penulis</a>
-            <a href="mentoring.html" class="block text-sm font-medium text-amber-600 font-semibold">🎓 Mentoring</a>
+            <a href="mentoring.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">🎓 Mentoring</a>
             <a href="#tentang" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Tentang</a>
             <a href="login.html" class="block text-sm font-medium text-emerald-600 hover:text-emerald-700">Masuk</a>
             <a href="register.html" class="block bg-emerald-700 hover:bg-emerald-800 text-white text-center px-4 py-2.5 rounded-full text-sm font-bold transition">
@@ -539,7 +546,6 @@
 
             container.innerHTML = onboardingSessions.map(s => {
                 const isFull = s.max_participants > 0 && s.current_participants >= s.max_participants;
-                const isFree = s.price === 0;
                 const mentorName = s.mentor?.full_name || 'Admin YATTA';
                 const avatar = mentorName.charAt(0).toUpperCase();
                 const schedule = s.schedule || 'Sabtu, 19:00 WIB';
@@ -739,7 +745,8 @@
                 const isFull = s.max_participants > 0 && s.current_participants >= s.max_participants;
                 const isFree = s.price === 0;
                 const mentorName = s.mentor?.full_name || 'Mentor';
-                const avatar = mentorName.charAt(0).toUpperCase();
+                const mentorAvatar = s.mentor?.avatar_url || null;
+                const mentorInitial = mentorName.charAt(0).toUpperCase();
                 const icon = categoryIcons[s.category] || '📌';
 
                 return `
@@ -752,7 +759,10 @@
                                     <span class="level-badge ${levelClasses[s.level] || 'level-pemula'}">${levelLabels[s.level] || '🌱 Pemula'}</span>
                                 </div>
                                 <div class="flex items-center gap-2 mt-1">
-                                    <div class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold">${avatar}</div>
+                                    ${mentorAvatar 
+                                        ? `<img src="${mentorAvatar}" class="w-5 h-5 rounded-full object-cover" />`
+                                        : `<div class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold flex-shrink-0">${mentorInitial}</div>`
+                                    }
                                     <span class="text-xs text-slate-500 font-medium">${mentorName}</span>
                                 </div>
                                 <p class="text-xs text-slate-400 mt-1 line-clamp-2">${s.description || 'Tidak ada deskripsi'}</p>

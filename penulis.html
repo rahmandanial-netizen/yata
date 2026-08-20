@@ -102,6 +102,47 @@
             from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .nav-link-jelajahi {
+            color: #F59E0B;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .nav-link-jelajahi:hover {
+            color: #D97706;
+        }
+        .nav-link-jelajahi::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #F59E0B;
+            transition: width 0.3s ease;
+        }
+        .nav-link-jelajahi:hover::after {
+            width: 100%;
+        }
+        .btn-daftar-komunitas {
+            background: #065F46;
+            color: white;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(6, 95, 70, 0.35);
+        }
+        .btn-daftar-komunitas:hover {
+            background: #0D9488;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(6, 95, 70, 0.45);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px -12px rgba(6, 95, 70, 0.15);
+        }
     </style>
 </head>
 <body>
@@ -113,21 +154,21 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <a href="explore.html" class="flex items-center space-x-2 group">
-    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30 group-hover:scale-105 transition" />
-    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
-    <span class="hidden sm:inline text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Publik</span>
-</a>
+                    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30 group-hover:scale-105 transition" />
+                    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
+                    <span class="hidden sm:inline text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Publik</span>
+                </a>
 
                 <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-600">
-                    <a href="explore.html" class="hover:text-emerald-600 transition">Beranda</a>
+                    <a href="explore.html" class="nav-link-jelajahi">🌟 Jelajahi Yatta</a>
                     <a href="feed.html" class="hover:text-emerald-600 transition">📖 Feed</a>
                     <a href="campaigns.html" class="hover:text-emerald-600 transition">Kampanye</a>
-                    <a href="penulis.html" class="text-amber-600 font-semibold">Penulis</a>
+                    <a href="penulis.html" class="hover:text-emerald-600 transition">Penulis</a>
                     <a href="mentoring.html" class="hover:text-emerald-600 transition">Mentoring</a>
                     <a href="#tentang" class="hover:text-emerald-600 transition">Tentang</a>
                     <a href="login.html" class="text-emerald-600 hover:text-emerald-700 font-semibold transition">Masuk</a>
-                    <a href="register.html" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-full text-sm transition shadow-md shadow-emerald-500/25">
-                        Daftar
+                    <a href="register.html" class="btn-daftar-komunitas px-5 py-2 rounded-full text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-user-plus mr-1"></i> Daftar Komunitas
                     </a>
                 </div>
 
@@ -138,15 +179,15 @@
         </div>
 
         <div id="mobile-menu" class="md:hidden hidden bg-white border-t border-emerald-100 px-4 py-4 space-y-3">
-            <a href="explore.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Beranda</a>
+            <a href="explore.html" class="block text-sm font-medium text-amber-600 font-semibold">🌟 Jelajahi Yatta</a>
             <a href="feed.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">📖 Feed</a>
             <a href="campaigns.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Kampanye</a>
-            <a href="penulis.html" class="block text-sm font-medium text-amber-600 font-semibold">Penulis</a>
+            <a href="penulis.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Penulis</a>
             <a href="mentoring.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Mentoring</a>
             <a href="#tentang" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Tentang</a>
             <a href="login.html" class="block text-sm font-medium text-emerald-600 hover:text-emerald-700">Masuk</a>
-            <a href="register.html" class="block bg-emerald-600 hover:bg-emerald-700 text-white text-center px-4 py-2.5 rounded-full text-sm font-bold transition">
-                Daftar
+            <a href="register.html" class="block bg-emerald-700 hover:bg-emerald-800 text-white text-center px-4 py-2.5 rounded-full text-sm font-bold transition">
+                Daftar Komunitas
             </a>
         </div>
     </nav>
@@ -232,10 +273,10 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div class="flex items-center space-x-2">
-    <img src="assets/footer.png" alt="Yatta" class="w-8 h-8 rounded-xl object-cover" />
-    <span class="text-white font-bold text-lg">Yatta</span>
-    <span class="text-xs text-emerald-400/60">Kata yang Menggerakkan</span>
-</div>
+                    <img src="assets/favicon.png" alt="Yatta" class="w-8 h-8 rounded-xl object-cover" />
+                    <span class="text-white font-bold text-lg">Yatta</span>
+                    <span class="text-xs text-emerald-400/60">Kata yang Menggerakkan</span>
+                </div>
                 <div class="flex space-x-4 text-emerald-400/60">
                     <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-instagram text-lg"></i></a>
                     <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-tiktok text-lg"></i></a>
