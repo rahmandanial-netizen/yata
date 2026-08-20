@@ -682,7 +682,44 @@
         }
 
         // ============================================
-        // 4. LOAD SESSION DETAIL
+        // 4. UPDATE KUOTA OTOMATIS
+        // ============================================
+        async function updateQuota(sessionId) {
+            try {
+                // Hitung jumlah peserta yang sudah terdaftar (approved)
+                const { count, error: countError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('session_id', sessionId)
+                    .eq('status', 'approved');
+
+                if (countError) {
+                    console.error('❌ Count error:', countError);
+                    return false;
+                }
+
+                // Update current_participants dengan jumlah aktual
+                const { error: updateError } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .update({ current_participants: count || 0 })
+                    .eq('id', sessionId);
+
+                if (updateError) {
+                    console.error('❌ Update kuota error:', updateError);
+                    return false;
+                }
+
+                console.log('✅ Kuota berhasil diupdate ke:', count || 0);
+                return true;
+
+            } catch (err) {
+                console.error('❌ Update kuota error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // 5. LOAD SESSION DETAIL
         // ============================================
         async function loadSessionDetail() {
             sessionId = getSessionId();
@@ -803,7 +840,7 @@
         }
 
         // ============================================
-        // 5. RENDER SESSION
+        // 6. RENDER SESSION
         // ============================================
         function renderSession(session) {
             const statusLabels = {
@@ -945,7 +982,7 @@
         }
 
         // ============================================
-        // 6. RENDER MATERIALS
+        // 7. RENDER MATERIALS
         // ============================================
         function renderMaterials(materials) {
             const container = document.getElementById('materialList');
@@ -990,7 +1027,7 @@
         }
 
         // ============================================
-        // 7. RENDER REVIEWS
+        // 8. RENDER REVIEWS
         // ============================================
         function renderReviews(reviews) {
             const container = document.getElementById('reviewList');
@@ -1032,7 +1069,7 @@
         }
 
         // ============================================
-        // 8. OPEN REGISTER MODAL - DENGAN AUTO-FILL DATA
+        // 9. OPEN REGISTER MODAL - DENGAN AUTO-FILL DATA
         // ============================================
         async function openRegisterModal() {
             if (!currentUser) {
@@ -1076,7 +1113,7 @@
         }
 
         // ============================================
-        // 9. SUBMIT REGISTER - AUTO APPROVE + NOTIFIKASI + UPDATE KUOTA
+        // 10. SUBMIT REGISTER - AUTO APPROVE + NOTIFIKASI + UPDATE KUOTA OTOMATIS
         // ============================================
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1126,6 +1163,19 @@
                     return;
                 }
 
+                // ✅ CEK APAKAH SUDAH TERDAFTAR
+                const { data: existing, error: checkError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('id')
+                    .eq('session_id', sessionId)
+                    .eq('user_id', session.user.id)
+                    .maybeSingle();
+
+                if (existing) {
+                    showRegisterMessage('Anda sudah terdaftar di kelas ini.', 'error');
+                    return;
+                }
+
                 // ✅ INSERT PESERTA LANGSUNG APPROVED
                 const { error: insertError } = await _supabase
                     .from('yata_mentoring_participants')
@@ -1138,29 +1188,12 @@
                     }]);
 
                 if (insertError) {
-                    if (insertError.code === '23505') {
-                        showRegisterMessage('Anda sudah terdaftar di kelas ini.', 'error');
-                    } else {
-                        showRegisterMessage('Gagal mendaftar: ' + insertError.message, 'error');
-                    }
+                    showRegisterMessage('Gagal mendaftar: ' + insertError.message, 'error');
                     return;
                 }
 
-                // ✅ UPDATE KAPASITAS
-                const newCount = (currentSession.current_participants || 0) + 1;
-                const { error: updateError } = await _supabase
-                    .from('yata_mentoring_sessions')
-                    .update({ 
-                        current_participants: newCount 
-                    })
-                    .eq('id', sessionId);
-
-                if (updateError) {
-                    console.error('❌ Update kapasitas error:', updateError);
-                    // Tapi tetap lanjut karena peserta sudah terdaftar
-                } else {
-                    console.log('✅ Kuota berhasil diupdate:', newCount);
-                }
+                // ✅ UPDATE KUOTA OTOMATIS (berdasarkan jumlah peserta aktual)
+                await updateQuota(sessionId);
 
                 // ✅ KIRIM NOTIFIKASI KE PESERTA
                 const notifTitle = `🎉 Pendaftaran Berhasil!`;
@@ -1184,13 +1217,13 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
                     'success'
                 );
 
-                showRegisterMessage('✅ Pendaftaran berhasil! Kuota terupdate.', 'success');
+                showRegisterMessage('✅ Pendaftaran berhasil! Kuota terupdate otomatis.', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
 
                 // ✅ REFRESH HALAMAN UNTUK MENAMPILKAN KUOTA BARU
                 setTimeout(() => {
                     closeRegisterModal();
-                    loadSessionDetail();  // Refresh halaman
+                    loadSessionDetail();  // Refresh semua data
                 }, 1500);
 
             } catch (err) {
@@ -1213,7 +1246,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 10. ULASAN ONBOARDING
+        // 11. ULASAN ONBOARDING
         // ============================================
 
         let materialRatingValue = 0;
@@ -1343,7 +1376,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 11. KLAIM SERTIFIKAT
+        // 12. KLAIM SERTIFIKAT
         // ============================================
 
         async function claimCertificate(sessionId) {
@@ -1447,7 +1480,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 12. LOGOUT
+        // 13. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -1465,7 +1498,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 13. EVENT LISTENERS
+        // 14. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadSessionDetail();
