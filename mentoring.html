@@ -547,7 +547,8 @@
             container.innerHTML = onboardingSessions.map(s => {
                 const isFull = s.max_participants > 0 && s.current_participants >= s.max_participants;
                 const mentorName = s.mentor?.full_name || 'Admin YATTA';
-                const avatar = mentorName.charAt(0).toUpperCase();
+                const mentorAvatar = s.mentor?.avatar_url || null;
+                const mentorInitial = mentorName.charAt(0).toUpperCase();
                 const schedule = s.schedule || 'Sabtu, 19:00 WIB';
 
                 return `
@@ -561,7 +562,10 @@
                                     <span class="level-badge ${levelClasses[s.level] || 'level-pemula'}">${levelLabels[s.level] || '🌱 Pemula'}</span>
                                 </div>
                                 <div class="flex items-center gap-2 mt-1">
-                                    <div class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold">${avatar}</div>
+                                    ${mentorAvatar 
+                                        ? `<img src="${mentorAvatar}" class="w-5 h-5 rounded-full object-cover" />`
+                                        : `<div class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold flex-shrink-0">${mentorInitial}</div>`
+                                    }
                                     <span class="text-xs text-slate-500 font-medium">${mentorName}</span>
                                 </div>
                                 <p class="text-xs text-slate-400 mt-1 line-clamp-2">${s.description || 'Tidak ada deskripsi'}</p>
@@ -586,7 +590,7 @@
         }
 
         // ============================================
-        // 4. LOAD MENTORING SESSIONS (USER)
+        // 4. LOAD MENTORING SESSIONS (USER) - DIPERBAIKI
         // ============================================
         async function loadMentoring(reset = true) {
             if (reset) {
@@ -617,10 +621,10 @@
                 const from = currentPage * pageSize;
                 const to = from + pageSize - 1;
 
+                // ✅ PERBAIKAN: Ambil SEMUA data tanpa filter is_onboarding
                 let query = _supabase
                     .from('yata_mentoring_sessions')
                     .select('*', { count: 'exact' })
-                    .eq('is_onboarding', false)
                     .in('status', ['published', 'ongoing'])
                     .order('created_at', { ascending: false })
                     .range(from, to);
@@ -640,7 +644,12 @@
 
                 const { data: sessions, error, count } = await query;
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Query error:', error);
+                    throw error;
+                }
+
+                console.log('✅ Data sessions ditemukan:', sessions?.length || 0);
 
                 // Ambil data mentor
                 if (sessions && sessions.length > 0) {
@@ -672,6 +681,8 @@
 
                 if (allSessions.length === 0) {
                     document.getElementById('mentoringEmpty').classList.remove('hidden');
+                } else {
+                    document.getElementById('mentoringEmpty').classList.add('hidden');
                 }
 
                 if (hasMoreData && allSessions.length > 0) {
