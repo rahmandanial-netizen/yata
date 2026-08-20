@@ -268,7 +268,7 @@
             </div>
 
             <!-- ========================================== -->
-            <!-- SECTION KELAS MENTORING (USER) -->
+            <!-- SECTION KELAS MENTORING (REGULER) -->
             <!-- ========================================== -->
             <div id="mentoringSection">
                 <div class="flex items-center gap-3 mb-4">
@@ -302,8 +302,11 @@
 
                 <div id="mentoringEmpty" class="hidden text-center py-12 text-slate-400 text-sm bg-white rounded-2xl border border-emerald-100/60 shadow-sm">
                     <i class="fa-regular fa-folder-open text-4xl block mb-3"></i>
-                    <p>Belum ada kelas mentoring yang tersedia.</p>
-                    <p class="text-xs mt-1">Jadilah mentor pertama dengan membuat kelas!</p>
+                    <p>Belum ada kelas mentoring reguler yang tersedia.</p>
+                    <p class="text-xs mt-1">Jika Anda sudah level Penulis+, buat kelas mentoring sekarang!</p>
+                    <a href="mentoring-create.html" class="inline-block mt-3 text-emerald-600 hover:text-emerald-700 font-semibold text-sm">
+                        Buat Kelas →
+                    </a>
                 </div>
             </div>
 
@@ -590,7 +593,7 @@
         }
 
         // ============================================
-        // 4. LOAD MENTORING SESSIONS (USER) - DIPERBAIKI
+        // 4. LOAD MENTORING REGULER SESSIONS
         // ============================================
         async function loadMentoring(reset = true) {
             if (reset) {
@@ -621,14 +624,16 @@
                 const from = currentPage * pageSize;
                 const to = from + pageSize - 1;
 
-                // ✅ PERBAIKAN: Ambil SEMUA data tanpa filter is_onboarding
+                // ✅ QUERY UNTUK KELAS REGULER (bukan onboarding)
                 let query = _supabase
                     .from('yata_mentoring_sessions')
                     .select('*', { count: 'exact' })
-                    .in('status', ['published', 'ongoing'])
+                    .eq('status', 'published')
+                    .eq('is_onboarding', false)  // ← HANYA reguler
                     .order('created_at', { ascending: false })
                     .range(from, to);
 
+                // Terapkan filter tambahan jika ada
                 if (currentFilter === 'gratis') {
                     query = query.eq('price', 0);
                 } else if (currentFilter === 'berbayar') {
@@ -642,14 +647,15 @@
                     query = query.or(`title.ilike.%${searchTerm}%, description.ilike.%${searchTerm}%`);
                 }
 
+                console.log('🔍 Running query for regular mentoring sessions...');
                 const { data: sessions, error, count } = await query;
 
                 if (error) {
-                    console.error('Query error:', error);
+                    console.error('❌ Query error:', error);
                     throw error;
                 }
 
-                console.log('✅ Data sessions ditemukan:', sessions?.length || 0);
+                console.log('✅ Reguler sessions ditemukan:', sessions?.length || 0);
 
                 // Ambil data mentor
                 if (sessions && sessions.length > 0) {
@@ -662,6 +668,7 @@
                             .in('id', mentorIds);
                         if (mentors) {
                             mentors.forEach(m => { mentorMap[m.id] = m; });
+                            console.log('✅ Mentor data loaded:', mentors.length);
                         }
                     }
                     sessions.forEach(s => {
@@ -679,8 +686,10 @@
 
                 renderMentoring();
 
+                // Tampilkan empty state jika tidak ada data
                 if (allSessions.length === 0) {
                     document.getElementById('mentoringEmpty').classList.remove('hidden');
+                    container.innerHTML = '';
                 } else {
                     document.getElementById('mentoringEmpty').classList.add('hidden');
                 }
@@ -697,7 +706,7 @@
                 }
 
             } catch (err) {
-                console.error('Load mentoring error:', err);
+                console.error('❌ Load mentoring error:', err);
                 if (allSessions.length === 0) {
                     container.innerHTML = `
                         <div class="col-span-full text-center py-8 text-red-400 text-sm">
@@ -723,7 +732,7 @@
         }
 
         // ============================================
-        // 5. RENDER MENTORING
+        // 5. RENDER MENTORING REGULER
         // ============================================
         function renderMentoring() {
             const container = document.getElementById('mentoringGrid');
@@ -760,6 +769,9 @@
                 const mentorInitial = mentorName.charAt(0).toUpperCase();
                 const icon = categoryIcons[s.category] || '📌';
 
+                // Cek apakah user sudah login untuk tombol daftar
+                const isLoggedIn = !!currentUser;
+
                 return `
                     <div class="mentoring-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm cursor-pointer" onclick="window.location.href='mentoring-detail.html?id=${s.id}'">
                         <div class="flex items-start gap-3">
@@ -788,10 +800,12 @@
                         </div>
                         <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
                             <span class="text-[10px] text-slate-400">${new Date(s.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                            <button onclick="event.stopPropagation(); window.location.href='mentoring-detail.html?id=${s.id}'" 
-                                class="text-xs ${isFull ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'} font-semibold px-3 py-1 rounded-full transition"
+                            <button onclick="event.stopPropagation(); 
+                                ${isLoggedIn ? `window.location.href='mentoring-detail.html?id=${s.id}'` : `document.getElementById('loginPopupModal').classList.remove('hidden'); document.body.style.overflow = 'hidden';`}" 
+                                class="text-xs ${isFull ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : isLoggedIn ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700' : 'bg-amber-50 hover:bg-amber-100 text-amber-700'} font-semibold px-3 py-1 rounded-full transition"
                                 ${isFull ? 'disabled' : ''}>
-                                <i class="fa-regular fa-user-plus mr-1"></i> ${isFull ? 'Penuh' : 'Daftar'}
+                                <i class="fa-regular fa-user-plus mr-1"></i> 
+                                ${isFull ? 'Penuh' : isLoggedIn ? 'Daftar' : 'Login untuk Daftar'}
                             </button>
                         </div>
                     </div>
