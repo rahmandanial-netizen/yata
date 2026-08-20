@@ -87,6 +87,29 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+        
+        /* Rating stars untuk ulasan */
+        .rating-stars {
+            display: flex;
+            gap: 8px;
+            font-size: 32px;
+            cursor: pointer;
+        }
+        .rating-stars span {
+            transition: all 0.2s;
+            color: #d1d5db;
+        }
+        .rating-stars span.active {
+            color: #f59e0b;
+        }
+        .rating-stars span:hover {
+            transform: scale(1.15);
+        }
+        .rating-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -98,9 +121,9 @@
         <div class="flex flex-col h-full">
             <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
                 <a href="dashboard.html" class="flex items-center space-x-2 group">
-    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30" />
-    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
-</a>
+                    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30" />
+                    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
+                </a>
             </div>
 
             <nav class="flex-1 px-4 py-6 space-y-1">
@@ -119,8 +142,11 @@
                 <a href="community.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
                     <i class="fa-solid fa-users w-5"></i> Komunitas
                 </a>
-                <a href="mentoring.html" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-sm font-semibold text-emerald-800 rounded-xl transition">
-                    <i class="fa-solid fa-graduation-cap w-5 text-emerald-600"></i> Mentoring
+                <a href="mentoring.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring
+                </a>
+                <a href="certificates.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-certificate w-5"></i> Sertifikat
                 </a>
                 <a href="profile.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
                     <i class="fa-solid fa-user w-5"></i> Profil
@@ -141,10 +167,10 @@
     <!-- ============================================ -->
     <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
         <div class="flex items-center justify-between px-4 h-16">
-           <a href="dashboard.html" class="flex items-center space-x-2">
-    <img src="assets/favicon.png" alt="Yatta" class="h-8 w-8 rounded-xl object-cover" />
-    <span class="text-lg font-extrabold text-emerald-800">Yatta</span>
-</a>
+            <a href="dashboard.html" class="flex items-center space-x-2">
+                <img src="assets/favicon.png" alt="Yatta" class="h-8 w-8 rounded-xl object-cover" />
+                <span class="text-lg font-extrabold text-emerald-800">Yatta</span>
+            </a>
             <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
                 <i class="fa-solid fa-bars text-xl"></i>
             </button>
@@ -156,7 +182,8 @@
             <a href="#" onclick="checkProjectAccess(event)" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Proyek Buku</a>
             <a href="library.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Perpustakaan</a>
             <a href="community.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Komunitas</a>
-            <a href="mentoring.html" class="block px-4 py-2.5 bg-emerald-50 text-emerald-800 font-semibold rounded-xl">Mentoring</a>
+            <a href="mentoring.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Mentoring</a>
+            <a href="certificates.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Sertifikat</a>
             <a href="profile.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Profil</a>
             <hr class="my-2 border-emerald-100" />
             <button id="btnLogoutMobile" class="block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
@@ -193,6 +220,7 @@
                                 <span id="sessionStatus" class="status-badge status-published">✅ Published</span>
                                 <span id="sessionLevel" class="level-badge level-pemula">🌱 Pemula</span>
                                 <span id="sessionCategory" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-600">Umum</span>
+                                <span id="onboardingBadge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-700 hidden">🎓 Onboarding</span>
                             </div>
                             <h1 id="sessionTitle" class="text-2xl md:text-3xl font-black text-slate-800">Judul Kelas</h1>
                             <div class="flex items-center gap-3 mt-2">
@@ -209,11 +237,12 @@
                                 <span id="priceDisplay" class="font-bold text-emerald-600">🆓 Gratis</span>
                             </div>
                         </div>
-                        <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                        <div class="flex flex-col items-end gap-2 flex-shrink-0" id="actionButtons">
                             <button id="registerBtn" onclick="openRegisterModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
                                 <i class="fa-regular fa-user-plus mr-1"></i> Daftar Sekarang
                             </button>
                             <span id="registrationStatus" class="text-xs text-slate-400 hidden"></span>
+                            <!-- Tombol ulasan & klaim sertifikat akan ditambahkan oleh JavaScript -->
                         </div>
                     </div>
                 </div>
@@ -325,9 +354,70 @@
     </div>
 
     <!-- ============================================ -->
+    <!-- MODAL ULASAN ONBOARDING -->
+    <!-- ============================================ -->
+    <div id="reviewModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeReviewModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Ulasan</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Berikan Ulasan</h3>
+                <p id="reviewModalSubtitle" class="text-xs text-slate-500 mt-1">Bagikan pengalaman Anda mengikuti kelas ini.</p>
+            </div>
+
+            <form id="reviewForm" class="space-y-4">
+                <input type="hidden" id="reviewSessionId" value="" />
+
+                <!-- Rating Pemahaman Materi -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pemahaman Materi <span class="text-red-500">*</span></label>
+                    <div class="rating-stars" id="materialStars">
+                        <span onclick="setMaterialRating(1)">⭐</span>
+                        <span onclick="setMaterialRating(2)">⭐</span>
+                        <span onclick="setMaterialRating(3)">⭐</span>
+                        <span onclick="setMaterialRating(4)">⭐</span>
+                        <span onclick="setMaterialRating(5)">⭐</span>
+                    </div>
+                    <input type="hidden" id="materialRating" value="0" />
+                    <p class="rating-label" id="materialLabel">Klik bintang untuk menilai</p>
+                </div>
+
+                <!-- Rating Kepuasan Platform -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Kepuasan Platform <span class="text-red-500">*</span></label>
+                    <div class="rating-stars" id="platformStars">
+                        <span onclick="setPlatformRating(1)">⭐</span>
+                        <span onclick="setPlatformRating(2)">⭐</span>
+                        <span onclick="setPlatformRating(3)">⭐</span>
+                        <span onclick="setPlatformRating(4)">⭐</span>
+                        <span onclick="setPlatformRating(5)">⭐</span>
+                    </div>
+                    <input type="hidden" id="platformRating" value="0" />
+                    <p class="rating-label" id="platformLabel">Klik bintang untuk menilai</p>
+                </div>
+
+                <!-- Feedback -->
+                <div>
+                    <label for="reviewFeedback" class="block text-xs font-semibold text-slate-700 mb-1">Feedback / Saran</label>
+                    <textarea id="reviewFeedback" rows="3" placeholder="Tulis feedback atau saran untuk YATTA..." class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
+                </div>
+
+                <button type="submit" id="reviewSubmitBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-regular fa-paper-plane mr-1"></i> Kirim Ulasan
+                </button>
+
+                <div id="reviewMessage" class="text-sm text-center hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
     <!-- MODAL LOGIN POPUP -->
     <!-- ============================================ -->
-    <div id="loginPopupModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div id="loginPopupModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex-items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
             <button onclick="closeLoginPopup()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
                 <i class="fa-solid fa-xmark"></i>
@@ -363,6 +453,7 @@
         let sessionData = null;
         let currentUser = null;
         let participantStatus = null;
+        let reviewStatus = null;
 
         // ============================================
         // CEK AKSES PROYEK BUKU
@@ -492,7 +583,40 @@
         }
 
         // ============================================
-        // 3. LOAD SESSION DETAIL
+        // 3. KIRIM NOTIFIKASI
+        // ============================================
+        async function sendNotification(userId, title, content, type = 'success') {
+            try {
+                const { data: notifData, error } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: title,
+                        content: content,
+                        type: type
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                if (notifData) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+                }
+                return true;
+            } catch (err) {
+                console.error('Send notification error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // 4. LOAD SESSION DETAIL
         // ============================================
         async function loadSessionDetail() {
             sessionId = getSessionId();
@@ -553,6 +677,28 @@
                     if (participant) {
                         participantStatus = participant.status;
                     }
+
+                    // Cek status ulasan
+                    const { data: review } = await _supabase
+                        .from('yata_onboarding_reviews')
+                        .select('id')
+                        .eq('user_id', currentUser.id)
+                        .eq('session_id', sessionId)
+                        .maybeSingle();
+
+                    reviewStatus = review ? 'reviewed' : 'not_reviewed';
+
+                    // Cek sertifikat
+                    const { data: certificate } = await _supabase
+                        .from('yata_certificates')
+                        .select('id, is_claimed')
+                        .eq('user_id', currentUser.id)
+                        .eq('session_id', sessionId)
+                        .maybeSingle();
+
+                    if (certificate) {
+                        reviewStatus = certificate.is_claimed ? 'claimed' : 'reviewed';
+                    }
                 }
 
                 // Ambil materi
@@ -591,7 +737,7 @@
         }
 
         // ============================================
-        // 4. RENDER SESSION
+        // 5. RENDER SESSION
         // ============================================
         function renderSession(session) {
             const statusLabels = {
@@ -629,6 +775,15 @@
             document.getElementById('sessionTitle').textContent = session.title;
             document.getElementById('sessionDescription').textContent = session.description || 'Tidak ada deskripsi.';
 
+            // Badge Onboarding
+            const onboardingBadge = document.getElementById('onboardingBadge');
+            if (session.is_onboarding) {
+                onboardingBadge.classList.remove('hidden');
+                onboardingBadge.textContent = '🎓 Onboarding Wajib';
+            } else {
+                onboardingBadge.classList.add('hidden');
+            }
+
             // Mentor
             const mentor = session.mentor || {};
             const avatarEl = document.getElementById('mentorAvatar');
@@ -645,7 +800,7 @@
             document.getElementById('maxParticipants').textContent = session.max_participants || '∞';
             document.getElementById('startDate').textContent = session.start_date ? new Date(session.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'TBA';
             document.getElementById('schedule').textContent = session.schedule || 'TBA';
-            
+
             const isFree = session.price === 0;
             document.getElementById('priceDisplay').textContent = isFree ? '🆓 Gratis' : '💰 Rp' + (session.price || 0).toLocaleString();
             document.getElementById('priceDisplay').className = `font-bold ${isFree ? 'text-emerald-600' : 'text-purple-600'}`;
@@ -657,7 +812,7 @@
             document.getElementById('infoQuota').textContent = `${session.current_participants || 0} / ${session.max_participants || '∞'}`;
             document.getElementById('infoSchedule').textContent = session.schedule || 'TBA';
 
-            // Meeting link (hanya untuk peserta yang sudah diterima)
+            // Meeting link
             const meetingContainer = document.getElementById('meetingLinkContainer');
             if (participantStatus === 'approved' && session.meeting_link) {
                 meetingContainer.classList.remove('hidden');
@@ -667,10 +822,16 @@
                 meetingContainer.classList.add('hidden');
             }
 
-            // Tombol Daftar
+            // Action buttons
+            const actionContainer = document.getElementById('actionButtons');
+            // Hapus tombol lama (selain registerBtn dan registrationStatus)
             const registerBtn = document.getElementById('registerBtn');
             const statusText = document.getElementById('registrationStatus');
-            
+            actionContainer.innerHTML = '';
+            actionContainer.appendChild(registerBtn);
+            actionContainer.appendChild(statusText);
+
+            // Tombol Daftar
             if (!currentUser) {
                 registerBtn.textContent = '🔒 Login untuk Daftar';
                 registerBtn.onclick = () => {
@@ -691,6 +852,28 @@
                 registerBtn.className = 'bg-emerald-100 text-emerald-700 font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
                 statusText.textContent = '✅ Anda sudah terdaftar di kelas ini.';
                 statusText.classList.remove('hidden');
+
+                // Tambahkan tombol ulasan & klaim sertifikat untuk kelas onboarding
+                if (session.is_onboarding) {
+                    if (reviewStatus === 'not_reviewed' || reviewStatus === null) {
+                        const reviewBtn = document.createElement('button');
+                        reviewBtn.className = 'bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-6 py-3 rounded-xl text-sm transition';
+                        reviewBtn.innerHTML = '<i class="fa-regular fa-star mr-1"></i> Berikan Ulasan';
+                        reviewBtn.onclick = () => openReviewModal(session.id);
+                        actionContainer.appendChild(reviewBtn);
+                    } else if (reviewStatus === 'reviewed') {
+                        const claimBtn = document.createElement('button');
+                        claimBtn.className = 'bg-amber-500 hover:bg-amber-600 text-white font-bold px-6 py-3 rounded-xl text-sm transition';
+                        claimBtn.innerHTML = '<i class="fa-regular fa-certificate mr-1"></i> Klaim Sertifikat';
+                        claimBtn.onclick = () => claimCertificate(session.id);
+                        actionContainer.appendChild(claimBtn);
+                    } else if (reviewStatus === 'claimed') {
+                        const claimedEl = document.createElement('span');
+                        claimedEl.className = 'text-sm text-emerald-600 font-semibold';
+                        claimedEl.innerHTML = '✅ Sertifikat sudah diklaim';
+                        actionContainer.appendChild(claimedEl);
+                    }
+                }
             } else if (participantStatus === 'rejected') {
                 registerBtn.textContent = '❌ Ditolak';
                 registerBtn.disabled = true;
@@ -719,7 +902,7 @@
         }
 
         // ============================================
-        // 5. RENDER MATERIALS
+        // 6. RENDER MATERIALS
         // ============================================
         function renderMaterials(materials) {
             const container = document.getElementById('materialList');
@@ -764,7 +947,7 @@
         }
 
         // ============================================
-        // 6. RENDER REVIEWS
+        // 7. RENDER REVIEWS
         // ============================================
         function renderReviews(reviews) {
             const container = document.getElementById('reviewList');
@@ -806,7 +989,7 @@
         }
 
         // ============================================
-        // 7. REGISTER MODAL
+        // 8. REGISTER MODAL
         // ============================================
         function openRegisterModal() {
             if (!currentUser) {
@@ -921,7 +1104,241 @@
         }
 
         // ============================================
-        // 8. LOGOUT
+        // 9. ULASAN ONBOARDING
+        // ============================================
+
+        let materialRatingValue = 0;
+        let platformRatingValue = 0;
+        let currentReviewSessionId = null;
+
+        function setMaterialRating(rating) {
+            materialRatingValue = rating;
+            document.getElementById('materialRating').value = rating;
+            
+            const stars = document.querySelectorAll('#materialStars span');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+            
+            const labels = ['', 'Sangat Kurang', 'Kurang', 'Cukup', 'Baik', 'Sangat Baik'];
+            document.getElementById('materialLabel').textContent = `⭐ ${rating} - ${labels[rating]}`;
+        }
+
+        function setPlatformRating(rating) {
+            platformRatingValue = rating;
+            document.getElementById('platformRating').value = rating;
+            
+            const stars = document.querySelectorAll('#platformStars span');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+            
+            const labels = ['', 'Sangat Kurang', 'Kurang', 'Cukup', 'Baik', 'Sangat Baik'];
+            document.getElementById('platformLabel').textContent = `⭐ ${rating} - ${labels[rating]}`;
+        }
+
+        function openReviewModal(sessionId) {
+            currentReviewSessionId = sessionId;
+            document.getElementById('reviewSessionId').value = sessionId;
+            document.getElementById('reviewFeedback').value = '';
+            document.getElementById('reviewMessage').className = 'text-sm text-center hidden';
+            
+            // Reset rating
+            materialRatingValue = 0;
+            platformRatingValue = 0;
+            document.getElementById('materialRating').value = 0;
+            document.getElementById('platformRating').value = 0;
+            document.getElementById('materialLabel').textContent = 'Klik bintang untuk menilai';
+            document.getElementById('platformLabel').textContent = 'Klik bintang untuk menilai';
+            
+            const allStars = document.querySelectorAll('#materialStars span, #platformStars span');
+            allStars.forEach(star => star.classList.remove('active'));
+            
+            document.getElementById('reviewModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeReviewModal() {
+            document.getElementById('reviewModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentReviewSessionId = null;
+        }
+
+        document.getElementById('reviewForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const sessionId = document.getElementById('reviewSessionId').value;
+            const materialRating = parseInt(document.getElementById('materialRating').value) || 0;
+            const platformRating = parseInt(document.getElementById('platformRating').value) || 0;
+            const feedback = document.getElementById('reviewFeedback').value.trim();
+
+            if (materialRating === 0 || platformRating === 0) {
+                showReviewMessage('Harap beri rating untuk materi dan platform.', 'error');
+                return;
+            }
+
+            const submitBtn = document.getElementById('reviewSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+            showReviewMessage('', '');
+
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const { error } = await _supabase
+                    .from('yata_onboarding_reviews')
+                    .insert([{
+                        user_id: session.user.id,
+                        session_id: sessionId,
+                        material_understanding: materialRating,
+                        platform_satisfaction: platformRating,
+                        feedback: feedback || null
+                    }]);
+
+                if (error) throw error;
+
+                showReviewMessage('✅ Ulasan berhasil dikirim! Sekarang Anda bisa klaim sertifikat.', 'success');
+                submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
+
+                setTimeout(() => {
+                    closeReviewModal();
+                    loadSessionDetail();
+                }, 2000);
+
+            } catch (err) {
+                console.error('Submit review error:', err);
+                showReviewMessage('❌ Gagal mengirim ulasan: ' + err.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Ulasan';
+            }
+        });
+
+        function showReviewMessage(text, type) {
+            const msg = document.getElementById('reviewMessage');
+            msg.textContent = text;
+            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
+                type === 'success' ? 'text-emerald-600' :
+                type === 'error' ? 'text-red-600' :
+                ''
+            }`;
+        }
+
+        // ============================================
+        // 10. KLAIM SERTIFIKAT
+        // ============================================
+
+        async function claimCertificate(sessionId) {
+            if (!confirm('Yakin ingin mengklaim sertifikat untuk kelas ini?')) return;
+
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const btn = event?.target || document.querySelector('.bg-amber-500');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memproses...';
+                }
+
+                // Cek apakah sudah ada sertifikat
+                const { data: existing } = await _supabase
+                    .from('yata_certificates')
+                    .select('id')
+                    .eq('user_id', session.user.id)
+                    .eq('session_id', sessionId)
+                    .maybeSingle();
+
+                if (existing) {
+                    showError('✅ Sertifikat sudah Anda klaim sebelumnya!', 'Info');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '✅ Sudah Diklaim';
+                    }
+                    return;
+                }
+
+                // Ambil data user & session
+                const { data: profile } = await _supabase
+                    .from('yata_profiles')
+                    .select('full_name')
+                    .eq('id', session.user.id)
+                    .single();
+
+                const { data: mentoringSession } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('title, is_onboarding')
+                    .eq('id', sessionId)
+                    .single();
+
+                // Generate nomor sertifikat
+                const now = new Date();
+                const dateStr = now.getFullYear() + 
+                    String(now.getMonth() + 1).padStart(2, '0') + 
+                    String(now.getDate()).padStart(2, '0');
+                const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+                const certNumber = `YATTA-${dateStr}-${random}`;
+
+                const certType = mentoringSession?.is_onboarding ? 'onboarding' : 'mentoring';
+
+                // Simpan sertifikat
+                const { data: certData, error } = await _supabase
+                    .from('yata_certificates')
+                    .insert([{
+                        user_id: session.user.id,
+                        session_id: sessionId,
+                        certificate_type: certType,
+                        certificate_number: certNumber,
+                        is_claimed: true,
+                        claimed_at: new Date().toISOString(),
+                        signatory_name: 'Abd. Rahman Danial',
+                        signatory_title: 'Founder & CEO YATTA'
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                // Kirim notifikasi
+                await sendNotification(
+                    session.user.id,
+                    '🎉 Sertifikat Berhasil Diklaim!',
+                    `Selamat! Sertifikat untuk "${mentoringSession?.title || 'kelas'}" telah berhasil diklaim. Cek di menu Sertifikat untuk melihat dan mengunduh.`,
+                    'success'
+                );
+
+                showError('🎉 Sertifikat berhasil diklaim! Cek menu Sertifikat.', 'Sukses');
+                if (btn) {
+                    btn.innerHTML = '✅ Sudah Diklaim';
+                    btn.disabled = false;
+                }
+
+                setTimeout(() => {
+                    loadSessionDetail();
+                }, 2000);
+
+            } catch (err) {
+                console.error('Claim certificate error:', err);
+                showError('❌ Gagal mengklaim sertifikat: ' + err.message, 'Error');
+                const btn = event?.target || document.querySelector('.bg-amber-500');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '📜 Klaim Sertifikat';
+                }
+            }
+        }
+
+        // ============================================
+        // 11. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -939,7 +1356,7 @@
         }
 
         // ============================================
-        // 9. EVENT LISTENERS
+        // 12. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadSessionDetail();
@@ -957,6 +1374,10 @@
 
             document.getElementById('registerModal').addEventListener('click', function(e) {
                 if (e.target === this) closeRegisterModal();
+            });
+
+            document.getElementById('reviewModal').addEventListener('click', function(e) {
+                if (e.target === this) closeReviewModal();
             });
 
             document.getElementById('loginPopupModal').addEventListener('click', function(e) {
