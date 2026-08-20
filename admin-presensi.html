@@ -260,7 +260,7 @@
         }
 
         // ============================================
-        // LOAD ATTENDANCE
+        // LOAD ATTENDANCE - DIPERBAIKI
         // ============================================
         async function loadAttendance() {
             const sessionId = document.getElementById('sessionSelect').value;
@@ -284,7 +284,7 @@
             `;
 
             try {
-                // Ambil data peserta
+                // ✅ PERBAIKAN: gunakan registered_at, bukan created_at
                 const { data: participants, error } = await _supabase
                     .from('yata_mentoring_participants')
                     .select(`
@@ -298,7 +298,7 @@
                         profile:user_id (full_name, member_id, email)
                     `)
                     .eq('session_id', sessionId)
-                    .order('created_at', { ascending: true });
+                    .order('registered_at', { ascending: true });
 
                 if (error) throw error;
 
@@ -403,19 +403,15 @@
                 const phone = p.phone || '-';
                 const regStatus = p.status || 'pending';
                 
-                // Status presensi
                 const attStatus = p.attendance_status || 'pending';
                 const attLabel = attStatus === 'present' ? '✅ Hadir' : attStatus === 'absent' ? '❌ Absen' : '⏳ Belum';
                 const attClass = attStatus === 'present' ? 'status-present' : attStatus === 'absent' ? 'status-absent' : 'status-pending';
 
-                // Riwayat kelas (jumlah yang sudah dihadiri)
+                // Riwayat kelas
                 const attendedCount = attendanceData.filter(a => a.user_id === p.user_id && a.attended === true).length;
-
-                // Cek apakah user sudah selesai semua (3 kelas)
                 const allSessionsCount = allSessions.length;
                 const isComplete = attendedCount >= allSessionsCount;
 
-                // Tombol aksi
                 let actionButtons = '';
                 if (attStatus === 'pending') {
                     actionButtons = `
@@ -447,7 +443,6 @@
                         <td class="px-3 py-3 text-center">
                             <div class="flex items-center justify-center gap-1">
                                 ${Array.from({ length: allSessionsCount }, (_, i) => {
-                                    // Cek apakah user hadir di session ke-i
                                     const isAttended = attendanceData.some(a => 
                                         a.user_id === p.user_id && 
                                         a.attended === true && 
@@ -511,10 +506,7 @@
                 saveRateLimit('attendance');
                 showError(`✅ Presensi ${status === 'present' ? 'Hadir' : 'Absen'} berhasil!`, 'Sukses');
 
-                // Refresh data
                 await loadAttendance();
-
-                // Cek apakah ada yang sudah complete (3 kelas)
                 await checkAndGenerateCertificate();
 
             } catch (err) {
@@ -561,7 +553,6 @@
         // ============================================
         async function checkAndGenerateCertificate() {
             try {
-                // Ambil semua user yang sudah hadir di semua kelas onboarding
                 const { data: users, error } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('user_id, profile:user_id(full_name, member_id)')
@@ -574,7 +565,6 @@
                 const totalSessions = allSessionIds.length;
 
                 for (const user of users) {
-                    // Hitung berapa kelas yang sudah dihadiri user ini
                     const { count } = await _supabase
                         .from('yata_mentoring_participants')
                         .select('*', { count: 'exact', head: true })
@@ -582,7 +572,6 @@
                         .eq('attended', true)
                         .in('session_id', allSessionIds);
 
-                    // Jika sudah 3 kelas, generate sertifikat
                     if (count >= totalSessions) {
                         const { data: existingCert } = await _supabase
                             .from('yata_certificates')
@@ -612,7 +601,6 @@
                                 }]);
 
                             if (!certError) {
-                                // Kirim notifikasi
                                 await sendNotification(
                                     user.user_id,
                                     '🎉 Sertifikat Onboarding YATTA!',
