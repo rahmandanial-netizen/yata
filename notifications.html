@@ -182,6 +182,25 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+        .action-btn {
+            background: #065F46;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: 100%;
+        }
+        .action-btn:hover {
+            background: #0D9488;
+        }
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -326,14 +345,12 @@
                 Isi notifikasi akan ditampilkan di sini.
             </div>
 
-            <!-- SECTION BALAS NOTIFIKASI -->
-            <div id="replySection" class="reply-section">
-                <label for="replyNotifInput" class="block text-xs font-semibold text-slate-700 mb-1">Balas Notifikasi</label>
-                <textarea id="replyNotifInput" rows="2" placeholder="Tulis balasan Anda..." class="w-full"></textarea>
-                <button onclick="submitReplyNotification()" id="replySubmitBtn">
-                    <i class="fa-regular fa-paper-plane mr-1"></i> Kirim Balasan
-                </button>
-                <div id="replyMessage" class="text-xs text-center mt-2 hidden"></div>
+            <!-- SECTION AKSI -->
+            <div id="actionSection" class="reply-section">
+                <div id="actionContainer">
+                    <!-- Akan diisi JavaScript -->
+                </div>
+                <div id="actionMessage" class="text-xs text-center mt-2 hidden"></div>
             </div>
 
             <div class="mt-6 flex items-center justify-between">
@@ -353,7 +370,6 @@
         let currentFilter = 'all';
         let currentUser = null;
         let currentModalNotifId = null;
-        let currentModalNotifUserId = null;
 
         let currentPage = 0;
         const pageSize = 15;
@@ -435,7 +451,6 @@
                 const from = currentPage * pageSize;
                 const to = from + pageSize - 1;
 
-                // 🔥 AMBIL NOTIFIKASI DARI USER_NOTIFICATIONS
                 const { data: userNotifs, error: userError } = await _supabase
                     .from('yata_user_notifications')
                     .select('notification_id, is_read, created_at')
@@ -460,7 +475,6 @@
                     readMap[un.notification_id] = un.is_read;
                 });
 
-                // Ambil detail notifikasi
                 const { data: notifications, error: notifError } = await _supabase
                     .from('yata_notifications')
                     .select('*')
@@ -609,7 +623,6 @@
         // OPEN NOTIFICATION DETAIL
         async function openNotifDetail(notificationId) {
             try {
-                // 🔥 PASTIKAN USER LOGIN
                 const session = await checkAuth();
                 if (!session) {
                     showError('Silakan login terlebih dahulu.', 'Error');
@@ -659,15 +672,38 @@
                     statusEl.className = 'text-xs font-semibold text-yellow-600';
                 }
 
-                // Selalu tampilkan reply section
-                const replySection = document.getElementById('replySection');
-                const replyMessage = document.getElementById('replyMessage');
-                replyMessage.className = 'text-xs text-center mt-2 hidden';
-                replySection.style.display = 'block';
-                
-                document.getElementById('replyNotifInput').value = '';
-                document.getElementById('replySubmitBtn').disabled = false;
-                document.getElementById('replySubmitBtn').innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Balasan';
+                // 🔥 TENTUKAN TOMBOL BERDASARKAN JENIS NOTIFIKASI
+                const actionContainer = document.getElementById('actionContainer');
+                const actionMessage = document.getElementById('actionMessage');
+                actionMessage.className = 'text-xs text-center mt-2 hidden';
+
+                const title = notif.title || '';
+                const content = notif.content || '';
+
+                if (title.includes('Ajukan Naik Level') || content.includes('naik level')) {
+                    // Tombol "Ajukan Naik Level"
+                    actionContainer.innerHTML = `
+                        <button id="actionBtn" class="action-btn" onclick="submitLevelUpRequest()">
+                            ⭐ Ajukan Naik Level
+                        </button>
+                    `;
+                } else if (title.includes('Sertifikat') || content.includes('sertifikat')) {
+                    // Tombol "Lihat Sertifikat"
+                    actionContainer.innerHTML = `
+                        <button id="actionBtn" class="action-btn" onclick="goToCertificates()">
+                            📜 Lihat Sertifikat
+                        </button>
+                    `;
+                } else {
+                    // Form balas normal
+                    actionContainer.innerHTML = `
+                        <label for="replyNotifInput" class="block text-xs font-semibold text-slate-700 mb-1">Balas Notifikasi</label>
+                        <textarea id="replyNotifInput" rows="2" placeholder="Tulis balasan Anda..." class="w-full" style="width:100%;border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px;font-size:13px;resize:none;outline:none;"></textarea>
+                        <button id="actionBtn" class="action-btn" style="margin-top:8px;" onclick="submitReplyNotification()">
+                            <i class="fa-regular fa-paper-plane mr-1"></i> Kirim Balasan
+                        </button>
+                    `;
+                }
 
                 document.getElementById('notifModal').classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
@@ -686,9 +722,7 @@
             document.getElementById('notifModal').classList.add('hidden');
             document.body.style.overflow = 'auto';
             currentModalNotifId = null;
-            currentModalNotifUserId = null;
-            document.getElementById('replySection').style.display = 'block';
-            document.getElementById('replyMessage').className = 'text-xs text-center mt-2 hidden';
+            document.getElementById('actionMessage').className = 'text-xs text-center mt-2 hidden';
         }
 
         document.getElementById('notifModal').addEventListener('click', function(e) {
@@ -792,12 +826,12 @@
         }
 
         // ============================================
-        // SUBMIT REPLY NOTIFICATION - KIRIM KE ADMIN
+        // SUBMIT REPLY NOTIFICATION
         // ============================================
         async function submitReplyNotification() {
             const input = document.getElementById('replyNotifInput');
             const reply = input.value.trim();
-            const messageEl = document.getElementById('replyMessage');
+            const messageEl = document.getElementById('actionMessage');
 
             if (!reply) {
                 messageEl.textContent = 'Harap tulis balasan terlebih dahulu.';
@@ -805,13 +839,12 @@
                 return;
             }
 
-            const btn = document.getElementById('replySubmitBtn');
+            const btn = document.getElementById('actionBtn');
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
             messageEl.className = 'text-xs text-center mt-2 hidden';
 
             try {
-                // 🔥 PASTIKAN USER LOGIN
                 const session = await checkAuth();
                 if (!session) {
                     messageEl.textContent = 'Silakan login terlebih dahulu.';
@@ -819,31 +852,21 @@
                     return;
                 }
 
-                // 🔥 CARI ADMIN
+                // Cari admin
                 const { data: admins, error: adminError } = await _supabase
                     .from('yata_profiles')
                     .select('id')
                     .eq('role', 'admin')
                     .limit(1);
 
-                if (adminError) {
-                    console.error('Admin query error:', adminError);
-                    messageEl.textContent = 'Gagal mencari admin.';
-                    messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
-                    return;
-                }
-
-                if (!admins || admins.length === 0) {
-                    console.error('❌ Tidak ada admin ditemukan di database');
-                    messageEl.textContent = 'Tidak ada admin yang ditemukan. Hubungi pengembang.';
+                if (adminError || !admins || admins.length === 0) {
+                    messageEl.textContent = 'Tidak ada admin yang ditemukan.';
                     messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
                     return;
                 }
 
                 const adminId = admins[0].id;
-                console.log('✅ Admin ditemukan:', adminId);
 
-                // 🔥 KIRIM KE ADMIN
                 const { data: newNotif, error: createError } = await _supabase
                     .from('yata_notifications')
                     .insert([{
@@ -854,10 +877,7 @@
                     .select()
                     .single();
 
-                if (createError) {
-                    console.error('Create notification error:', createError);
-                    throw createError;
-                }
+                if (createError) throw createError;
 
                 await _supabase
                     .from('yata_user_notifications')
@@ -884,6 +904,109 @@
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Balasan';
             }
+        }
+
+        // ============================================
+        // AJUKAN NAIK LEVEL
+        // ============================================
+        async function submitLevelUpRequest() {
+            const messageEl = document.getElementById('actionMessage');
+            messageEl.className = 'text-xs text-center mt-2 hidden';
+
+            try {
+                const session = await checkAuth();
+                if (!session) {
+                    messageEl.textContent = 'Silakan login terlebih dahulu.';
+                    messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
+                    return;
+                }
+
+                // Cek syarat
+                const { data: writings } = await _supabase
+                    .from('yata_writings')
+                    .select('id')
+                    .eq('author_id', session.user.id)
+                    .eq('status', 'published');
+
+                const { data: mentoring } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('id')
+                    .eq('user_id', session.user.id)
+                    .eq('status', 'completed');
+
+                const totalWritings = writings?.length || 0;
+                const totalMentoring = mentoring?.length || 0;
+
+                if (totalWritings < 5 || totalMentoring < 3) {
+                    messageEl.textContent = `⚠️ Syarat belum terpenuhi. Butuh 5 karya (${totalWritings}/5) & 3 mentoring (${totalMentoring}/3).`;
+                    messageEl.className = 'text-xs text-center mt-2 text-amber-600 block';
+                    return;
+                }
+
+                const btn = document.getElementById('actionBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+
+                // Kirim notifikasi ke admin
+                const { data: admins } = await _supabase
+                    .from('yata_profiles')
+                    .select('id')
+                    .eq('role', 'admin');
+
+                if (admins && admins.length > 0) {
+                    const notifContent = `📢 Member mengajukan naik level ke "Penulis".\n\n📊 Data:\n- Karya: ${totalWritings}/5\n- Mentoring: ${totalMentoring}/3`;
+
+                    const { data: notifData } = await _supabase
+                        .from('yata_notifications')
+                        .insert([{
+                            title: '📢 Pengajuan Naik Level',
+                            content: notifContent,
+                            type: 'campaign'
+                        }])
+                        .select()
+                        .single();
+
+                    if (notifData) {
+                        const entries = admins.map(admin => ({
+                            notification_id: notifData.id,
+                            user_id: admin.id,
+                            is_read: false
+                        }));
+                        
+                        await _supabase
+                            .from('yata_user_notifications')
+                            .insert(entries);
+                    }
+                }
+
+                messageEl.textContent = '✅ Pengajuan naik level telah dikirim ke admin!';
+                messageEl.className = 'text-xs text-center mt-2 text-emerald-600 block';
+                btn.innerHTML = '✅ Terkirim!';
+
+                setTimeout(() => {
+                    closeNotifModal();
+                    loadNotifications(true);
+                }, 2000);
+
+            } catch (err) {
+                console.error('Submit level up error:', err);
+                messageEl.textContent = '❌ Gagal mengajukan: ' + err.message;
+                messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
+            } finally {
+                const btn = document.getElementById('actionBtn');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '⭐ Ajukan Naik Level';
+                }
+            }
+        }
+
+        // ============================================
+        // LIHAT SERTIFIKAT
+        // ============================================
+        function goToCertificates() {
+            closeNotifModal();
+            window.location.href = 'certificates.html';
         }
 
         // LOGOUT
