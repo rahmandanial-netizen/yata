@@ -546,7 +546,45 @@
         }
 
         // ============================================
-        // MARK ATTENDANCE - DENGAN NOTIFIKASI + ULASAN
+        // CEK & UPDATE STATUS SESI JIKA SEMUA HADIR
+        // ============================================
+        async function checkAndUpdateSessionStatus(sessionId) {
+            try {
+                // 1. Ambil semua peserta di sesi ini
+                const { data: participants, error } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('attended')
+                    .eq('session_id', sessionId);
+
+                if (error) throw error;
+
+                // 2. Cek apakah semua peserta sudah hadir
+                const total = participants.length;
+                const hadir = participants.filter(p => p.attended === true).length;
+
+                // Jika semua sudah hadir, update status sesi menjadi completed
+                if (total > 0 && hadir >= total) {
+                    const { error: updateError } = await _supabase
+                        .from('yata_mentoring_sessions')
+                        .update({ 
+                            status: 'completed',
+                            completed_at: new Date().toISOString()
+                        })
+                        .eq('id', sessionId);
+
+                    if (updateError) {
+                        console.error('Update session status error:', updateError);
+                    } else {
+                        console.log(`✅ Sesi ${sessionId} sudah selesai (${hadir}/${total})`);
+                    }
+                }
+            } catch (err) {
+                console.error('Check session status error:', err);
+            }
+        }
+
+        // ============================================
+        // MARK ATTENDANCE - DENGAN UPDATE STATUS
         // ============================================
         async function markAttendance(participantId, status) {
             try {
@@ -576,14 +614,35 @@
 
                 if (updateError) throw updateError;
 
-                // 3. 🔥 KIRIM NOTIFIKASI BERDASARKAN STATUS
+                // 3. 🔥 JIKA HADIR, UPDATE STATUS PESERTA MENJADI COMPLETED
+                if (isPresent) {
+                    // Update status peserta menjadi completed
+                    const { error: updateStatusError } = await _supabase
+                        .from('yata_mentoring_participants')
+                        .update({ 
+                            status: 'completed',
+                            completed_at: new Date().toISOString()
+                        })
+                        .eq('id', participantId);
+
+                    if (updateStatusError) {
+                        console.error('Update status error:', updateStatusError);
+                    } else {
+                        console.log(`✅ Peserta ${participantId} status diupdate ke completed`);
+                    }
+
+                    // 🔥 CEK APAKAH SEMUA PESERTA SUDAH HADIR, UPDATE STATUS SESI
+                    await checkAndUpdateSessionStatus(sessionId);
+                }
+
+                // 4. 🔥 KIRIM NOTIFIKASI BERDASARKAN STATUS
                 if (isPresent) {
                     await sendAttendancePresentNotification(userId, sessionTitle, sessionId);
                 } else {
                     await sendAttendanceAbsentNotification(userId, sessionTitle);
                 }
 
-                // 4. Refresh data
+                // 5. Refresh data
                 await loadAttendance();
 
             } catch (err) {
@@ -604,18 +663,38 @@
             if (!confirm('Tandai semua peserta di kelas ini sebagai HADIR?')) return;
 
             try {
-                const { error } = await _supabase
+                // Ambil semua peserta di sesi ini
+                const { data: participants, error: fetchError } = await _supabase
                     .from('yata_mentoring_participants')
-                    .update({
-                        attended: true,
-                        attendance_status: 'present',
-                        attendance_time: new Date().toISOString()
-                    })
+                    .select('id, user_id')
                     .eq('session_id', currentSessionId);
 
-                if (error) throw error;
+                if (fetchError) throw fetchError;
 
-                alert('✅ Semua peserta ditandai HADIR!');
+                // Update semua peserta menjadi hadir & completed
+                for (const p of participants) {
+                    await _supabase
+                        .from('yata_mentoring_participants')
+                        .update({
+                            attended: true,
+                            attendance_status: 'present',
+                            attendance_time: new Date().toISOString(),
+                            status: 'completed',
+                            completed_at: new Date().toISOString()
+                        })
+                        .eq('id', p.id);
+                }
+
+                // Update status sesi menjadi completed
+                await _supabase
+                    .from('yata_mentoring_sessions')
+                    .update({ 
+                        status: 'completed',
+                        completed_at: new Date().toISOString()
+                    })
+                    .eq('id', currentSessionId);
+
+                alert('✅ Semua peserta ditandai HADIR dan selesai!');
                 await loadAttendance();
 
             } catch (err) {

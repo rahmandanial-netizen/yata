@@ -569,12 +569,11 @@
             } else if (filter === 'ongoing') {
                 filtered = allParticipants.filter(p => 
                     p.status === 'approved' && 
-                    p.session && 
-                    (p.session.session_status === 'published' || p.session.session_status === 'ongoing')
+                    p.attended === false
                 );
             } else if (filter === 'completed') {
                 filtered = allParticipants.filter(p => 
-                    p.status === 'completed'
+                    p.status === 'completed' || p.attended === true
                 );
             }
 
@@ -583,7 +582,7 @@
         }
 
         // ============================================
-        // RENDER PARTICIPANTS - DENGAN AVATAR MENTOR
+        // RENDER PARTICIPANTS - DENGAN TOMBOL ULASAN
         // ============================================
         function renderParticipants() {
             const container = document.getElementById('participantList');
@@ -639,8 +638,11 @@
                 const mentorInitial = mentorName.charAt(0).toUpperCase();
                 const isOnboarding = s.is_onboarding === true;
 
+                // 🔥 TENTUKAN STATUS TAMPILAN
                 let displayStatus = p.status;
-                if (p.status === 'approved' && (s.session_status === 'ongoing' || s.session_status === 'published')) {
+                if (p.attended === true || p.status === 'completed') {
+                    displayStatus = 'completed';
+                } else if (p.status === 'approved' && p.attended !== true) {
                     displayStatus = 'ongoing';
                 }
 
@@ -662,6 +664,9 @@
 
                 const displayLabel = statusDisplay[displayStatus] || statusLabels[p.status] || '⏳ Menunggu';
                 const displayClass = statusClassDisplay[displayStatus] || statusClasses[p.status] || 'status-pending';
+
+                // 🔥 CEK APAKAH TAMPILKAN TOMBOL ULASAN
+                const showReviewBtn = p.attended === true || p.status === 'completed';
 
                 return `
                     <div class="mentoring-card bg-slate-50 rounded-xl p-4 border border-slate-200 hover:shadow-md transition cursor-pointer" onclick="window.location.href='mentoring-detail.html?id=${s.id}'">
@@ -690,14 +695,14 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 flex-shrink-0">
-                                ${p.status === 'approved' && s.meeting_link ? `
-                                    <a href="${s.meeting_link}" target="_blank" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold px-3 py-1 rounded-full transition">
-                                        <i class="fa-regular fa-link mr-1"></i> Link Meeting
+                                ${showReviewBtn ? `
+                                    <a href="mentoring-detail.html?id=${s.id}#review" onclick="event.stopPropagation()" class="text-xs bg-yellow-50 hover:bg-yellow-100 text-yellow-700 font-semibold px-3 py-1 rounded-full transition">
+                                        <i class="fa-regular fa-star mr-1"></i> Ulasan
                                     </a>
                                 ` : ''}
-                                ${p.status === 'completed' && !p.feedback_rating ? `
-                                    <a href="mentoring-detail.html?id=${s.id}#review" class="text-xs bg-yellow-50 hover:bg-yellow-100 text-yellow-700 font-semibold px-3 py-1 rounded-full transition">
-                                        <i class="fa-regular fa-star mr-1"></i> Ulasan
+                                ${p.status === 'approved' && s.meeting_link ? `
+                                    <a href="${s.meeting_link}" target="_blank" onclick="event.stopPropagation()" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold px-3 py-1 rounded-full transition">
+                                        <i class="fa-regular fa-link mr-1"></i> Link Meeting
                                     </a>
                                 ` : ''}
                                 <button onclick="event.stopPropagation(); window.location.href='mentoring-detail.html?id=${s.id}'" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-3 py-1 rounded-full transition">
