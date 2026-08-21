@@ -539,7 +539,7 @@
             <div id="adminOnboarding" class="hidden bg-white rounded-2xl border border-emerald-100/60 shadow-sm overflow-hidden">
                 <div class="p-4 border-b border-emerald-100/60 flex items-center justify-between">
                     <h2 class="font-bold text-slate-800">🎓 Kelola Onboarding</h2>
-                    <span class="text-xs text-slate-400">Buat kelas wajib untuk member baru</span>
+                    <span class="text-xs text-slate-400">Buat dan kelola kelas wajib untuk member baru</span>
                 </div>
 
                 <!-- Form Buat Onboarding -->
@@ -606,7 +606,10 @@
 
                 <!-- Daftar Onboarding -->
                 <div class="p-5">
-                    <h3 class="font-semibold text-slate-700 text-sm mb-3">📋 Daftar Kelas Onboarding</h3>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-semibold text-slate-700 text-sm">📋 Daftar Kelas Onboarding</h3>
+                        <span class="text-xs text-slate-400" id="onboardingCount">0</span>
+                    </div>
                     <div id="onboardingList" class="divide-y divide-slate-100">
                         <div class="text-center py-6 text-slate-400 text-sm">
                             <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat...
@@ -685,63 +688,66 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- MODAL EDIT KELAS MENTORING (ADMIN) -->
+    <!-- MODAL EDIT ONBOARDING (ADMIN) -->
     <!-- ============================================ -->
-    <div id="editMentoringModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div id="editOnboardingModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter max-h-[90vh] overflow-y-auto">
-            <button onclick="closeEditMentoringModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+            <button onclick="closeEditOnboardingModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
             <div class="text-center mb-6">
-                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Edit Kelas</span>
-                <h3 class="text-xl font-black text-slate-800 mt-1">Edit Kelas Mentoring</h3>
-                <p class="text-xs text-slate-500 mt-1">Perbarui informasi kelas yang sudah dibuat.</p>
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Edit Onboarding</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Edit Kelas Onboarding</h3>
+                <p class="text-xs text-slate-500 mt-1">Perbarui informasi kelas onboarding.</p>
             </div>
 
-            <form id="editMentoringForm" class="space-y-4">
-                <input type="hidden" id="editMentoringId" value="" />
+            <form id="editOnboardingForm" class="space-y-4">
+                <input type="hidden" id="editOnboardingId" value="" />
 
                 <!-- Judul -->
                 <div>
-                    <label for="editMentoringTitle" class="form-label">Judul <span class="text-red-500">*</span></label>
-                    <input type="text" id="editMentoringTitle" placeholder="Judul kelas" required class="form-input" />
+                    <label for="editOnboardingTitle" class="form-label">Judul <span class="text-red-500">*</span></label>
+                    <input type="text" id="editOnboardingTitle" placeholder="Judul onboarding" required class="form-input" />
                 </div>
 
                 <!-- Deskripsi -->
                 <div>
-                    <label for="editMentoringDesc" class="form-label">Deskripsi <span class="text-red-500">*</span></label>
-                    <textarea id="editMentoringDesc" rows="3" placeholder="Deskripsi kelas" required class="form-input resize-none"></textarea>
+                    <label for="editOnboardingDesc" class="form-label">Deskripsi <span class="text-red-500">*</span></label>
+                    <textarea id="editOnboardingDesc" rows="3" placeholder="Deskripsi kelas" required class="form-input resize-none"></textarea>
                 </div>
 
-                <!-- Harga & Kuota -->
+                <!-- Level & Kuota -->
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label for="editMentoringPrice" class="form-label">Harga (Rp)</label>
-                        <input type="number" id="editMentoringPrice" placeholder="0" min="0" class="form-input" />
+                        <label for="editOnboardingLevel" class="form-label">Level</label>
+                        <select id="editOnboardingLevel" class="form-input bg-white">
+                            <option value="pemula">🌱 Pemula</option>
+                            <option value="menengah">📈 Menengah</option>
+                            <option value="lanjutan">🚀 Lanjutan</option>
+                        </select>
                     </div>
                     <div>
-                        <label for="editMentoringMax" class="form-label">Max Peserta</label>
-                        <input type="number" id="editMentoringMax" placeholder="10" min="1" max="100" class="form-input" />
+                        <label for="editOnboardingMax" class="form-label">Max Peserta</label>
+                        <input type="number" id="editOnboardingMax" placeholder="30" min="1" max="100" class="form-input" />
                     </div>
                 </div>
 
                 <!-- Jadwal & Link -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label for="editMentoringSchedule" class="form-label">Jadwal</label>
-                        <input type="text" id="editMentoringSchedule" placeholder="Sabtu, 19:00 WIB" class="form-input" />
-                    </div>
-                    <div>
-                        <label for="editMentoringLink" class="form-label">Link Meeting</label>
-                        <input type="url" id="editMentoringLink" placeholder="https://zoom.us/j/..." class="form-input" />
-                    </div>
+                <div>
+                    <label for="editOnboardingSchedule" class="form-label">Jadwal</label>
+                    <input type="text" id="editOnboardingSchedule" placeholder="Contoh: Setiap Sabtu, 19:00 WIB" class="form-input" />
+                </div>
+
+                <div>
+                    <label for="editOnboardingLink" class="form-label">Link Meeting</label>
+                    <input type="url" id="editOnboardingLink" placeholder="https://zoom.us/j/..." class="form-input" />
                 </div>
 
                 <!-- Status -->
                 <div>
-                    <label for="editMentoringStatus" class="form-label">Status</label>
-                    <select id="editMentoringStatus" class="form-input bg-white">
+                    <label for="editOnboardingStatus" class="form-label">Status</label>
+                    <select id="editOnboardingStatus" class="form-input bg-white">
                         <option value="draft">📝 Draft</option>
                         <option value="published">✅ Published</option>
                         <option value="ongoing">🔄 Ongoing</option>
@@ -754,7 +760,7 @@
                     <i class="fa-regular fa-floppy-disk mr-1"></i> Simpan Perubahan
                 </button>
 
-                <div id="editMentoringMessage" class="text-sm text-center hidden"></div>
+                <div id="editOnboardingMessage" class="text-sm text-center hidden"></div>
             </form>
         </div>
     </div>
@@ -2343,6 +2349,7 @@
                     return;
                 }
 
+                // 🔥 RENDER DENGAN TOMBOL EDIT
                 container.innerHTML = onboardings.map(o => `
                     <div class="p-4 hover:bg-slate-50 transition flex items-center justify-between">
                         <div>
@@ -2362,6 +2369,10 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
+                            <!-- 🔥 TOMBOL EDIT -->
+                            <button onclick="openEditOnboardingModal('${o.id}')" class="text-blue-400 hover:text-blue-600 transition text-sm font-semibold">
+                                <i class="fa-regular fa-pen-to-square"></i> Edit
+                            </button>
                             <button onclick="deleteOnboarding('${o.id}')" class="text-red-400 hover:text-red-600 transition text-sm">
                                 <i class="fa-regular fa-trash-can"></i>
                             </button>
@@ -2497,12 +2508,11 @@
         }
 
         // ============================================
-        // 32. EDIT KELAS MENTORING (ADMIN)
+        // 32. EDIT ONBOARDING (ADMIN)
         // ============================================
 
-        async function openEditMentoringModal(sessionId) {
+        async function openEditOnboardingModal(sessionId) {
             try {
-                // Ambil data kelas
                 const { data: session, error } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('*')
@@ -2511,52 +2521,51 @@
 
                 if (error) throw error;
 
-                // Isi form
-                document.getElementById('editMentoringId').value = session.id;
-                document.getElementById('editMentoringTitle').value = session.title;
-                document.getElementById('editMentoringDesc').value = session.description || '';
-                document.getElementById('editMentoringPrice').value = session.price || 0;
-                document.getElementById('editMentoringMax').value = session.max_participants || 10;
-                document.getElementById('editMentoringSchedule').value = session.schedule || '';
-                document.getElementById('editMentoringLink').value = session.meeting_link || '';
-                document.getElementById('editMentoringStatus').value = session.status || 'draft';
+                document.getElementById('editOnboardingId').value = session.id;
+                document.getElementById('editOnboardingTitle').value = session.title;
+                document.getElementById('editOnboardingDesc').value = session.description || '';
+                document.getElementById('editOnboardingLevel').value = session.level || 'pemula';
+                document.getElementById('editOnboardingMax').value = session.max_participants || 30;
+                document.getElementById('editOnboardingSchedule').value = session.schedule || '';
+                document.getElementById('editOnboardingLink').value = session.meeting_link || '';
+                document.getElementById('editOnboardingStatus').value = session.status || 'draft';
 
-                document.getElementById('editMentoringMessage').className = 'text-sm text-center hidden';
-                document.getElementById('editMentoringModal').classList.remove('hidden');
+                document.getElementById('editOnboardingMessage').className = 'text-sm text-center hidden';
+                document.getElementById('editOnboardingModal').classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
 
             } catch (err) {
-                console.error('Open edit modal error:', err);
-                showError('Gagal memuat data kelas: ' + err.message, 'Error');
+                console.error('Open edit onboarding error:', err);
+                showError('Gagal memuat data onboarding: ' + err.message, 'Error');
             }
         }
 
-        function closeEditMentoringModal() {
-            document.getElementById('editMentoringModal').classList.add('hidden');
+        function closeEditOnboardingModal() {
+            document.getElementById('editOnboardingModal').classList.add('hidden');
             document.body.style.overflow = 'auto';
         }
 
-        document.getElementById('editMentoringForm').addEventListener('submit', async function(e) {
+        document.getElementById('editOnboardingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const sessionId = document.getElementById('editMentoringId').value;
-            const title = document.getElementById('editMentoringTitle').value.trim();
-            const description = document.getElementById('editMentoringDesc').value.trim();
-            const price = parseInt(document.getElementById('editMentoringPrice').value) || 0;
-            const maxParticipants = parseInt(document.getElementById('editMentoringMax').value) || 10;
-            const schedule = document.getElementById('editMentoringSchedule').value.trim();
-            const meetingLink = document.getElementById('editMentoringLink').value.trim();
-            const status = document.getElementById('editMentoringStatus').value;
+            const sessionId = document.getElementById('editOnboardingId').value;
+            const title = document.getElementById('editOnboardingTitle').value.trim();
+            const description = document.getElementById('editOnboardingDesc').value.trim();
+            const level = document.getElementById('editOnboardingLevel').value;
+            const maxParticipants = parseInt(document.getElementById('editOnboardingMax').value) || 30;
+            const schedule = document.getElementById('editOnboardingSchedule').value.trim();
+            const meetingLink = document.getElementById('editOnboardingLink').value.trim();
+            const status = document.getElementById('editOnboardingStatus').value;
 
             if (!title || !description) {
-                showEditMentoringMessage('Judul dan deskripsi wajib diisi.', 'error');
+                showEditOnboardingMessage('Judul dan deskripsi wajib diisi.', 'error');
                 return;
             }
 
             const submitBtn = this.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...';
-            showEditMentoringMessage('', '');
+            showEditOnboardingMessage('', '');
 
             try {
                 const { error } = await _supabase
@@ -2564,7 +2573,7 @@
                     .update({
                         title: title,
                         description: description,
-                        price: price,
+                        level: level,
                         max_participants: maxParticipants,
                         schedule: schedule || null,
                         meeting_link: meetingLink || null,
@@ -2575,61 +2584,25 @@
 
                 if (error) throw error;
 
-                showEditMentoringMessage('✅ Kelas berhasil diperbarui!', 'success');
+                showEditOnboardingMessage('✅ Onboarding berhasil diperbarui!', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
 
-                // Kirim notifikasi ke admin
-                try {
-                    const { data: admins } = await _supabase
-                        .from('yata_profiles')
-                        .select('id')
-                        .eq('role', 'admin');
-
-                    if (admins && admins.length > 0) {
-                        const notifContent = `📝 Kelas "${title}" telah diperbarui oleh admin.`;
-
-                        const { data: notifData } = await _supabase
-                            .from('yata_notifications')
-                            .insert([{
-                                title: '📝 Kelas Mentoring Diperbarui',
-                                content: notifContent,
-                                type: 'info'
-                            }])
-                            .select()
-                            .single();
-
-                        if (notifData) {
-                            const entries = admins.map(admin => ({
-                                notification_id: notifData.id,
-                                user_id: admin.id,
-                                is_read: false
-                            }));
-                            
-                            await _supabase
-                                .from('yata_user_notifications')
-                                .insert(entries);
-                        }
-                    }
-                } catch (notifErr) {
-                    console.error('Notifikasi error:', notifErr);
-                }
-
                 setTimeout(() => {
-                    closeEditMentoringModal();
-                    loadAdminData(); // Refresh data admin
+                    closeEditOnboardingModal();
+                    loadOnboardingList();
                 }, 1500);
 
             } catch (err) {
-                console.error('Update session error:', err);
-                showEditMentoringMessage('❌ Gagal memperbarui kelas: ' + err.message, 'error');
+                console.error('Update onboarding error:', err);
+                showEditOnboardingMessage('❌ Gagal memperbarui onboarding: ' + err.message, 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> Simpan Perubahan';
             }
         });
 
-        function showEditMentoringMessage(text, type) {
-            const msg = document.getElementById('editMentoringMessage');
+        function showEditOnboardingMessage(text, type) {
+            const msg = document.getElementById('editOnboardingMessage');
             msg.textContent = text;
             msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
                 type === 'success' ? 'text-emerald-600' :
@@ -2639,8 +2612,8 @@
         }
 
         // Tutup modal saat klik di luar
-        document.getElementById('editMentoringModal').addEventListener('click', function(e) {
-            if (e.target === this) closeEditMentoringModal();
+        document.getElementById('editOnboardingModal').addEventListener('click', function(e) {
+            if (e.target === this) closeEditOnboardingModal();
         });
 
         // ============================================
