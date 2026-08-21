@@ -536,6 +536,39 @@
         }
 
         // ============================================
+        // KIRIM NOTIFIKASI (HELPER) - DENGAN USER_ID
+        // ============================================
+        async function sendNotification(userId, title, content, type = 'success') {
+            try {
+                const { data: notifData, error } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: title,
+                        content: content,
+                        type: type
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                if (notifData) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+                }
+                return true;
+            } catch (err) {
+                console.error('Send notification error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
         // LOAD DATA
         // ============================================
         async function loadMyMentoring() {
@@ -698,12 +731,10 @@
         function openReviewModalFromMy(sessionId) {
             currentReviewSessionId = sessionId;
             
-            // Reset form
             document.getElementById('reviewSessionId').value = sessionId;
             document.getElementById('reviewFeedback').value = '';
             document.getElementById('reviewMessage').className = 'text-sm text-center hidden';
             
-            // Reset rating
             materialRatingValue = 0;
             platformRatingValue = 0;
             document.getElementById('materialRating').value = 0;
@@ -718,7 +749,6 @@
                 star.style.opacity = '0.5';
             });
             
-            // Cari judul kelas
             const participant = allParticipants.find(p => p.session_id === sessionId);
             const sessionTitle = participant?.session?.title || 'Kelas';
             document.getElementById('reviewModalSubtitle').textContent = `Berikan ulasan untuk "${sessionTitle}"`;
@@ -1145,7 +1175,6 @@
         // ============================================
         async function checkReviewAndCertificate(userId) {
             try {
-                // Ambil semua onboarding session
                 const { data: onboardingSessions, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('id')
@@ -1156,7 +1185,6 @@
 
                 const sessionIds = onboardingSessions.map(s => s.id);
 
-                // Ambil semua ulasan user
                 const { data: reviews, error: reviewError } = await _supabase
                     .from('yata_onboarding_reviews')
                     .select('session_id')
@@ -1173,7 +1201,6 @@
                     return;
                 }
 
-                // 🔥 Cek apakah sertifikat sudah ada
                 const { data: existingCert, error: certError } = await _supabase
                     .from('yata_certificates')
                     .select('id')
@@ -1188,7 +1215,6 @@
                     return;
                 }
 
-                // 🔥 BUAT SERTIFIKAT
                 await createCertificate(userId);
                 await sendCompletionNotifications(userId);
 
@@ -1202,7 +1228,6 @@
         // ============================================
         async function createCertificate(userId) {
             try {
-                // Cek apakah sertifikat sudah ada
                 const { data: existingCert, error: certError } = await _supabase
                     .from('yata_certificates')
                     .select('id')
@@ -1217,7 +1242,6 @@
                     return;
                 }
 
-                // Ambil data user
                 const { data: profile, error: profileError } = await _supabase
                     .from('yata_profiles')
                     .select('full_name')
@@ -1226,7 +1250,6 @@
 
                 if (profileError) throw profileError;
 
-                // Generate nomor sertifikat
                 const now = new Date();
                 const dateStr = now.getFullYear() + 
                     String(now.getMonth() + 1).padStart(2, '0') + 
@@ -1234,10 +1257,8 @@
                 const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
                 const certNumber = `YATTA-ONBOARD-${dateStr}-${random}`;
 
-                // 🔥 URL TANDA TANGAN (GANTI DENGAN URL ANDA)
                 const signatureUrl = 'https://fowkcubpplwpljfjjcfy.supabase.co/storage/v1/object/public/certificates/signature.png';
 
-                // Simpan sertifikat
                 const { error: insertError } = await _supabase
                     .from('yata_certificates')
                     .insert([{
@@ -1261,40 +1282,7 @@
         }
 
         // ============================================
-        // KIRIM NOTIFIKASI (HELPER)
-        // ============================================
-        async function sendNotification(userId, title, content, type = 'success') {
-            try {
-                const { data: notifData, error } = await _supabase
-                    .from('yata_notifications')
-                    .insert([{
-                        title: title,
-                        content: content,
-                        type: type
-                    }])
-                    .select()
-                    .single();
-
-                if (error) throw error;
-
-                if (notifData) {
-                    await _supabase
-                        .from('yata_user_notifications')
-                        .insert([{
-                            notification_id: notifData.id,
-                            user_id: userId,
-                            is_read: false
-                        }]);
-                }
-                return true;
-            } catch (err) {
-                console.error('Send notification error:', err);
-                return false;
-            }
-        }
-
-        // ============================================
-        // 3 NOTIFIKASI SAAT SELESAI 3/3 + REVIEW
+        // 3 NOTIFIKASI SAAT SELESAI 3/3 + REVIEW - DENGAN USER_ID
         // ============================================
         async function sendCompletionNotifications(userId) {
             try {

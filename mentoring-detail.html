@@ -88,7 +88,6 @@
             overflow: hidden;
         }
         
-        /* Rating stars untuk ulasan */
         .rating-stars {
             display: flex;
             gap: 8px;
@@ -140,7 +139,6 @@
             resize: vertical;
         }
 
-        /* Popup Quota Full */
         .quota-popup .popup-icon {
             font-size: 56px;
             display: block;
@@ -306,7 +304,6 @@
                             </div>
                             <h1 id="sessionTitle" class="text-2xl md:text-3xl font-black text-slate-800">Judul Kelas</h1>
                             
-                            <!-- 🔥 RATING DISPLAY -->
                             <div id="ratingDisplay" class="flex items-center gap-3 mt-2">
                                 <span class="rating-display">
                                     <span class="stars" id="ratingStars">☆☆☆☆☆</span>
@@ -415,7 +412,7 @@
     </main>
 
     <!-- ============================================ -->
-    <!-- MODAL DAFTAR - DENGAN FORM LENGKAP -->
+    <!-- MODAL DAFTAR -->
     <!-- ============================================ -->
     <div id="registerModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
@@ -432,19 +429,16 @@
             <form id="registerForm" class="space-y-4">
                 <input type="hidden" id="registerSessionId" value="" />
 
-                <!-- Nama Lengkap -->
                 <div>
                     <label for="registerName" class="form-label">Nama Lengkap <span class="text-red-500">*</span></label>
                     <input type="text" id="registerName" placeholder="Masukkan nama lengkap" required class="form-input" />
                 </div>
 
-                <!-- Email -->
                 <div>
                     <label for="registerEmail" class="form-label">Email <span class="text-red-500">*</span></label>
                     <input type="email" id="registerEmail" placeholder="Masukkan email" required class="form-input" />
                 </div>
 
-                <!-- Level & ID Anggota -->
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label for="registerLevel" class="form-label">Level</label>
@@ -461,13 +455,11 @@
                     </div>
                 </div>
 
-                <!-- No WhatsApp -->
                 <div>
                     <label for="registerPhone" class="form-label">No. WhatsApp <span class="text-red-500">*</span></label>
                     <input type="tel" id="registerPhone" placeholder="Contoh: 08123456789" required class="form-input" />
                 </div>
 
-                <!-- Alasan -->
                 <div>
                     <label for="registerReason" class="form-label">Alasan Mengikuti</label>
                     <textarea id="registerReason" rows="2" placeholder="Ceritakan alasan Anda ingin mengikuti kelas ini..." class="form-input form-textarea"></textarea>
@@ -497,17 +489,14 @@
                 <p class="text-sm text-slate-500 mt-1">Maaf, kelas ini sudah mencapai batas maksimal peserta untuk pekan ini.</p>
             </div>
 
-            <!-- Info Kelas Saat Ini -->
             <div id="currentSessionInfo" class="session-info mb-4">
                 <!-- Akan diisi JavaScript -->
             </div>
 
-            <!-- Info Kelas Pekan Berikutnya -->
             <div id="nextSessionInfo" class="next-session-box mb-4 hidden">
                 <!-- Akan diisi JavaScript -->
             </div>
 
-            <!-- Tombol Aksi -->
             <div id="nextSessionAction" class="hidden">
                 <button id="btnGoToNextSession" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm">
                     <i class="fa-regular fa-calendar-plus mr-1"></i> Daftar di Pekan Berikutnya
@@ -567,7 +556,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- MODAL ULASAN ONBOARDING -->
+    <!-- MODAL ULASAN -->
     <!-- ============================================ -->
     <div id="reviewModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
@@ -584,7 +573,6 @@
             <form id="reviewForm" class="space-y-4">
                 <input type="hidden" id="reviewSessionId" value="" />
 
-                <!-- Rating Pemahaman Materi -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Pemahaman Materi <span class="text-red-500">*</span></label>
                     <div class="rating-stars" id="materialStars">
@@ -598,7 +586,6 @@
                     <p class="rating-label" id="materialLabel">Klik bintang untuk menilai</p>
                 </div>
 
-                <!-- Rating Kepuasan Platform -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Kepuasan Platform <span class="text-red-500">*</span></label>
                     <div class="rating-stars" id="platformStars">
@@ -612,7 +599,6 @@
                     <p class="rating-label" id="platformLabel">Klik bintang untuk menilai</p>
                 </div>
 
-                <!-- Feedback -->
                 <div>
                     <label for="reviewFeedback" class="block text-xs font-semibold text-slate-700 mb-1">Feedback / Saran</label>
                     <textarea id="reviewFeedback" rows="3" placeholder="Tulis feedback atau saran untuk YATTA..." class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
@@ -796,7 +782,7 @@
         }
 
         // ============================================
-        // 3. KIRIM NOTIFIKASI (HELPER)
+        // 3. KIRIM NOTIFIKASI (HELPER) - DENGAN USER_ID
         // ============================================
         async function sendNotification(userId, title, content, type = 'success') {
             try {
@@ -862,6 +848,8 @@
                 const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
                 const certNumber = `YATTA-ONBOARD-${dateStr}-${random}`;
 
+                const signatureUrl = 'https://fowkcubpplwpljfjjcfy.supabase.co/storage/v1/object/public/certificates/signature.png';
+
                 const { error: insertError } = await _supabase
                     .from('yata_certificates')
                     .insert([{
@@ -871,7 +859,8 @@
                         is_claimed: true,
                         claimed_at: new Date().toISOString(),
                         signatory_name: 'Abd. Rahman Danial',
-                        signatory_title: 'Founder & CEO YATTA'
+                        signatory_title: 'Founder & CEO YATTA',
+                        signature_url: signatureUrl
                     }]);
 
                 if (insertError) throw insertError;
@@ -884,7 +873,7 @@
         }
 
         // ============================================
-        // 5. 3 NOTIFIKASI SAAT SELESAI 3/3 + REVIEW
+        // 5. 3 NOTIFIKASI SAAT SELESAI 3/3 + REVIEW - DENGAN USER_ID
         // ============================================
         async function sendCompletionNotifications(userId) {
             try {
@@ -1109,7 +1098,6 @@
 
                 sessionData = session;
 
-                // Ambil data mentor
                 const { data: mentor, error: mentorError } = await _supabase
                     .from('yata_profiles')
                     .select('full_name, username, member_level, avatar_url')
@@ -1120,7 +1108,6 @@
                     session.mentor = mentor;
                 }
 
-                // Cek status partisipasi user
                 if (currentUser) {
                     const { data: participant } = await _supabase
                         .from('yata_mentoring_participants')
@@ -1154,7 +1141,6 @@
                     }
                 }
 
-                // Ambil materi
                 const { data: materials, error: materialError } = await _supabase
                     .from('yata_mentoring_materials')
                     .select('*')
@@ -1165,7 +1151,6 @@
                     session.materials = materials || [];
                 }
 
-                // Ambil ulasan
                 const { data: reviews, error: reviewError } = await _supabase
                     .from('yata_mentoring_reviews')
                     .select('*, profile:user_id(full_name)')
@@ -1179,14 +1164,12 @@
 
                 renderSession(session);
 
-                // 🔥 CEK APAKAH ADA PARAMETER REVIEW UNTUK BUKA MODAL OTOMATIS
                 const urlParams = new URLSearchParams(window.location.search);
                 const reviewParam = urlParams.get('review');
 
                 if (reviewParam === 'open' && currentUser) {
                     setTimeout(() => {
                         if (participantStatus === 'completed' || participantStatus === 'approved') {
-                            // Cek apakah user sudah attended
                             checkUserCompletion(sessionId, currentUser.id).then(isComplete => {
                                 if (isComplete) {
                                     openReviewModal(sessionId);
@@ -1257,7 +1240,6 @@
                 lanjutan: 'level-lanjutan'
             };
 
-            // Header
             document.getElementById('sessionStatus').textContent = statusLabels[session.status] || '📝 Draft';
             document.getElementById('sessionStatus').className = `status-badge ${statusClasses[session.status] || 'status-draft'}`;
             document.getElementById('sessionLevel').textContent = levelLabels[session.level] || '🌱 Pemula';
@@ -1266,10 +1248,8 @@
             document.getElementById('sessionTitle').textContent = session.title;
             document.getElementById('sessionDescription').textContent = session.description || 'Tidak ada deskripsi.';
 
-            // 🔥 TAMPILKAN RATING
             renderRating(session);
 
-            // Badge Onboarding
             const onboardingBadge = document.getElementById('onboardingBadge');
             if (session.is_onboarding) {
                 onboardingBadge.classList.remove('hidden');
@@ -1278,7 +1258,6 @@
                 onboardingBadge.classList.add('hidden');
             }
 
-            // Mentor
             const mentor = session.mentor || {};
             const avatarEl = document.getElementById('mentorAvatar');
             if (mentor.avatar_url) {
@@ -1289,7 +1268,6 @@
             document.getElementById('mentorName').textContent = mentor.full_name || 'Mentor';
             document.getElementById('mentorLevel').textContent = mentor.member_level || 'Mentor';
 
-            // Info
             document.getElementById('participantCount').textContent = session.current_participants || 0;
             document.getElementById('maxParticipants').textContent = session.max_participants || '∞';
             document.getElementById('startDate').textContent = session.start_date ? new Date(session.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'TBA';
@@ -1299,14 +1277,12 @@
             document.getElementById('priceDisplay').textContent = isFree ? '🆓 Gratis' : '💰 Rp' + (session.price || 0).toLocaleString();
             document.getElementById('priceDisplay').className = `font-bold ${isFree ? 'text-emerald-600' : 'text-purple-600'}`;
 
-            // Info sidebar
             document.getElementById('infoLevel').textContent = levelLabels[session.level] || '🌱 Pemula';
             document.getElementById('infoPrice').textContent = isFree ? '🆓 Gratis' : '💰 Rp' + (session.price || 0).toLocaleString();
             document.getElementById('infoPrice').className = `font-semibold ${isFree ? 'text-emerald-600' : 'text-purple-600'}`;
             document.getElementById('infoQuota').textContent = `${session.current_participants || 0} / ${session.max_participants || '∞'}`;
             document.getElementById('infoSchedule').textContent = session.schedule || 'TBA';
 
-            // Meeting link
             const meetingContainer = document.getElementById('meetingLinkContainer');
             if (participantStatus === 'approved' && session.meeting_link) {
                 meetingContainer.classList.remove('hidden');
@@ -1316,7 +1292,6 @@
                 meetingContainer.classList.add('hidden');
             }
 
-            // Action buttons
             const actionContainer = document.getElementById('actionButtons');
             const registerBtn = document.getElementById('registerBtn');
             const statusText = document.getElementById('registrationStatus');
@@ -1324,7 +1299,6 @@
             actionContainer.appendChild(registerBtn);
             actionContainer.appendChild(statusText);
 
-            // Tombol Daftar
             if (!currentUser) {
                 registerBtn.textContent = '🔒 Login untuk Daftar';
                 registerBtn.onclick = () => {
@@ -1365,10 +1339,7 @@
                 statusText.classList.add('hidden');
             }
 
-            // Render materi
             renderMaterials(session.materials || []);
-
-            // Render ulasan
             renderReviews(session.reviews || []);
         }
 
@@ -1460,7 +1431,7 @@
         }
 
         // ============================================
-        // 14. CEK AKSES ONBOARDING (KELAS BERURUTAN)
+        // 14. CEK AKSES ONBOARDING
         // ============================================
         async function checkOnboardingAccess(sessionId, userId) {
             try {
@@ -1557,7 +1528,7 @@
         }
 
         // ============================================
-        // 16. OPEN REGISTER MODAL - DENGAN CEK KUOTA & AKSES
+        // 16. OPEN REGISTER MODAL
         // ============================================
         async function openRegisterModal() {
             if (!currentUser) {
@@ -1566,7 +1537,6 @@
                 return;
             }
 
-            // 🔥 CEK AKSES ONBOARDING (KELAS BERURUTAN)
             const access = await checkOnboardingAccess(sessionId, currentUser.id);
             
             if (!access.allowed) {
@@ -1574,7 +1544,6 @@
                 return;
             }
 
-            // 🔥 CEK KAPASITAS SEBELUM BUKA MODAL
             try {
                 const { data: session, error } = await _supabase
                     .from('yata_mentoring_sessions')
@@ -1594,7 +1563,6 @@
                 return;
             }
 
-            // Ambil data profil user
             const { data: profile } = await _supabase
                 .from('yata_profiles')
                 .select('full_name, email, member_level, member_id')
@@ -1738,7 +1706,7 @@
         }
 
         // ============================================
-        // 20. SUBMIT REGISTER - AUTO APPROVE + NOTIFIKASI + UPDATE KUOTA OTOMATIS
+        // 20. SUBMIT REGISTER - DENGAN NOTIFIKASI PER USER
         // ============================================
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1773,7 +1741,6 @@
                     return;
                 }
 
-                // ✅ CEK KAPASITAS
                 const { data: currentSession, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('current_participants, max_participants, title, meeting_link')
@@ -1788,7 +1755,6 @@
                     return;
                 }
 
-                // ✅ CEK APAKAH SUDAH TERDAFTAR
                 const { data: existing, error: checkError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('id')
@@ -1801,7 +1767,6 @@
                     return;
                 }
 
-                // ✅ INSERT PESERTA LANGSUNG APPROVED
                 const { error: insertError } = await _supabase
                     .from('yata_mentoring_participants')
                     .insert([{
@@ -1817,10 +1782,9 @@
                     return;
                 }
 
-                // ✅ UPDATE KUOTA OTOMATIS
                 await updateQuota(sessionId);
 
-                // ✅ KIRIM NOTIFIKASI KE PESERTA
+                // 🔥 NOTIFIKASI KE USER YANG MENDAFTAR
                 const notifTitle = `🎉 Pendaftaran Berhasil!`;
                 const notifContent = `Anda berhasil mendaftar di kelas "${currentSession.title}".
                 
@@ -1836,7 +1800,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
 📌 Tips: Simpan link ini untuk akses cepat ke kelas.`;
 
                 await sendNotification(
-                    session.user.id,
+                    session.user.id,  // ← HANYA UNTUK USER INI
                     notifTitle,
                     notifContent,
                     'success'
@@ -1977,10 +1941,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
                 showReviewMessage('✅ Ulasan berhasil dikirim!', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
 
-                // 🔥 UPDATE RATING KELAS
                 await updateSessionRating(sessionId);
-
-                // 🔥 CEK ULASAN & SERTIFIKAT (JIKA 3/3)
                 await checkReviewAndCertificate(session.user.id);
 
                 setTimeout(() => {
@@ -2078,6 +2039,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
 
                 if (error) throw error;
 
+                // 🔥 NOTIFIKASI KE USER YANG KLAIM
                 await sendNotification(
                     session.user.id,
                     '🎉 Sertifikat Berhasil Diklaim!',
@@ -2130,7 +2092,6 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         document.addEventListener('DOMContentLoaded', () => {
             loadSessionDetail();
 
-            // 🔥 SCROLL KE REVIEW JIKA ADA HASH
             if (window.location.hash === '#review') {
                 setTimeout(() => {
                     const reviewSection = document.getElementById('review');

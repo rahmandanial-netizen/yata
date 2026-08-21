@@ -457,10 +457,11 @@
         }
 
         // ============================================
-        // KIRIM NOTIFIKASI (HELPER)
+        // KIRIM NOTIFIKASI (HELPER) - DENGAN USER_ID
         // ============================================
         async function sendNotification(userId, title, content, type = 'info') {
             try {
+                // 1. Buat notifikasi di tabel utama
                 const { data: notifData, error } = await _supabase
                     .from('yata_notifications')
                     .insert([{
@@ -471,20 +472,32 @@
                     .select()
                     .single();
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Insert notification error:', error);
+                    throw error;
+                }
 
+                // 2. 🔥 HUBUNGKAN KE USER TERTENTU
                 if (notifData) {
-                    await _supabase
+                    const { error: linkError } = await _supabase
                         .from('yata_user_notifications')
                         .insert([{
                             notification_id: notifData.id,
-                            user_id: userId,
+                            user_id: userId,  // ← HANYA UNTUK USER INI!
                             is_read: false
                         }]);
+
+                    if (linkError) {
+                        console.error('❌ Link notification error:', linkError);
+                        throw linkError;
+                    }
                 }
+
+                console.log(`✅ Notifikasi terkirim ke user ${userId}: ${title}`);
                 return true;
+
             } catch (err) {
-                console.error('Send notification error:', err);
+                console.error('❌ Send notification error:', err);
                 return false;
             }
         }
@@ -635,7 +648,7 @@
                     await checkAndUpdateSessionStatus(sessionId);
                 }
 
-                // 4. 🔥 KIRIM NOTIFIKASI BERDASARKAN STATUS
+                // 4. 🔥 KIRIM NOTIFIKASI BERDASARKAN STATUS (HANYA KE USER TERSEBUT)
                 if (isPresent) {
                     await sendAttendancePresentNotification(userId, sessionTitle, sessionId);
                 } else {
@@ -683,6 +696,9 @@
                             completed_at: new Date().toISOString()
                         })
                         .eq('id', p.id);
+
+                    // Kirim notifikasi ke setiap peserta
+                    await sendAttendancePresentNotification(p.user_id, 'Kelas Onboarding', currentSessionId);
                 }
 
                 // Update status sesi menjadi completed
