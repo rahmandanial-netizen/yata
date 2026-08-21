@@ -100,6 +100,56 @@
         .filter-btn:not(.active):hover {
             background-color: #f1f5f9;
         }
+        .rating-stars {
+            display: flex;
+            gap: 8px;
+            font-size: 32px;
+            cursor: pointer;
+        }
+        .rating-stars span {
+            transition: all 0.2s;
+            color: #d1d5db;
+        }
+        .rating-stars span.active {
+            color: #f59e0b;
+        }
+        .rating-stars span:hover {
+            transform: scale(1.15);
+        }
+        .rating-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            font-size: 14px;
+            transition: all 0.2s;
+            background: white;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #065F46;
+            box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.15);
+        }
+        .form-input:disabled {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 4px;
+        }
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
     </style>
 </head>
 <body>
@@ -117,11 +167,9 @@
             </div>
 
             <nav class="flex-1 px-4 py-6 space-y-1">
-                <!-- 🌟 Menuju Jelajahi Yatta -->
                 <a href="explore.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-amber-600 hover:text-amber-700 rounded-xl transition">
                     <i class="fa-solid fa-compass w-5 text-amber-500"></i> Menuju Jelajahi Yatta
                 </a>
-                <!-- Beranda -->
                 <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
                     <i class="fa-solid fa-house w-5"></i> Beranda
                 </a>
@@ -283,6 +331,64 @@
     </main>
 
     <!-- ============================================ -->
+    <!-- MODAL ULASAN -->
+    <!-- ============================================ -->
+    <div id="reviewModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeReviewModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Ulasan</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Berikan Ulasan</h3>
+                <p id="reviewModalSubtitle" class="text-xs text-slate-500 mt-1">Bagikan pengalaman Anda mengikuti kelas ini.</p>
+            </div>
+
+            <form id="reviewForm" class="space-y-4">
+                <input type="hidden" id="reviewSessionId" value="" />
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pemahaman Materi <span class="text-red-500">*</span></label>
+                    <div class="rating-stars" id="materialStars">
+                        <span onclick="setMaterialRating(1)">⭐</span>
+                        <span onclick="setMaterialRating(2)">⭐</span>
+                        <span onclick="setMaterialRating(3)">⭐</span>
+                        <span onclick="setMaterialRating(4)">⭐</span>
+                        <span onclick="setMaterialRating(5)">⭐</span>
+                    </div>
+                    <input type="hidden" id="materialRating" value="0" />
+                    <p class="rating-label" id="materialLabel">Klik bintang untuk menilai</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Kepuasan Platform <span class="text-red-500">*</span></label>
+                    <div class="rating-stars" id="platformStars">
+                        <span onclick="setPlatformRating(1)">⭐</span>
+                        <span onclick="setPlatformRating(2)">⭐</span>
+                        <span onclick="setPlatformRating(3)">⭐</span>
+                        <span onclick="setPlatformRating(4)">⭐</span>
+                        <span onclick="setPlatformRating(5)">⭐</span>
+                    </div>
+                    <input type="hidden" id="platformRating" value="0" />
+                    <p class="rating-label" id="platformLabel">Klik bintang untuk menilai</p>
+                </div>
+
+                <div>
+                    <label for="reviewFeedback" class="block text-xs font-semibold text-slate-700 mb-1">Feedback / Saran</label>
+                    <textarea id="reviewFeedback" rows="3" placeholder="Tulis feedback atau saran untuk YATTA..." class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
+                </div>
+
+                <button type="submit" id="reviewSubmitBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-regular fa-paper-plane mr-1"></i> Kirim Ulasan
+                </button>
+
+                <div id="reviewMessage" class="text-sm text-center hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
     <!-- JAVASCRIPT -->
     <!-- ============================================ -->
     <script>
@@ -294,6 +400,9 @@
         let filteredParticipants = [];
         let myMentorSessions = [];
         let currentFilter = 'all';
+        let currentReviewSessionId = null;
+        let materialRatingValue = 0;
+        let platformRatingValue = 0;
 
         // ============================================
         // CEK AKSES PROYEK BUKU
@@ -425,7 +534,6 @@
                 const session = await checkAuth();
                 if (!session) return;
 
-                // 1. Ambil profile user
                 const { data: profile, error: profileError } = await _supabase
                     .from('yata_profiles')
                     .select('*')
@@ -435,11 +543,9 @@
                 if (profileError) throw profileError;
                 currentProfile = profile;
 
-                // 2. Cek apakah user bisa menjadi mentor (Penulis+)
                 const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
                 const isMentor = allowedLevels.includes(profile.member_level);
 
-                // Tampilkan/sembunyikan section mentor
                 const mentorSection = document.getElementById('mentorSection');
                 const btnCreate = document.getElementById('btnCreateMentoring');
                 if (isMentor) {
@@ -450,10 +556,8 @@
                     btnCreate.classList.remove('visible');
                 }
 
-                // 3. Ambil partisipasi (kelas yang diikuti)
                 await loadParticipants(session.user.id);
 
-                // 4. Ambil kelas yang dibuat (jika mentor)
                 if (isMentor) {
                     await loadMentorSessions(session.user.id);
                 }
@@ -493,7 +597,6 @@
                 empty.classList.add('hidden');
                 countEl.textContent = allParticipants.length;
 
-                // Ambil data mentor untuk setiap session
                 const sessionIds = allParticipants.map(p => p.session_id).filter(id => id);
                 let mentorMap = {};
                 if (sessionIds.length > 0) {
@@ -523,7 +626,6 @@
                     }
                 }
 
-                // Apply filter default (all)
                 filterParticipants('all');
 
             } catch (err) {
@@ -582,7 +684,81 @@
         }
 
         // ============================================
-        // RENDER PARTICIPANTS - DENGAN TOMBOL ULASAN
+        // OPEN REVIEW MODAL FROM MY MENTORING
+        // ============================================
+        function openReviewModalFromMy(sessionId) {
+            currentReviewSessionId = sessionId;
+            
+            // Reset form
+            document.getElementById('reviewSessionId').value = sessionId;
+            document.getElementById('reviewFeedback').value = '';
+            document.getElementById('reviewMessage').className = 'text-sm text-center hidden';
+            
+            // Reset rating
+            materialRatingValue = 0;
+            platformRatingValue = 0;
+            document.getElementById('materialRating').value = 0;
+            document.getElementById('platformRating').value = 0;
+            document.getElementById('materialLabel').textContent = 'Klik bintang untuk menilai';
+            document.getElementById('platformLabel').textContent = 'Klik bintang untuk menilai';
+            
+            const allStars = document.querySelectorAll('#materialStars span, #platformStars span');
+            allStars.forEach(star => star.classList.remove('active'));
+            
+            // Cari judul kelas
+            const participant = allParticipants.find(p => p.session_id === sessionId);
+            const sessionTitle = participant?.session?.title || 'Kelas';
+            document.getElementById('reviewModalSubtitle').textContent = `Berikan ulasan untuk "${sessionTitle}"`;
+            
+            document.getElementById('reviewModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeReviewModal() {
+            document.getElementById('reviewModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentReviewSessionId = null;
+        }
+
+        // ============================================
+        // RATING FUNCTIONS
+        // ============================================
+        function setMaterialRating(rating) {
+            materialRatingValue = rating;
+            document.getElementById('materialRating').value = rating;
+            
+            const stars = document.querySelectorAll('#materialStars span');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+            
+            const labels = ['', 'Sangat Kurang', 'Kurang', 'Cukup', 'Baik', 'Sangat Baik'];
+            document.getElementById('materialLabel').textContent = `⭐ ${rating} - ${labels[rating]}`;
+        }
+
+        function setPlatformRating(rating) {
+            platformRatingValue = rating;
+            document.getElementById('platformRating').value = rating;
+            
+            const stars = document.querySelectorAll('#platformStars span');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+            
+            const labels = ['', 'Sangat Kurang', 'Kurang', 'Cukup', 'Baik', 'Sangat Baik'];
+            document.getElementById('platformLabel').textContent = `⭐ ${rating} - ${labels[rating]}`;
+        }
+
+        // ============================================
+        // RENDER PARTICIPANTS
         // ============================================
         function renderParticipants() {
             const container = document.getElementById('participantList');
@@ -638,7 +814,6 @@
                 const mentorInitial = mentorName.charAt(0).toUpperCase();
                 const isOnboarding = s.is_onboarding === true;
 
-                // 🔥 TENTUKAN STATUS TAMPILAN
                 let displayStatus = p.status;
                 if (p.attended === true || p.status === 'completed') {
                     displayStatus = 'completed';
@@ -665,7 +840,6 @@
                 const displayLabel = statusDisplay[displayStatus] || statusLabels[p.status] || '⏳ Menunggu';
                 const displayClass = statusClassDisplay[displayStatus] || statusClasses[p.status] || 'status-pending';
 
-                // 🔥 CEK APAKAH TAMPILKAN TOMBOL ULASAN
                 const showReviewBtn = p.attended === true || p.status === 'completed';
 
                 return `
@@ -696,9 +870,9 @@
                             </div>
                             <div class="flex items-center gap-2 flex-shrink-0">
                                 ${showReviewBtn ? `
-                                    <a href="mentoring-detail.html?id=${s.id}#review" onclick="event.stopPropagation()" class="text-xs bg-yellow-50 hover:bg-yellow-100 text-yellow-700 font-semibold px-3 py-1 rounded-full transition">
+                                    <button onclick="event.stopPropagation(); openReviewModalFromMy('${s.id}')" class="text-xs bg-yellow-50 hover:bg-yellow-100 text-yellow-700 font-semibold px-3 py-1 rounded-full transition">
                                         <i class="fa-regular fa-star mr-1"></i> Ulasan
-                                    </a>
+                                    </button>
                                 ` : ''}
                                 ${p.status === 'approved' && s.meeting_link ? `
                                     <a href="${s.meeting_link}" target="_blank" onclick="event.stopPropagation()" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold px-3 py-1 rounded-full transition">
@@ -744,7 +918,6 @@
                 empty.classList.add('hidden');
                 countEl.textContent = myMentorSessions.length;
 
-                // Ambil jumlah peserta per session
                 const sessionIds = myMentorSessions.map(s => s.id);
                 const { data: participants, error: participantError } = await _supabase
                     .from('yata_mentoring_participants')
@@ -842,6 +1015,267 @@
         }
 
         // ============================================
+        // SUBMIT REVIEW
+        // ============================================
+        document.getElementById('reviewForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const sessionId = document.getElementById('reviewSessionId').value;
+            const materialRating = parseInt(document.getElementById('materialRating').value) || 0;
+            const platformRating = parseInt(document.getElementById('platformRating').value) || 0;
+            const feedback = document.getElementById('reviewFeedback').value.trim();
+
+            if (materialRating === 0 || platformRating === 0) {
+                showReviewMessage('Harap beri rating untuk materi dan platform.', 'error');
+                return;
+            }
+
+            const submitBtn = document.getElementById('reviewSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+            showReviewMessage('', '');
+
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const { error } = await _supabase
+                    .from('yata_onboarding_reviews')
+                    .insert([{
+                        user_id: session.user.id,
+                        session_id: sessionId,
+                        material_understanding: materialRating,
+                        platform_satisfaction: platformRating,
+                        feedback: feedback || null
+                    }]);
+
+                if (error) throw error;
+
+                showReviewMessage('✅ Ulasan berhasil dikirim!', 'success');
+                submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
+
+                // 🔥 UPDATE RATING KELAS
+                await updateSessionRating(sessionId);
+
+                // 🔥 CEK ULASAN & SERTIFIKAT (JIKA 3/3)
+                await checkReviewAndCertificate(session.user.id);
+
+                setTimeout(() => {
+                    closeReviewModal();
+                    loadMyMentoring();
+                }, 2000);
+
+            } catch (err) {
+                console.error('Submit review error:', err);
+                showReviewMessage('❌ Gagal mengirim ulasan: ' + err.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Ulasan';
+            }
+        });
+
+        function showReviewMessage(text, type) {
+            const msg = document.getElementById('reviewMessage');
+            msg.textContent = text;
+            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
+                type === 'success' ? 'text-emerald-600' :
+                type === 'error' ? 'text-red-600' :
+                ''
+            }`;
+        }
+
+        // ============================================
+        // UPDATE RATING KELAS
+        // ============================================
+        async function updateSessionRating(sessionId) {
+            try {
+                const { data: reviews, error } = await _supabase
+                    .from('yata_onboarding_reviews')
+                    .select('material_understanding, platform_satisfaction')
+                    .eq('session_id', sessionId);
+
+                if (error) throw error;
+
+                if (reviews && reviews.length > 0) {
+                    let total = 0;
+                    reviews.forEach(r => {
+                        const avgRating = (r.material_understanding + r.platform_satisfaction) / 2;
+                        total += avgRating;
+                    });
+                    const avg = total / reviews.length;
+
+                    await _supabase
+                        .from('yata_mentoring_sessions')
+                        .update({ 
+                            avg_rating: parseFloat(avg.toFixed(2)),
+                            total_reviews: reviews.length
+                        })
+                        .eq('id', sessionId);
+
+                    console.log(`✅ Rating diperbarui: ${avg.toFixed(2)} (${reviews.length} ulasan)`);
+                }
+            } catch (err) {
+                console.error('Update rating error:', err);
+            }
+        }
+
+        // ============================================
+        // CEK ULASAN & BERI SERTIFIKAT (3/3)
+        // ============================================
+        async function checkReviewAndCertificate(userId) {
+            try {
+                const { data: onboardingSessions, error: sessionError } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('id')
+                    .eq('is_onboarding', true)
+                    .eq('status', 'published');
+
+                if (sessionError) throw sessionError;
+
+                const sessionIds = onboardingSessions.map(s => s.id);
+
+                const { data: reviews, error: reviewError } = await _supabase
+                    .from('yata_onboarding_reviews')
+                    .select('session_id')
+                    .eq('user_id', userId)
+                    .in('session_id', sessionIds);
+
+                if (reviewError) throw reviewError;
+
+                const reviewedSessions = reviews.map(r => r.session_id);
+                const allReviewed = sessionIds.every(id => reviewedSessions.includes(id));
+
+                if (!allReviewed) {
+                    console.log('⏳ Belum semua kelas di-review');
+                    return;
+                }
+
+                console.log('✅ Semua kelas sudah di-review! Memberi sertifikat...');
+
+                const { data: existingCert, error: certError } = await _supabase
+                    .from('yata_certificates')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .eq('certificate_type', 'onboarding')
+                    .maybeSingle();
+
+                if (certError) throw certError;
+
+                if (existingCert) {
+                    console.log('✅ Sertifikat sudah ada');
+                    return;
+                }
+
+                await createCertificate(userId);
+                await sendCompletionNotifications(userId);
+
+            } catch (err) {
+                console.error('Check review and certificate error:', err);
+            }
+        }
+
+        // ============================================
+        // KIRIM NOTIFIKASI (HELPER)
+        // ============================================
+        async function sendNotification(userId, title, content, type = 'success') {
+            try {
+                const { data: notifData, error } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: title,
+                        content: content,
+                        type: type
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                if (notifData) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+                }
+                return true;
+            } catch (err) {
+                console.error('Send notification error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // BUAT SERTIFIKAT OTOMATIS
+        // ============================================
+        async function createCertificate(userId) {
+            try {
+                const { data: profile, error: profileError } = await _supabase
+                    .from('yata_profiles')
+                    .select('full_name')
+                    .eq('id', userId)
+                    .single();
+
+                if (profileError) throw profileError;
+
+                const now = new Date();
+                const dateStr = now.getFullYear() + 
+                    String(now.getMonth() + 1).padStart(2, '0') + 
+                    String(now.getDate()).padStart(2, '0');
+                const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+                const certNumber = `YATTA-ONBOARD-${dateStr}-${random}`;
+
+                const { error: insertError } = await _supabase
+                    .from('yata_certificates')
+                    .insert([{
+                        user_id: userId,
+                        certificate_type: 'onboarding',
+                        certificate_number: certNumber,
+                        is_claimed: true,
+                        claimed_at: new Date().toISOString(),
+                        signatory_name: 'Abd. Rahman Danial',
+                        signatory_title: 'Founder & CEO YATTA'
+                    }]);
+
+                if (insertError) throw insertError;
+
+                console.log(`✅ Sertifikat dibuat untuk user ${userId}: ${certNumber}`);
+
+            } catch (err) {
+                console.error('Create certificate error:', err);
+            }
+        }
+
+        // ============================================
+        // 3 NOTIFIKASI SAAT SELESAI 3/3 + REVIEW
+        // ============================================
+        async function sendCompletionNotifications(userId) {
+            try {
+                const notif1Title = `🎉 Selamat! Anda Telah Menyelesaikan Onboarding!`;
+                const notif1Content = `Anda telah menyelesaikan semua 3 kelas onboarding YATTA! 🎉\n\n📚 Anda sekarang resmi menjadi bagian dari ekosistem YATTA.\n\n🚀 Langkah selanjutnya: Naik level ke "Penulis" untuk mulai menulis dan menerbitkan karya!`;
+
+                await sendNotification(userId, notif1Title, notif1Content, 'success');
+
+                const notif2Title = `📜 Sertifikat Onboarding Anda Tersedia!`;
+                const notif2Content = `Sertifikat onboarding Anda sudah tersedia di menu Sertifikat.\n\n🏛️ Ditandatangani oleh:\nAbd. Rahman Danial\nFounder & CEO YATTA\n\n📌 Klik menu Sertifikat untuk melihat dan mengunduh.`;
+
+                await sendNotification(userId, notif2Title, notif2Content, 'success');
+
+                const notif3Title = `⭐ Ajukan Naik Level ke "Penulis" Sekarang!`;
+                const notif3Content = `Anda sudah menyelesaikan semua kelas onboarding.\n\n📋 Syarat naik level ke "Penulis":\n✅ 5+ karya dipublikasikan\n✅ 3+ kali mengikuti mentoring\n\n📌 Klik menu Profil untuk melihat detail level dan ajukan naik level.`;
+
+                await sendNotification(userId, notif3Title, notif3Content, 'campaign');
+
+                console.log(`✅ 3 notifikasi completion terkirim ke user ${userId}`);
+
+            } catch (err) {
+                console.error('Send completion notifications error:', err);
+            }
+        }
+
+        // ============================================
         // LOGOUT
         // ============================================
         async function handleLogout() {
@@ -874,6 +1308,10 @@
 
             document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(el => {
                 el.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
+            });
+
+            document.getElementById('reviewModal').addEventListener('click', function(e) {
+                if (e.target === this) closeReviewModal();
             });
         });
     </script>

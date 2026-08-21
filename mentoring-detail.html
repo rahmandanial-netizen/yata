@@ -970,7 +970,6 @@
         // ============================================
         async function updateSessionRating(sessionId) {
             try {
-                // Ambil semua ulasan untuk sesi ini
                 const { data: reviews, error } = await _supabase
                     .from('yata_onboarding_reviews')
                     .select('material_understanding, platform_satisfaction')
@@ -979,7 +978,6 @@
                 if (error) throw error;
 
                 if (reviews && reviews.length > 0) {
-                    // Hitung rata-rata dari kedua rating
                     let total = 0;
                     reviews.forEach(r => {
                         const avgRating = (r.material_understanding + r.platform_satisfaction) / 2;
@@ -987,7 +985,6 @@
                     });
                     const avg = total / reviews.length;
 
-                    // Update session
                     await _supabase
                         .from('yata_mentoring_sessions')
                         .update({ 
@@ -1049,7 +1046,6 @@
             const scoreEl = document.getElementById('ratingScore');
             const countEl = document.getElementById('ratingCount');
 
-            // Generate stars
             const fullStars = Math.floor(avgRating);
             const hasHalfStar = avgRating - fullStars >= 0.5;
             let starsHtml = '';
@@ -1066,7 +1062,6 @@
             scoreEl.textContent = avgRating.toFixed(1);
             countEl.textContent = `(${totalReviews} ulasan)`;
 
-            // Sembunyikan jika belum ada rating
             const ratingDisplay = document.getElementById('ratingDisplay');
             if (totalReviews === 0) {
                 ratingDisplay.style.display = 'none';
@@ -1184,6 +1179,23 @@
 
                 renderSession(session);
 
+                // 🔥 CEK APAKAH ADA PARAMETER REVIEW UNTUK BUKA MODAL OTOMATIS
+                const urlParams = new URLSearchParams(window.location.search);
+                const reviewParam = urlParams.get('review');
+
+                if (reviewParam === 'open' && currentUser) {
+                    setTimeout(() => {
+                        if (participantStatus === 'completed' || participantStatus === 'approved') {
+                            // Cek apakah user sudah attended
+                            checkUserCompletion(sessionId, currentUser.id).then(isComplete => {
+                                if (isComplete) {
+                                    openReviewModal(sessionId);
+                                }
+                            });
+                        }
+                    }, 1000);
+                }
+
                 document.getElementById('loadingState').classList.add('hidden');
                 document.getElementById('contentContainer').classList.remove('hidden');
 
@@ -1191,6 +1203,27 @@
                 console.error('Load session detail error:', err);
                 showError('Terjadi kesalahan saat memuat kelas.', 'Error');
                 window.location.href = 'mentoring.html';
+            }
+        }
+
+        // ============================================
+        // CEK APAKAH USER SUDAH COMPLETE
+        // ============================================
+        async function checkUserCompletion(sessionId, userId) {
+            try {
+                const { data: participant, error } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('attended, status')
+                    .eq('session_id', sessionId)
+                    .eq('user_id', userId)
+                    .maybeSingle();
+
+                if (error) throw error;
+
+                return participant && (participant.attended === true || participant.status === 'completed');
+            } catch (err) {
+                console.error('Check user completion error:', err);
+                return false;
             }
         }
 
