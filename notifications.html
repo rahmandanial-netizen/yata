@@ -191,9 +191,9 @@
         <div class="flex flex-col h-full">
             <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
                 <a href="dashboard.html" class="flex items-center space-x-2 group">
-    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30" />
-    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
-</a>
+                    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30" />
+                    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
+                </a>
             </div>
             <nav class="flex-1 px-4 py-6 space-y-1">
                 <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
@@ -209,17 +209,17 @@
                     <i class="fa-solid fa-book-open w-5"></i> Perpustakaan
                 </a>
                 <a href="community.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
-    <i class="fa-solid fa-users w-5"></i> Komunitas
-</a>
-<a href="mentoring-my.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
-    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring Saya
-</a>
-<a href="certificates.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
-    <i class="fa-solid fa-certificate w-5"></i> Sertifikat
-</a>
-<a href="profile.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
-    <i class="fa-solid fa-user w-5"></i> Profil
-</a>
+                    <i class="fa-solid fa-users w-5"></i> Komunitas
+                </a>
+                <a href="mentoring-my.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring Saya
+                </a>
+                <a href="certificates.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-certificate w-5"></i> Sertifikat
+                </a>
+                <a href="profile.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-user w-5"></i> Profil
+                </a>
             </nav>
             <div class="p-4 border-t border-emerald-100/60">
                 <button id="btnLogout" class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition text-left">
@@ -234,9 +234,9 @@
     <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
         <div class="flex items-center justify-between px-4 h-16">
             <a href="dashboard.html" class="flex items-center space-x-2">
-    <img src="assets/favicon.png" alt="Yatta" class="h-8 w-8 rounded-xl object-cover" />
-    <span class="text-lg font-extrabold text-emerald-800">Yatta</span>
-</a>
+                <img src="assets/favicon.png" alt="Yatta" class="h-8 w-8 rounded-xl object-cover" />
+                <span class="text-lg font-extrabold text-emerald-800">Yatta</span>
+            </a>
             <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
                 <i class="fa-solid fa-bars text-xl"></i>
             </button>
@@ -247,9 +247,9 @@
             <a href="#" onclick="checkProjectAccess(event)" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Proyek Buku</a>
             <a href="library.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Perpustakaan</a>
             <a href="community.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Komunitas</a>
-<a href="mentoring-my.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Mentoring Saya</a>
-<a href="certificates.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Sertifikat</a>
-<a href="profile.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Profil</a>
+            <a href="mentoring-my.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Mentoring Saya</a>
+            <a href="certificates.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Sertifikat</a>
+            <a href="profile.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Profil</a>
             <hr class="my-2 border-emerald-100" />
             <button id="btnLogoutMobile" class="block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
         </div>
@@ -387,12 +387,15 @@
         // CEK LOGIN
         async function checkAuth(redirectIfNoSession = true) {
             try {
-                const session = await getSession();
+                const { data: { session } } = await _supabase.auth.getSession();
                 if (!session && redirectIfNoSession) {
                     window.location.href = 'login.html';
                     return null;
                 }
-                if (session) currentUser = session.user;
+                if (session) {
+                    currentUser = session.user;
+                    console.log('✅ User logged in:', currentUser.id);
+                }
                 return session;
             } catch (err) {
                 console.error('Auth check error:', err);
@@ -427,45 +430,56 @@
                 const session = await checkAuth();
                 if (!session) return;
 
+                console.log('🔍 Loading notifications for user:', session.user.id);
+
                 const from = currentPage * pageSize;
                 const to = from + pageSize - 1;
 
-                const { data: notifications, error } = await _supabase
-                    .from('yata_notifications')
-                    .select('*')
+                // 🔥 AMBIL NOTIFIKASI DARI USER_NOTIFICATIONS (BUKAN LANGSUNG DARI NOTIFICATIONS)
+                const { data: userNotifs, error: userError } = await _supabase
+                    .from('yata_user_notifications')
+                    .select('notification_id, is_read, created_at')
+                    .eq('user_id', session.user.id)
                     .order('created_at', { ascending: false })
                     .range(from, to);
 
-                if (error) throw error;
+                if (userError) throw userError;
 
-                let readMap = {};
-                if (notifications && notifications.length > 0) {
-                    const notifIds = notifications.map(n => n.id);
-                    const { data: userNotifs, error: userError } = await _supabase
-                        .from('yata_user_notifications')
-                        .select('notification_id, is_read')
-                        .eq('user_id', session.user.id)
-                        .in('notification_id', notifIds);
-
-                    if (!userError && userNotifs) {
-                        userNotifs.forEach(un => {
-                            readMap[un.notification_id] = un.is_read;
-                        });
-                    }
+                if (!userNotifs || userNotifs.length === 0) {
+                    allNotifications = [];
+                    renderNotifications();
+                    document.getElementById('loadMoreContainer').classList.add('hidden');
+                    document.getElementById('noMoreData').classList.remove('hidden');
+                    isLoading = false;
+                    return;
                 }
 
-                const newNotifications = (notifications || []).map(n => ({
+                const notifIds = userNotifs.map(un => un.notification_id);
+                const readMap = {};
+                userNotifs.forEach(un => {
+                    readMap[un.notification_id] = un.is_read;
+                });
+
+                // Ambil detail notifikasi
+                const { data: notifications, error: notifError } = await _supabase
+                    .from('yata_notifications')
+                    .select('*')
+                    .in('id', notifIds)
+                    .order('created_at', { ascending: false });
+
+                if (notifError) throw notifError;
+
+                const combined = (notifications || []).map(n => ({
                     ...n,
                     is_read: readMap[n.id] || false
                 }));
 
-                if (newNotifications.length > 0) {
-                    allNotifications = reset ? newNotifications : [...allNotifications, ...newNotifications];
-                    currentPage++;
-                    hasMoreData = newNotifications.length === pageSize;
-                } else {
-                    hasMoreData = false;
-                }
+                // Urutkan berdasarkan created_at descending
+                combined.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                allNotifications = reset ? combined : [...allNotifications, ...combined];
+                currentPage++;
+                hasMoreData = userNotifs.length === pageSize;
 
                 updateCount();
                 renderNotifications();
