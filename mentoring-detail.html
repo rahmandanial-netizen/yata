@@ -767,7 +767,7 @@
         }
 
         // ============================================
-        // 3. KIRIM NOTIFIKASI
+        // 3. KIRIM NOTIFIKASI (HELPER)
         // ============================================
         async function sendNotification(userId, title, content, type = 'success') {
             try {
@@ -800,7 +800,160 @@
         }
 
         // ============================================
-        // 4. UPDATE KUOTA OTOMATIS
+        // 4. BUAT SERTIFIKAT OTOMATIS
+        // ============================================
+        async function createCertificate(userId) {
+            try {
+                // Cek apakah sertifikat sudah ada
+                const { data: existingCert, error: certError } = await _supabase
+                    .from('yata_certificates')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .eq('certificate_type', 'onboarding')
+                    .maybeSingle();
+
+                if (certError) throw certError;
+
+                if (existingCert) {
+                    console.log('✅ Sertifikat sudah ada untuk user ini');
+                    return;
+                }
+
+                // Ambil data user
+                const { data: profile, error: profileError } = await _supabase
+                    .from('yata_profiles')
+                    .select('full_name')
+                    .eq('id', userId)
+                    .single();
+
+                if (profileError) throw profileError;
+
+                // Generate nomor sertifikat
+                const now = new Date();
+                const dateStr = now.getFullYear() + 
+                    String(now.getMonth() + 1).padStart(2, '0') + 
+                    String(now.getDate()).padStart(2, '0');
+                const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+                const certNumber = `YATTA-ONBOARD-${dateStr}-${random}`;
+
+                // Simpan sertifikat
+                const { error: insertError } = await _supabase
+                    .from('yata_certificates')
+                    .insert([{
+                        user_id: userId,
+                        certificate_type: 'onboarding',
+                        certificate_number: certNumber,
+                        is_claimed: true,
+                        claimed_at: new Date().toISOString(),
+                        signatory_name: 'Abd. Rahman Danial',
+                        signatory_title: 'Founder & CEO YATTA'
+                    }]);
+
+                if (insertError) throw insertError;
+
+                console.log(`✅ Sertifikat dibuat untuk user ${userId}: ${certNumber}`);
+
+            } catch (err) {
+                console.error('Create certificate error:', err);
+            }
+        }
+
+        // ============================================
+        // 5. 3 NOTIFIKASI SAAT SELESAI 3/3 + REVIEW
+        // ============================================
+        async function sendCompletionNotifications(userId) {
+            try {
+                // NOTIFIKASI 1: SELESAI ONBOARDING
+                const notif1Title = `🎉 Selamat! Anda Telah Menyelesaikan Onboarding!`;
+                const notif1Content = `Anda telah menyelesaikan semua 3 kelas onboarding YATTA! 🎉\n\n📚 Anda sekarang resmi menjadi bagian dari ekosistem YATTA.\n\n🚀 Langkah selanjutnya: Naik level ke "Penulis" untuk mulai menulis dan menerbitkan karya!`;
+
+                await sendNotification(userId, notif1Title, notif1Content, 'success');
+
+                // NOTIFIKASI 2: SERTIFIKAT
+                const notif2Title = `📜 Sertifikat Onboarding Anda Tersedia!`;
+                const notif2Content = `Sertifikat onboarding Anda sudah tersedia di menu Sertifikat.\n\n🏛️ Ditandatangani oleh:\nAbd. Rahman Danial\nFounder & CEO YATTA\n\n📌 Klik menu Sertifikat untuk melihat dan mengunduh.`;
+
+                await sendNotification(userId, notif2Title, notif2Content, 'success');
+
+                // NOTIFIKASI 3: PENGAJUAN NAIK LEVEL
+                const notif3Title = `⭐ Ajukan Naik Level ke "Penulis" Sekarang!`;
+                const notif3Content = `Anda sudah menyelesaikan semua kelas onboarding.\n\n📋 Syarat naik level ke "Penulis":\n✅ 5+ karya dipublikasikan\n✅ 3+ kali mengikuti mentoring\n\n📌 Klik menu Profil untuk melihat detail level dan ajukan naik level.`;
+
+                await sendNotification(userId, notif3Title, notif3Content, 'campaign');
+
+                console.log(`✅ 3 notifikasi completion terkirim ke user ${userId}`);
+
+            } catch (err) {
+                console.error('Send completion notifications error:', err);
+            }
+        }
+
+        // ============================================
+        // 6. CEK ULASAN & BERI SERTIFIKAT (3/3)
+        // ============================================
+        async function checkReviewAndCertificate(userId) {
+            try {
+                // 1. Ambil semua onboarding session
+                const { data: onboardingSessions, error: sessionError } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('id')
+                    .eq('is_onboarding', true)
+                    .eq('status', 'published');
+
+                if (sessionError) throw sessionError;
+
+                const sessionIds = onboardingSessions.map(s => s.id);
+
+                // 2. Ambil semua ulasan user untuk onboarding
+                const { data: reviews, error: reviewError } = await _supabase
+                    .from('yata_onboarding_reviews')
+                    .select('session_id')
+                    .eq('user_id', userId)
+                    .in('session_id', sessionIds);
+
+                if (reviewError) throw reviewError;
+
+                const reviewedSessions = reviews.map(r => r.session_id);
+
+                // 3. Cek apakah semua session sudah di-review
+                const allReviewed = sessionIds.every(id => reviewedSessions.includes(id));
+
+                if (!allReviewed) {
+                    console.log('⏳ Belum semua kelas di-review');
+                    return;
+                }
+
+                // 4. 🔥 SEMUA SUDAH DI-REVIEW → BERI SERTIFIKAT + 3 NOTIFIKASI
+                console.log('✅ Semua kelas sudah di-review! Memberi sertifikat...');
+
+                // Cek apakah sertifikat sudah ada
+                const { data: existingCert, error: certError } = await _supabase
+                    .from('yata_certificates')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .eq('certificate_type', 'onboarding')
+                    .maybeSingle();
+
+                if (certError) throw certError;
+
+                if (existingCert) {
+                    console.log('✅ Sertifikat sudah ada');
+                    return;
+                }
+
+                // Buat sertifikat
+                await createCertificate(userId);
+
+                // Kirim 3 notifikasi
+                await sendCompletionNotifications(userId);
+
+            } catch (err) {
+                console.error('Check review and certificate error:', err);
+            }
+        }
+
+        // ============================================
+        // 7. UPDATE KUOTA OTOMATIS
         // ============================================
         async function updateQuota(sessionId) {
             try {
@@ -835,7 +988,7 @@
         }
 
         // ============================================
-        // 5. LOAD SESSION DETAIL
+        // 8. LOAD SESSION DETAIL
         // ============================================
         async function loadSessionDetail() {
             sessionId = getSessionId();
@@ -956,7 +1109,7 @@
         }
 
         // ============================================
-        // 6. RENDER SESSION
+        // 9. RENDER SESSION
         // ============================================
         function renderSession(session) {
             const statusLabels = {
@@ -1098,7 +1251,7 @@
         }
 
         // ============================================
-        // 7. RENDER MATERIALS
+        // 10. RENDER MATERIALS
         // ============================================
         function renderMaterials(materials) {
             const container = document.getElementById('materialList');
@@ -1143,7 +1296,7 @@
         }
 
         // ============================================
-        // 8. RENDER REVIEWS
+        // 11. RENDER REVIEWS
         // ============================================
         function renderReviews(reviews) {
             const container = document.getElementById('reviewList');
@@ -1185,11 +1338,10 @@
         }
 
         // ============================================
-        // 9. CEK AKSES ONBOARDING (KELAS BERURUTAN)
+        // 12. CEK AKSES ONBOARDING (KELAS BERURUTAN)
         // ============================================
         async function checkOnboardingAccess(sessionId, userId) {
             try {
-                // 1. Ambil data session yang sedang dibuka
                 const { data: session, error } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('is_onboarding, title, slug')
@@ -1198,12 +1350,10 @@
 
                 if (error) throw error;
 
-                // 2. Jika BUKAN kelas onboarding, boleh akses
                 if (!session.is_onboarding) {
                     return { allowed: true, message: '', previousSession: null };
                 }
 
-                // 3. Ambil SEMUA kelas onboarding yang aktif
                 const { data: onboardingSessions, error: onError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('id, slug, title')
@@ -1217,22 +1367,18 @@
                     return { allowed: true, message: '', previousSession: null };
                 }
 
-                // 4. Cari urutan kelas ini (index ke berapa)
                 const currentIndex = onboardingSessions.findIndex(s => s.id === sessionId);
                 
                 if (currentIndex === -1) {
                     return { allowed: true, message: '', previousSession: null };
                 }
 
-                // 5. Jika ini kelas PERTAMA (index 0), boleh akses
                 if (currentIndex === 0) {
                     return { allowed: true, message: '', previousSession: null };
                 }
 
-                // 6. Ambil kelas SEBELUMNYA
                 const previousSession = onboardingSessions[currentIndex - 1];
 
-                // 7. Cek apakah user sudah menyelesaikan kelas sebelumnya
                 const { data: participant, error: pError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('attended, attendance_status, status')
@@ -1242,7 +1388,6 @@
 
                 if (pError) throw pError;
 
-                // 8. Jika belum pernah daftar ATAU belum hadir di kelas sebelumnya
                 if (!participant || participant.attended !== true) {
                     return {
                         allowed: false,
@@ -1251,7 +1396,6 @@
                     };
                 }
 
-                // 9. Jika sudah selesai, boleh akses
                 return { allowed: true, message: '', previousSession: null };
 
             } catch (err) {
@@ -1261,7 +1405,7 @@
         }
 
         // ============================================
-        // 10. POPUP KELAS TERKUNCI
+        // 13. POPUP KELAS TERKUNCI
         // ============================================
         function showLockedPopup(message, previousSession) {
             document.getElementById('lockedMessage').textContent = message;
@@ -1279,7 +1423,6 @@
             document.getElementById('lockedModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
 
-            // Tutup modal register jika terbuka
             const registerModal = document.getElementById('registerModal');
             if (registerModal) {
                 registerModal.classList.add('hidden');
@@ -1292,7 +1435,7 @@
         }
 
         // ============================================
-        // 11. OPEN REGISTER MODAL - DENGAN CEK KUOTA & AKSES
+        // 14. OPEN REGISTER MODAL - DENGAN CEK KUOTA & AKSES
         // ============================================
         async function openRegisterModal() {
             if (!currentUser) {
@@ -1363,13 +1506,11 @@
         }
 
         // ============================================
-        // 12. POPUP KUOTA PENUH
+        // 15. POPUP KUOTA PENUH
         // ============================================
         async function showQuotaFullPopup(currentSession) {
-            // Cari kelas onboarding di pekan berikutnya
             const nextSession = await findNextWeekSession(currentSession);
 
-            // Isi info kelas saat ini
             const currentInfo = document.getElementById('currentSessionInfo');
             currentInfo.innerHTML = `
                 <p class="label">Kelas Saat Ini</p>
@@ -1380,7 +1521,6 @@
                 ${currentSession.schedule ? `<p class="text-sm text-slate-600"><span class="font-semibold">Jadwal:</span> ${currentSession.schedule}</p>` : ''}
             `;
 
-            // Tampilkan info kelas berikutnya jika ada
             const nextInfo = document.getElementById('nextSessionInfo');
             const nextAction = document.getElementById('nextSessionAction');
             const noNextMsg = document.getElementById('noNextSessionMessage');
@@ -1411,12 +1551,10 @@
                 noNextMsg.classList.remove('hidden');
             }
 
-            // Tampilkan modal
             const modal = document.getElementById('quotaFullModal');
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
 
-            // Tutup modal register jika terbuka
             const registerModal = document.getElementById('registerModal');
             if (registerModal) {
                 registerModal.classList.add('hidden');
@@ -1424,7 +1562,7 @@
         }
 
         // ============================================
-        // 13. CARI KELAS PEKAN BERIKUTNYA
+        // 16. CARI KELAS PEKAN BERIKUTNYA
         // ============================================
         async function findNextWeekSession(currentSession) {
             try {
@@ -1467,7 +1605,7 @@
         }
 
         // ============================================
-        // 14. TUTUP POPUP KUOTA PENUH
+        // 17. TUTUP POPUP KUOTA PENUH
         // ============================================
         function closeQuotaFullPopup() {
             const modal = document.getElementById('quotaFullModal');
@@ -1478,7 +1616,7 @@
         }
 
         // ============================================
-        // 15. SUBMIT REGISTER - AUTO APPROVE + NOTIFIKASI + UPDATE KUOTA OTOMATIS
+        // 18. SUBMIT REGISTER - AUTO APPROVE + NOTIFIKASI + UPDATE KUOTA OTOMATIS
         // ============================================
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1610,7 +1748,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 16. ULASAN ONBOARDING
+        // 19. ULASAN ONBOARDING
         // ============================================
 
         let materialRatingValue = 0;
@@ -1677,6 +1815,9 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
             currentReviewSessionId = null;
         }
 
+        // ============================================
+        // 20. SUBMIT REVIEW + CEK SERTIFIKAT
+        // ============================================
         document.getElementById('reviewForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -1711,8 +1852,11 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
 
                 if (error) throw error;
 
-                showReviewMessage('✅ Ulasan berhasil dikirim! Sekarang Anda bisa klaim sertifikat.', 'success');
+                showReviewMessage('✅ Ulasan berhasil dikirim!', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
+
+                // 🔥 CEK ULASAN & SERTIFIKAT (JIKA 3/3)
+                await checkReviewAndCertificate(session.user.id);
 
                 setTimeout(() => {
                     closeReviewModal();
@@ -1739,7 +1883,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 17. KLAIM SERTIFIKAT
+        // 21. KLAIM SERTIFIKAT
         // ============================================
 
         async function claimCertificate(sessionId) {
@@ -1838,7 +1982,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 18. LOGOUT
+        // 22. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -1856,7 +2000,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 19. EVENT LISTENERS
+        // 23. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadSessionDetail();

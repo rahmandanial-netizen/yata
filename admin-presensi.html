@@ -380,12 +380,10 @@
                     const attLabel = attStatus === 'present' ? '✅ Hadir' : attStatus === 'absent' ? '❌ Absen' : '⏳ Belum';
                     const attClass = attStatus === 'present' ? 'status-present' : attStatus === 'absent' ? 'status-absent' : 'status-pending';
 
-                    // 🔥 HITUNG RIWAYAT PRESENSI
                     const attendedCount = userProgress[p.user_id]?.attended || 0;
                     const totalSessions = allSessionsCount;
                     const isComplete = attendedCount >= totalSessions;
 
-                    // 🔥 BADGE RIWAYAT
                     let riwayatBadge = '';
                     if (isComplete) {
                         riwayatBadge = `<span class="riwayat-badge riwayat-complete">✅ Selesai (${attendedCount}/${totalSessions})</span>`;
@@ -459,23 +457,133 @@
         }
 
         // ============================================
-        // MARK ATTENDANCE
+        // KIRIM NOTIFIKASI (HELPER)
+        // ============================================
+        async function sendNotification(userId, title, content, type = 'info') {
+            try {
+                const { data: notifData, error } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: title,
+                        content: content,
+                        type: type
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                if (notifData) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+                }
+                return true;
+            } catch (err) {
+                console.error('Send notification error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // NOTIFIKASI HADIR - SELESAI KELAS + AJAKAN ULASAN
+        // ============================================
+        async function sendAttendancePresentNotification(userId, sessionTitle, sessionId) {
+            try {
+                // 1. Hitung total kehadiran peserta
+                const { data: allParticipants, error: countError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('attended, session_id')
+                    .eq('user_id', userId);
+
+                if (countError) throw countError;
+
+                const attendedCount = allParticipants?.filter(p => p.attended === true).length || 0;
+
+                // 2. Ambil total kelas onboarding
+                const { data: onboardingSessions, error: sessionError } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('id')
+                    .eq('is_onboarding', true)
+                    .eq('status', 'published');
+
+                if (sessionError) throw sessionError;
+
+                const totalSessions = onboardingSessions?.length || 3;
+
+                // 3. NOTIFIKASI HADIR + AJAKAN ULASAN
+                const notifTitle = `✅ Selesai: ${sessionTitle}`;
+                const notifContent = `Anda telah menyelesaikan kelas "${sessionTitle}".\n\n📊 Progress Anda: ${attendedCount}/${totalSessions}\n\n📝 Berikan ulasan untuk kelas ini agar kami bisa terus meningkatkan kualitas materi.\n\n🔗 Klik tombol "Ulasan" di menu Mentoring Saya.`;
+
+                await sendNotification(userId, notifTitle, notifContent, attendedCount >= totalSessions ? 'success' : 'info');
+
+                console.log(`✅ Notifikasi hadir terkirim ke user ${userId}`);
+
+            } catch (err) {
+                console.error('Send present notification error:', err);
+            }
+        }
+
+        // ============================================
+        // NOTIFIKASI ABSEN - TIDAK HADIR
+        // ============================================
+        async function sendAttendanceAbsentNotification(userId, sessionTitle) {
+            try {
+                const notifTitle = `⚠️ Absen: ${sessionTitle}`;
+                const notifContent = `Anda tidak mengikuti kelas "${sessionTitle}" hari ini.\n\n📌 Anda bisa mengikuti kelas ini di pekan berikutnya.\n\n💡 Jangan lupa cek jadwal ulang di menu Mentoring Saya.`;
+
+                await sendNotification(userId, notifTitle, notifContent, 'warning');
+
+                console.log(`⚠️ Notifikasi absen terkirim ke user ${userId}`);
+
+            } catch (err) {
+                console.error('Send absent notification error:', err);
+            }
+        }
+
+        // ============================================
+        // MARK ATTENDANCE - DENGAN NOTIFIKASI + ULASAN
         // ============================================
         async function markAttendance(participantId, status) {
-            const isPresent = status === 'present';
             try {
-                const { error } = await _supabase
+                // 1. Ambil data peserta lengkap
+                const { data: participant, error: fetchError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('*, session:session_id(*)')
+                    .eq('id', participantId)
+                    .single();
+
+                if (fetchError) throw fetchError;
+
+                const isPresent = status === 'present';
+                const sessionTitle = participant.session?.title || 'Kelas Onboarding';
+                const sessionId = participant.session_id;
+                const userId = participant.user_id;
+
+                // 2. Update presensi
+                const { error: updateError } = await _supabase
                     .from('yata_mentoring_participants')
                     .update({
                         attended: isPresent,
                         attendance_status: status,
-                        attendance_time: status === 'present' ? new Date().toISOString() : null
+                        attendance_time: isPresent ? new Date().toISOString() : null
                     })
                     .eq('id', participantId);
 
-                if (error) throw error;
+                if (updateError) throw updateError;
 
-                // Refresh data
+                // 3. 🔥 KIRIM NOTIFIKASI BERDASARKAN STATUS
+                if (isPresent) {
+                    await sendAttendancePresentNotification(userId, sessionTitle, sessionId);
+                } else {
+                    await sendAttendanceAbsentNotification(userId, sessionTitle);
+                }
+
+                // 4. Refresh data
                 await loadAttendance();
 
             } catch (err) {
