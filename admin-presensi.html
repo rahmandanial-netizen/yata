@@ -294,7 +294,6 @@
             `;
 
             try {
-                // ✅ PAKAI VIEW: yata_onboarding_attendance_view
                 const { data: participants, error } = await _supabase
                     .from('yata_onboarding_attendance_view')
                     .select('*')
@@ -315,7 +314,6 @@
 
                 console.log('📊 Data dari VIEW:', participants);
 
-                // Update statistik
                 const total = participants.length;
                 const present = participants.filter(p => p.attendance_status === 'present').length;
                 const absent = participants.filter(p => p.attendance_status === 'absent').length;
@@ -326,7 +324,6 @@
                 document.getElementById('statAbsent').textContent = absent;
                 document.getElementById('statPending').textContent = pending;
 
-                // Update session info
                 const session = allSessions.find(s => s.id === sessionId);
                 if (session) {
                     const info = document.getElementById('sessionInfo');
@@ -338,7 +335,6 @@
                     document.getElementById('sessionDetailCount').textContent = `${participants.length} peserta`;
                 }
 
-                // Render tabel
                 const allSessionsCount = allSessions.length;
 
                 let html = `
@@ -359,7 +355,6 @@
                             <tbody>
                 `;
 
-                // Hitung riwayat per user
                 const userProgress = {};
                 participants.forEach(p => {
                     if (!userProgress[p.user_id]) {
@@ -457,11 +452,10 @@
         }
 
         // ============================================
-        // KIRIM NOTIFIKASI (HELPER) - DENGAN USER_ID
+        // KIRIM NOTIFIKASI - HANYA KE 1 USER!
         // ============================================
         async function sendNotification(userId, title, content, type = 'info') {
             try {
-                // 1. Buat notifikasi di tabel utama
                 const { data: notifData, error } = await _supabase
                     .from('yata_notifications')
                     .insert([{
@@ -473,27 +467,26 @@
                     .single();
 
                 if (error) {
-                    console.error('❌ Insert notification error:', error);
-                    throw error;
+                    console.error('❌ Insert notif error:', error);
+                    return false;
                 }
 
-                // 2. 🔥 HUBUNGKAN KE USER TERTENTU
-                if (notifData) {
+                if (notifData && userId) {
                     const { error: linkError } = await _supabase
                         .from('yata_user_notifications')
                         .insert([{
                             notification_id: notifData.id,
-                            user_id: userId,  // ← HANYA UNTUK USER INI!
+                            user_id: userId,
                             is_read: false
                         }]);
 
                     if (linkError) {
-                        console.error('❌ Link notification error:', linkError);
-                        throw linkError;
+                        console.error('❌ Link notif error:', linkError);
+                        return false;
                     }
                 }
 
-                console.log(`✅ Notifikasi terkirim ke user ${userId}: ${title}`);
+                console.log(`✅ Notifikasi ke user ${userId}: ${title}`);
                 return true;
 
             } catch (err) {
@@ -503,11 +496,10 @@
         }
 
         // ============================================
-        // NOTIFIKASI HADIR - SELESAI KELAS + AJAKAN ULASAN
+        // NOTIFIKASI HADIR
         // ============================================
         async function sendAttendancePresentNotification(userId, sessionTitle, sessionId) {
             try {
-                // 1. Hitung total kehadiran peserta
                 const { data: allParticipants, error: countError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('attended, session_id')
@@ -517,7 +509,6 @@
 
                 const attendedCount = allParticipants?.filter(p => p.attended === true).length || 0;
 
-                // 2. Ambil total kelas onboarding
                 const { data: onboardingSessions, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('id')
@@ -528,7 +519,6 @@
 
                 const totalSessions = onboardingSessions?.length || 3;
 
-                // 3. NOTIFIKASI HADIR + AJAKAN ULASAN
                 const notifTitle = `✅ Selesai: ${sessionTitle}`;
                 const notifContent = `Anda telah menyelesaikan kelas "${sessionTitle}".\n\n📊 Progress Anda: ${attendedCount}/${totalSessions}\n\n📝 Berikan ulasan untuk kelas ini agar kami bisa terus meningkatkan kualitas materi.\n\n🔗 Klik tombol "Ulasan" di menu Mentoring Saya.`;
 
@@ -542,7 +532,7 @@
         }
 
         // ============================================
-        // NOTIFIKASI ABSEN - TIDAK HADIR
+        // NOTIFIKASI ABSEN
         // ============================================
         async function sendAttendanceAbsentNotification(userId, sessionTitle) {
             try {
@@ -559,11 +549,10 @@
         }
 
         // ============================================
-        // CEK & UPDATE STATUS SESI JIKA SEMUA HADIR
+        // CEK & UPDATE STATUS SESI
         // ============================================
         async function checkAndUpdateSessionStatus(sessionId) {
             try {
-                // 1. Ambil semua peserta di sesi ini
                 const { data: participants, error } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('attended')
@@ -571,11 +560,9 @@
 
                 if (error) throw error;
 
-                // 2. Cek apakah semua peserta sudah hadir
                 const total = participants.length;
                 const hadir = participants.filter(p => p.attended === true).length;
 
-                // Jika semua sudah hadir, update status sesi menjadi completed
                 if (total > 0 && hadir >= total) {
                     const { error: updateError } = await _supabase
                         .from('yata_mentoring_sessions')
@@ -597,11 +584,10 @@
         }
 
         // ============================================
-        // MARK ATTENDANCE - DENGAN UPDATE STATUS
+        // MARK ATTENDANCE
         // ============================================
         async function markAttendance(participantId, status) {
             try {
-                // 1. Ambil data peserta lengkap
                 const { data: participant, error: fetchError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*, session:session_id(*)')
@@ -615,7 +601,6 @@
                 const sessionId = participant.session_id;
                 const userId = participant.user_id;
 
-                // 2. Update presensi
                 const { error: updateError } = await _supabase
                     .from('yata_mentoring_participants')
                     .update({
@@ -627,9 +612,7 @@
 
                 if (updateError) throw updateError;
 
-                // 3. 🔥 JIKA HADIR, UPDATE STATUS PESERTA MENJADI COMPLETED
                 if (isPresent) {
-                    // Update status peserta menjadi completed
                     const { error: updateStatusError } = await _supabase
                         .from('yata_mentoring_participants')
                         .update({ 
@@ -644,18 +627,15 @@
                         console.log(`✅ Peserta ${participantId} status diupdate ke completed`);
                     }
 
-                    // 🔥 CEK APAKAH SEMUA PESERTA SUDAH HADIR, UPDATE STATUS SESI
                     await checkAndUpdateSessionStatus(sessionId);
                 }
 
-                // 4. 🔥 KIRIM NOTIFIKASI BERDASARKAN STATUS (HANYA KE USER TERSEBUT)
                 if (isPresent) {
                     await sendAttendancePresentNotification(userId, sessionTitle, sessionId);
                 } else {
                     await sendAttendanceAbsentNotification(userId, sessionTitle);
                 }
 
-                // 5. Refresh data
                 await loadAttendance();
 
             } catch (err) {
@@ -676,7 +656,6 @@
             if (!confirm('Tandai semua peserta di kelas ini sebagai HADIR?')) return;
 
             try {
-                // Ambil semua peserta di sesi ini
                 const { data: participants, error: fetchError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('id, user_id')
@@ -684,7 +663,6 @@
 
                 if (fetchError) throw fetchError;
 
-                // Update semua peserta menjadi hadir & completed
                 for (const p of participants) {
                     await _supabase
                         .from('yata_mentoring_participants')
@@ -697,11 +675,9 @@
                         })
                         .eq('id', p.id);
 
-                    // Kirim notifikasi ke setiap peserta
                     await sendAttendancePresentNotification(p.user_id, 'Kelas Onboarding', currentSessionId);
                 }
 
-                // Update status sesi menjadi completed
                 await _supabase
                     .from('yata_mentoring_sessions')
                     .update({ 

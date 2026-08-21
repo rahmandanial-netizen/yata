@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Detail Kelas Mentoring — Yatta</title>
 
-    <!-- ============================================ -->
-    <!-- FAVICON YATTA -->
-    <!-- ============================================ -->
     <link rel="icon" type="image/png" href="assets/favicon.png" />
     <link rel="apple-touch-icon" href="assets/favicon.png" />
     <link rel="shortcut icon" href="assets/favicon.png" />
@@ -194,9 +191,7 @@
 </head>
 <body>
 
-    <!-- ============================================ -->
     <!-- SIDEBAR -->
-    <!-- ============================================ -->
     <aside class="fixed top-0 left-0 z-40 w-64 h-screen bg-white border-r border-emerald-100/60 hidden md:block">
         <div class="flex flex-col h-full">
             <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
@@ -242,9 +237,7 @@
         </div>
     </aside>
 
-    <!-- ============================================ -->
     <!-- MOBILE HEADER -->
-    <!-- ============================================ -->
     <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
         <div class="flex items-center justify-between px-4 h-16">
             <a href="dashboard.html" class="flex items-center space-x-2">
@@ -270,22 +263,17 @@
         </div>
     </header>
 
-    <!-- ============================================ -->
     <!-- KONTEN UTAMA -->
-    <!-- ============================================ -->
     <main class="md:ml-64 pt-4 md:pt-8 min-h-screen bg-slate-50/50">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-            <!-- Loading State -->
             <div id="loadingState" class="text-center py-20">
                 <i class="fa-solid fa-spinner fa-spin text-4xl text-emerald-600 mb-4 block"></i>
                 <p class="text-slate-500 text-sm">Memuat detail kelas...</p>
             </div>
 
-            <!-- Konten -->
             <div id="contentContainer" class="hidden">
 
-                <!-- Tombol Kembali -->
                 <div class="mb-4">
                     <a href="mentoring.html" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition flex items-center gap-2">
                         <i class="fa-solid fa-arrow-left"></i> Kembali ke Daftar Kelas
@@ -338,7 +326,6 @@
                 <!-- Deskripsi & Info -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="md:col-span-2 space-y-6">
-                        <!-- Deskripsi -->
                         <div class="bg-white rounded-2xl p-6 border border-emerald-100/60 shadow-sm">
                             <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2 mb-3">
                                 <i class="fa-regular fa-file-lines text-emerald-600"></i> Deskripsi
@@ -346,7 +333,6 @@
                             <p id="sessionDescription" class="text-sm text-slate-600 leading-relaxed">Deskripsi kelas akan ditampilkan di sini.</p>
                         </div>
 
-                        <!-- Materi -->
                         <div class="bg-white rounded-2xl p-6 border border-emerald-100/60 shadow-sm">
                             <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2 mb-3">
                                 <i class="fa-solid fa-book text-emerald-600"></i> Materi Pembelajaran
@@ -360,7 +346,6 @@
                     </div>
 
                     <div class="space-y-6">
-                        <!-- Info Tambahan -->
                         <div class="bg-white rounded-2xl p-6 border border-emerald-100/60 shadow-sm">
                             <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2 mb-3">
                                 <i class="fa-solid fa-circle-info text-emerald-600"></i> Informasi
@@ -391,7 +376,6 @@
                             </div>
                         </div>
 
-                        <!-- Ulasan -->
                         <div id="review" class="bg-white rounded-2xl p-6 border border-emerald-100/60 shadow-sm">
                             <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2 mb-3">
                                 <i class="fa-regular fa-star text-yellow-500"></i> Ulasan
@@ -411,9 +395,7 @@
         </div>
     </main>
 
-    <!-- ============================================ -->
     <!-- MODAL DAFTAR -->
-    <!-- ============================================ -->
     <div id="registerModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
             <button onclick="closeRegisterModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
@@ -474,9 +456,7 @@
         </div>
     </div>
 
-    <!-- ============================================ -->
     <!-- MODAL POPUP KUOTA PENUH -->
-    <!-- ============================================ -->
     <div id="quotaFullModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter quota-popup">
             <button onclick="closeQuotaFullPopup()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
@@ -519,9 +499,7 @@
         </div>
     </div>
 
-    <!-- ============================================ -->
     <!-- MODAL POPUP KELAS TERKUNCI -->
-    <!-- ============================================ -->
     <div id="lockedModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
             <button onclick="closeLockedPopup()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
@@ -555,9 +533,7 @@
         </div>
     </div>
 
-    <!-- ============================================ -->
     <!-- MODAL ULASAN -->
-    <!-- ============================================ -->
     <div id="reviewModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
             <button onclick="closeReviewModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
@@ -613,9 +589,7 @@
         </div>
     </div>
 
-    <!-- ============================================ -->
     <!-- MODAL LOGIN POPUP -->
-    <!-- ============================================ -->
     <div id="loginPopupModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
             <button onclick="closeLoginPopup()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
@@ -642,9 +616,7 @@
         </div>
     </div>
 
-    <!-- ============================================ -->
     <!-- JAVASCRIPT -->
-    <!-- ============================================ -->
     <script>
         const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
@@ -782,7 +754,7 @@
         }
 
         // ============================================
-        // 3. KIRIM NOTIFIKASI (HELPER) - DENGAN USER_ID
+        // 3. KIRIM NOTIFIKASI - HANYA KE 1 USER!
         // ============================================
         async function sendNotification(userId, title, content, type = 'success') {
             try {
@@ -796,20 +768,31 @@
                     .select()
                     .single();
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Insert notif error:', error);
+                    return false;
+                }
 
-                if (notifData) {
-                    await _supabase
+                if (notifData && userId) {
+                    const { error: linkError } = await _supabase
                         .from('yata_user_notifications')
                         .insert([{
                             notification_id: notifData.id,
                             user_id: userId,
                             is_read: false
                         }]);
+
+                    if (linkError) {
+                        console.error('❌ Link notif error:', linkError);
+                        return false;
+                    }
                 }
+
+                console.log(`✅ Notifikasi ke user ${userId}: ${title}`);
                 return true;
+
             } catch (err) {
-                console.error('Send notification error:', err);
+                console.error('❌ Send notification error:', err);
                 return false;
             }
         }
@@ -873,7 +856,7 @@
         }
 
         // ============================================
-        // 5. 3 NOTIFIKASI SAAT SELESAI 3/3 + REVIEW - DENGAN USER_ID
+        // 5. 3 NOTIFIKASI SAAT SELESAI 3/3 - HANYA KE USER TERSEBUT
         // ============================================
         async function sendCompletionNotifications(userId) {
             try {
@@ -1784,7 +1767,7 @@
 
                 await updateQuota(sessionId);
 
-                // 🔥 NOTIFIKASI KE USER YANG MENDAFTAR
+                // 🔥 NOTIFIKASI KE USER YANG MENDAFTAR (HANYA 1 USER)
                 const notifTitle = `🎉 Pendaftaran Berhasil!`;
                 const notifContent = `Anda berhasil mendaftar di kelas "${currentSession.title}".
                 
@@ -1800,7 +1783,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
 📌 Tips: Simpan link ini untuk akses cepat ke kelas.`;
 
                 await sendNotification(
-                    session.user.id,  // ← HANYA UNTUK USER INI
+                    session.user.id,  // ← HANYA UNTUK USER INI!
                     notifTitle,
                     notifContent,
                     'success'
@@ -2039,7 +2022,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
 
                 if (error) throw error;
 
-                // 🔥 NOTIFIKASI KE USER YANG KLAIM
+                // 🔥 NOTIFIKASI KE USER YANG KLAIM (HANYA 1 USER)
                 await sendNotification(
                     session.user.id,
                     '🎉 Sertifikat Berhasil Diklaim!',
