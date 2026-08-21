@@ -21,8 +21,6 @@
         .status-present { background: #D1FAE5; color: #065F46; }
         .status-absent { background: #FEE2E2; color: #991B1B; }
         .status-pending { background: #FEF3C7; color: #92400E; }
-        .badge-completed { background: #D1FAE5; color: #065F46; }
-        .badge-incomplete { background: #F1F5F9; color: #64748B; }
         .table-container { overflow-x: auto; }
         .presensi-table th { 
             position: sticky; 
@@ -31,17 +29,12 @@
             z-index: 10;
             border-bottom: 2px solid #e2e8f0;
         }
-        .session-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 2px 10px;
-            border-radius: 9999px;
-            font-size: 11px;
-            font-weight: 700;
-        }
-        .session-badge.attended { background: #D1FAE5; color: #065F46; }
-        .session-badge.not-attended { background: #F1F5F9; color: #94A3B8; }
+        .btn-hadir { background: #065F46; color: white; padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; }
+        .btn-hadir:hover { background: #0D9488; }
+        .btn-absen { background: #DC2626; color: white; padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; }
+        .btn-absen:hover { background: #B91C1C; }
+        .btn-reset { background: #94A3B8; color: white; padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; }
+        .btn-reset:hover { background: #64748B; }
     </style>
 </head>
 <body>
@@ -187,7 +180,6 @@
         const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
         let currentSessionId = null;
-        let attendanceData = [];
         let allSessions = [];
 
         // ============================================
@@ -233,12 +225,26 @@
                     .eq('status', 'published')
                     .order('created_at', { ascending: true });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Error load sessions:', error);
+                    throw error;
+                }
 
                 allSessions = sessions || [];
 
                 const select = document.getElementById('sessionSelect');
                 select.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+
+                if (allSessions.length === 0) {
+                    select.innerHTML = '<option value="">-- Belum ada kelas onboarding --</option>';
+                    document.getElementById('attendanceTable').innerHTML = `
+                        <div class="text-center py-8 text-slate-400 text-sm">
+                            <i class="fa-regular fa-circle-xmark text-2xl block mb-2"></i>
+                            Belum ada kelas onboarding yang tersedia.
+                        </div>
+                    `;
+                    return;
+                }
 
                 allSessions.forEach(s => {
                     const option = document.createElement('option');
@@ -250,17 +256,18 @@
                 if (allSessions.length > 0) {
                     select.value = allSessions[0].id;
                     currentSessionId = allSessions[0].id;
-                    loadAttendance();
+                    await loadAttendance();
                 }
 
             } catch (err) {
-                console.error('Load sessions error:', err);
-                showError('Gagal memuat daftar kelas.');
+                console.error('❌ Load sessions error:', err);
+                document.getElementById('sessionSelect').innerHTML = '<option value="">-- Error loading --</option>';
+                showError('Gagal memuat daftar kelas: ' + err.message);
             }
         }
 
         // ============================================
-        // LOAD ATTENDANCE - MANUAL JOIN (2 LANGKAH)
+        // LOAD ATTENDANCE - PAKAI VIEW
         // ============================================
         async function loadAttendance() {
             const sessionId = document.getElementById('sessionSelect').value;
@@ -284,60 +291,147 @@
             `;
 
             try {
-                // STEP 1: Ambil data peserta
+                // ✅ PAKAI VIEW: yata_onboarding_attendance_view
                 const { data: participants, error } = await _supabase
-                    .from('yata_mentoring_participants')
+                    .from('yata_onboarding_attendance_view')
                     .select('*')
                     .eq('session_id', sessionId)
-                    .order('registered_at', { ascending: true });
+                    .order('full_name', { ascending: true });
 
                 if (error) throw error;
 
-                console.log('✅ Peserta ditemukan:', participants?.length || 0);
-
-                // STEP 2: Ambil data profile terpisah
-                if (participants && participants.length > 0) {
-                    const userIds = participants.map(p => p.user_id).filter(id => id);
-                    
-                    let profileMap = {};
-                    if (userIds.length > 0) {
-                        const { data: profiles, error: profileError } = await _supabase
-                            .from('yata_profiles')
-                            .select('id, full_name, member_id, email')
-                            .in('id', userIds);
-                        
-                        if (!profileError && profiles) {
-                            profiles.forEach(p => {
-                                profileMap[p.id] = p;
-                            });
-                            console.log('✅ Profile ditemukan:', profiles.length);
-                        } else {
-                            console.error('❌ Profile error:', profileError);
-                        }
-                    }
-                    
-                    attendanceData = participants.map(p => ({
-                        ...p,
-                        profile: profileMap[p.user_id] || null
-                    }));
-                } else {
-                    attendanceData = [];
+                if (!participants || participants.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-slate-400 text-sm">
+                            <i class="fa-regular fa-user-slash text-2xl block mb-2"></i>
+                            Belum ada peserta yang mendaftar di kelas ini.
+                        </div>
+                    `;
+                    return;
                 }
 
-                // Update statistik
-                updateStats();
+                console.log('📊 Data dari VIEW:', participants);
 
-                // Update info sesi
-                updateSessionInfo();
+                // Update statistik
+                const total = participants.length;
+                const present = participants.filter(p => p.attendance_status === 'present').length;
+                const absent = participants.filter(p => p.attendance_status === 'absent').length;
+                const pending = participants.filter(p => p.attendance_status === 'pending' || !p.attendance_status).length;
+
+                document.getElementById('statTotal').textContent = total;
+                document.getElementById('statPresent').textContent = present;
+                document.getElementById('statAbsent').textContent = absent;
+                document.getElementById('statPending').textContent = pending;
+
+                // Update session info
+                const session = allSessions.find(s => s.id === sessionId);
+                if (session) {
+                    const info = document.getElementById('sessionInfo');
+                    info.classList.remove('hidden');
+                    document.getElementById('sessionDetailTitle').textContent = session.title;
+                    document.getElementById('sessionDetailSchedule').textContent = session.schedule || 'Jadwal TBA';
+                    document.getElementById('sessionDetailZoom').textContent = session.meeting_link ? '🔗 Zoom Tersedia' : '';
+                    document.getElementById('sessionDetailZoom').className = `ml-3 ${session.meeting_link ? 'text-emerald-600' : 'text-slate-400'}`;
+                    document.getElementById('sessionDetailCount').textContent = `${participants.length} peserta`;
+                }
 
                 // Render tabel
-                renderTable();
+                const allSessionsCount = allSessions.length;
+
+                let html = `
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm presensi-table">
+                            <thead>
+                                <tr class="bg-slate-50">
+                                    <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">No</th>
+                                    <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">Nama</th>
+                                    <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">ID Anggota</th>
+                                    <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">WA</th>
+                                    <th class="px-3 py-3 text-center text-xs font-semibold text-slate-500">Status</th>
+                                    <th class="px-3 py-3 text-center text-xs font-semibold text-slate-500">Presensi</th>
+                                    <th class="px-3 py-3 text-center text-xs font-semibold text-slate-500">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                // Hitung riwayat per user
+                const userProgress = {};
+                participants.forEach(p => {
+                    if (!userProgress[p.user_id]) {
+                        userProgress[p.user_id] = { attended: 0 };
+                    }
+                    if (p.attended) {
+                        userProgress[p.user_id].attended++;
+                    }
+                });
+
+                participants.forEach((p, index) => {
+                    const name = p.full_name || 'Peserta ' + (index + 1);
+                    const memberId = p.member_id || '-';
+                    const phone = p.phone || '-';
+                    const regStatus = p.registration_status || 'pending';
+                    
+                    const attStatus = p.attendance_status || 'pending';
+                    const attLabel = attStatus === 'present' ? '✅ Hadir' : attStatus === 'absent' ? '❌ Absen' : '⏳ Belum';
+                    const attClass = attStatus === 'present' ? 'status-present' : attStatus === 'absent' ? 'status-absent' : 'status-pending';
+
+                    const attendedCount = userProgress[p.user_id]?.attended || 0;
+                    const isComplete = attendedCount >= allSessionsCount;
+
+                    let actionButtons = '';
+                    if (attStatus === 'pending') {
+                        actionButtons = `
+                            <button onclick="markAttendance('${p.participant_id}', 'present')" class="btn-hadir">Hadir</button>
+                            <button onclick="markAttendance('${p.participant_id}', 'absent')" class="btn-absen">Absen</button>
+                        `;
+                    } else {
+                        actionButtons = `
+                            <button onclick="markAttendance('${p.participant_id}', 'pending')" class="btn-reset">Reset</button>
+                        `;
+                    }
+
+                    html += `
+                        <tr class="border-b border-slate-100 hover:bg-slate-50">
+                            <td class="px-3 py-3 text-xs text-slate-400">${index + 1}</td>
+                            <td class="px-3 py-3 font-medium text-slate-800">${name}</td>
+                            <td class="px-3 py-3 text-xs text-slate-500">${memberId}</td>
+                            <td class="px-3 py-3 text-xs text-slate-500">${phone}</td>
+                            <td class="px-3 py-3 text-center">
+                                <span class="text-xs px-2 py-0.5 rounded-full ${regStatus === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}">
+                                    ${regStatus === 'approved' ? '✅ Approved' : '⏳ ' + regStatus}
+                                </span>
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <span class="text-xs px-3 py-1 rounded-full font-semibold ${attClass}">
+                                    ${attLabel}
+                                </span>
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <div class="flex items-center justify-center gap-1 flex-wrap">
+                                    ${actionButtons}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 text-xs text-slate-400">
+                        <p>💡 Klik "Hadir" atau "Absen" untuk mengisi presensi peserta.</p>
+                        <p>🎉 Jika sudah 3 kelas, sertifikat akan otomatis tersedia di menu Sertifikat.</p>
+                    </div>
+                `;
+
+                container.innerHTML = html;
 
             } catch (err) {
                 console.error('Load attendance error:', err);
                 container.innerHTML = `
                     <div class="text-center py-8 text-red-400 text-sm">
-                        <i class="fa-solid fa-circle-exclamation text-2xl block mb-2"></i>
                         Gagal memuat data: ${err.message}
                         <button onclick="loadAttendance()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
                             <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
@@ -348,191 +442,28 @@
         }
 
         // ============================================
-        // UPDATE STATS
-        // ============================================
-        function updateStats() {
-            const total = attendanceData.length;
-            const present = attendanceData.filter(p => p.attendance_status === 'present').length;
-            const absent = attendanceData.filter(p => p.attendance_status === 'absent').length;
-            const pending = attendanceData.filter(p => p.attendance_status === 'pending' || !p.attendance_status).length;
-
-            document.getElementById('statTotal').textContent = total;
-            document.getElementById('statPresent').textContent = present;
-            document.getElementById('statAbsent').textContent = absent;
-            document.getElementById('statPending').textContent = pending;
-        }
-
-        // ============================================
-        // UPDATE SESSION INFO
-        // ============================================
-        function updateSessionInfo() {
-            const session = allSessions.find(s => s.id === currentSessionId);
-            if (!session) return;
-
-            const info = document.getElementById('sessionInfo');
-            info.classList.remove('hidden');
-
-            document.getElementById('sessionDetailTitle').textContent = session.title;
-            document.getElementById('sessionDetailSchedule').textContent = session.schedule || 'Jadwal TBA';
-            document.getElementById('sessionDetailZoom').textContent = session.meeting_link ? '🔗 Zoom Tersedia' : '';
-            document.getElementById('sessionDetailZoom').className = `ml-3 ${session.meeting_link ? 'text-emerald-600' : 'text-slate-400'}`;
-            document.getElementById('sessionDetailCount').textContent = `${attendanceData.length} peserta`;
-        }
-
-        // ============================================
-        // RENDER TABLE
-        // ============================================
-        function renderTable() {
-            const container = document.getElementById('attendanceTable');
-
-            if (attendanceData.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-8 text-slate-400 text-sm">
-                        <i class="fa-regular fa-user-slash text-2xl block mb-2"></i>
-                        Belum ada peserta yang mendaftar di kelas ini.
-                    </div>
-                `;
-                return;
-            }
-
-            const session = allSessions.find(s => s.id === currentSessionId);
-
-            let html = `
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm presensi-table">
-                        <thead>
-                            <tr class="bg-slate-50">
-                                <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">No</th>
-                                <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">Nama</th>
-                                <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">ID Anggota</th>
-                                <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">WA</th>
-                                <th class="px-3 py-3 text-center text-xs font-semibold text-slate-500">Status Daftar</th>
-                                <th class="px-3 py-3 text-center text-xs font-semibold text-slate-500">Presensi</th>
-                                <th class="px-3 py-3 text-center text-xs font-semibold text-slate-500">Riwayat Kelas</th>
-                                <th class="px-3 py-3 text-center text-xs font-semibold text-slate-500">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-
-            attendanceData.forEach((p, index) => {
-                // ✅ AMBIL PROFILE DARI DATA YANG SUDAH DIGABUNG
-                const profile = p.profile || {};
-                const name = profile.full_name || 'User';
-                const memberId = profile.member_id || '-';
-                const email = profile.email || '-';
-                const phone = p.phone || '-';
-                const regStatus = p.status || 'pending';
-                
-                const attStatus = p.attendance_status || 'pending';
-                const attLabel = attStatus === 'present' ? '✅ Hadir' : attStatus === 'absent' ? '❌ Absen' : '⏳ Belum';
-                const attClass = attStatus === 'present' ? 'status-present' : attStatus === 'absent' ? 'status-absent' : 'status-pending';
-
-                // Riwayat kelas
-                const attendedCount = attendanceData.filter(a => a.user_id === p.user_id && a.attended === true).length;
-                const allSessionsCount = allSessions.length;
-                const isComplete = attendedCount >= allSessionsCount;
-
-                let actionButtons = '';
-                if (attStatus === 'pending') {
-                    actionButtons = `
-                        <button onclick="markAttendance('${p.id}', 'present')" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-semibold px-2 py-1 rounded transition">Hadir</button>
-                        <button onclick="markAttendance('${p.id}', 'absent')" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-2 py-1 rounded transition">Absen</button>
-                    `;
-                } else {
-                    actionButtons = `
-                        <button onclick="markAttendance('${p.id}', 'pending')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold px-2 py-1 rounded transition">Reset</button>
-                    `;
-                }
-
-                html += `
-                    <tr class="border-b border-slate-100 hover:bg-slate-50">
-                        <td class="px-3 py-3 text-xs text-slate-400">${index + 1}</td>
-                        <td class="px-3 py-3 font-medium text-slate-800">${name}</td>
-                        <td class="px-3 py-3 text-xs text-slate-500">${memberId}</td>
-                        <td class="px-3 py-3 text-xs text-slate-500">${phone}</td>
-                        <td class="px-3 py-3 text-center">
-                            <span class="text-xs px-2 py-0.5 rounded-full ${regStatus === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}">
-                                ${regStatus === 'approved' ? '✅ Approved' : '⏳ ' + regStatus}
-                            </span>
-                        </td>
-                        <td class="px-3 py-3 text-center">
-                            <span class="text-xs px-3 py-1 rounded-full font-semibold ${attClass}">
-                                ${attLabel}
-                            </span>
-                        </td>
-                        <td class="px-3 py-3 text-center">
-                            <div class="flex items-center justify-center gap-1">
-                                ${Array.from({ length: allSessionsCount }, (_, i) => {
-                                    const isAttended = attendanceData.some(a => 
-                                        a.user_id === p.user_id && 
-                                        a.attended === true && 
-                                        a.session_id === allSessions[i]?.id
-                                    );
-                                    return `<span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${isAttended ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}">${i + 1}</span>`;
-                                }).join('')}
-                            </div>
-                            <div class="text-[10px] text-slate-400 mt-1">
-                                ${isComplete ? '🎉 Selesai 3!' : `${attendedCount}/${allSessionsCount} kelas`}
-                            </div>
-                        </td>
-                        <td class="px-3 py-3 text-center">
-                            <div class="flex items-center justify-center gap-1 flex-wrap">
-                                ${actionButtons}
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            html += `
-                        </tbody>
-                    </table>
-                </div>
-                <div class="mt-4 text-xs text-slate-400">
-                    <p>💡 Klik "Hadir" atau "Absen" untuk mengisi presensi peserta.</p>
-                    <p>📊 Riwayat kelas menunjukkan kelas yang sudah dihadiri (warna hijau = sudah, abu-abu = belum).</p>
-                    <p>🎉 Jika sudah 3 kelas, sertifikat akan otomatis tersedia di menu Sertifikat.</p>
-                </div>
-            `;
-
-            container.innerHTML = html;
-        }
-
-        // ============================================
         // MARK ATTENDANCE
         // ============================================
         async function markAttendance(participantId, status) {
-            const rateCheck = checkRateLimit('attendance');
-            if (!rateCheck.allowed) {
-                showError(rateCheck.message, '⏳ Terlalu Cepat');
-                return;
-            }
-
             const isPresent = status === 'present';
-            const attStatus = status;
-
             try {
                 const { error } = await _supabase
                     .from('yata_mentoring_participants')
                     .update({
                         attended: isPresent,
-                        attendance_status: attStatus,
+                        attendance_status: status,
                         attendance_time: status === 'present' ? new Date().toISOString() : null
                     })
                     .eq('id', participantId);
 
                 if (error) throw error;
 
-                saveRateLimit('attendance');
-                showError(`✅ Presensi ${status === 'present' ? 'Hadir' : 'Absen'} berhasil!`, 'Sukses');
-
+                // Refresh data
                 await loadAttendance();
-                await checkAndGenerateCertificate();
 
             } catch (err) {
                 console.error('Mark attendance error:', err);
-                showError('❌ Gagal mengupdate presensi: ' + err.message, 'Error');
+                alert('❌ Gagal mengupdate presensi: ' + err.message);
             }
         }
 
@@ -541,7 +472,7 @@
         // ============================================
         async function markAllPresent() {
             if (!currentSessionId) {
-                showError('Pilih kelas terlebih dahulu.', 'Info');
+                alert('Pilih kelas terlebih dahulu.');
                 return;
             }
 
@@ -559,116 +490,12 @@
 
                 if (error) throw error;
 
-                showError('✅ Semua peserta ditandai HADIR!', 'Sukses');
+                alert('✅ Semua peserta ditandai HADIR!');
                 await loadAttendance();
-                await checkAndGenerateCertificate();
 
             } catch (err) {
                 console.error('Mark all present error:', err);
-                showError('❌ Gagal: ' + err.message, 'Error');
-            }
-        }
-
-        // ============================================
-        // CHECK AND GENERATE CERTIFICATE
-        // ============================================
-        async function checkAndGenerateCertificate() {
-            try {
-                // Ambil semua user yang sudah hadir di sesi ini
-                const { data: users, error } = await _supabase
-                    .from('yata_mentoring_participants')
-                    .select('user_id')
-                    .eq('attended', true)
-                    .eq('session_id', currentSessionId);
-
-                if (error) throw error;
-
-                const allSessionIds = allSessions.map(s => s.id);
-                const totalSessions = allSessionIds.length;
-
-                for (const user of users) {
-                    // Hitung berapa kelas yang sudah dihadiri user ini
-                    const { count } = await _supabase
-                        .from('yata_mentoring_participants')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('user_id', user.user_id)
-                        .eq('attended', true)
-                        .in('session_id', allSessionIds);
-
-                    // Jika sudah 3 kelas, generate sertifikat
-                    if (count >= totalSessions) {
-                        const { data: existingCert } = await _supabase
-                            .from('yata_certificates')
-                            .select('id')
-                            .eq('user_id', user.user_id)
-                            .eq('certificate_type', 'onboarding')
-                            .maybeSingle();
-
-                        if (!existingCert) {
-                            const now = new Date();
-                            const dateStr = now.getFullYear() + 
-                                String(now.getMonth() + 1).padStart(2, '0') + 
-                                String(now.getDate()).padStart(2, '0');
-                            const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-                            const certNumber = `YATTA-${dateStr}-${random}`;
-
-                            const { error: certError } = await _supabase
-                                .from('yata_certificates')
-                                .insert([{
-                                    user_id: user.user_id,
-                                    certificate_type: 'onboarding',
-                                    certificate_number: certNumber,
-                                    is_claimed: true,
-                                    claimed_at: new Date().toISOString(),
-                                    signatory_name: 'Abd. Rahman Danial',
-                                    signatory_title: 'Founder & CEO YATTA'
-                                }]);
-
-                            if (!certError) {
-                                await sendNotification(
-                                    user.user_id,
-                                    '🎉 Sertifikat Onboarding YATTA!',
-                                    `Selamat! Anda telah menyelesaikan semua kelas onboarding YATTA. Sertifikat Anda sudah tersedia di menu Sertifikat.`,
-                                    'success'
-                                );
-                            }
-                        }
-                    }
-                }
-
-            } catch (err) {
-                console.error('Check certificate error:', err);
-            }
-        }
-
-        // ============================================
-        // SEND NOTIFICATION
-        // ============================================
-        async function sendNotification(userId, title, content, type = 'success') {
-            try {
-                const { data: notifData } = await _supabase
-                    .from('yata_notifications')
-                    .insert([{
-                        title: title,
-                        content: content,
-                        type: type
-                    }])
-                    .select()
-                    .single();
-
-                if (notifData) {
-                    await _supabase
-                        .from('yata_user_notifications')
-                        .insert([{
-                            notification_id: notifData.id,
-                            user_id: userId,
-                            is_read: false
-                        }]);
-                }
-                return true;
-            } catch (err) {
-                console.error('Send notification error:', err);
-                return false;
+                alert('❌ Gagal: ' + err.message);
             }
         }
 
