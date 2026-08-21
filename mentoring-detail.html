@@ -139,6 +139,40 @@
             min-height: 80px;
             resize: vertical;
         }
+
+        /* Popup Quota Full */
+        .quota-popup .popup-icon {
+            font-size: 56px;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .quota-popup .session-info {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 12px 16px;
+            text-align: left;
+        }
+        .quota-popup .session-info .label {
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .quota-popup .session-info .value {
+            font-weight: 600;
+            color: #0f172a;
+        }
+        .quota-popup .next-session-box {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            border-radius: 12px;
+            padding: 12px 16px;
+        }
+        .quota-popup .next-session-box .title {
+            font-weight: 700;
+            color: #065F46;
+        }
     </style>
 </head>
 <body>
@@ -420,6 +454,90 @@
     </div>
 
     <!-- ============================================ -->
+    <!-- MODAL POPUP KUOTA PENUH -->
+    <!-- ============================================ -->
+    <div id="quotaFullModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter quota-popup">
+            <button onclick="closeQuotaFullPopup()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="popup-icon">🔴</span>
+                <h3 class="text-xl font-black text-slate-800">Kuota Kelas Penuh!</h3>
+                <p class="text-sm text-slate-500 mt-1">Maaf, kelas ini sudah mencapai batas maksimal peserta untuk pekan ini.</p>
+            </div>
+
+            <!-- Info Kelas Saat Ini -->
+            <div id="currentSessionInfo" class="session-info mb-4">
+                <!-- Akan diisi JavaScript -->
+            </div>
+
+            <!-- Info Kelas Pekan Berikutnya -->
+            <div id="nextSessionInfo" class="next-session-box mb-4 hidden">
+                <!-- Akan diisi JavaScript -->
+            </div>
+
+            <!-- Tombol Aksi -->
+            <div id="nextSessionAction" class="hidden">
+                <button id="btnGoToNextSession" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm">
+                    <i class="fa-regular fa-calendar-plus mr-1"></i> Daftar di Pekan Berikutnya
+                </button>
+            </div>
+
+            <div id="noNextSessionMessage" class="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-4 hidden">
+                <p class="text-sm text-slate-500 text-center">
+                    <i class="fa-regular fa-clock mr-1"></i>
+                    Belum ada kelas onboarding di pekan berikutnya yang tersedia.
+                </p>
+                <p class="text-xs text-slate-400 text-center mt-1">
+                    Silakan cek kembali di minggu berikutnya.
+                </p>
+            </div>
+
+            <button onclick="closeQuotaFullPopup()" class="w-full mt-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL POPUP KELAS TERKUNCI -->
+    <!-- ============================================ -->
+    <div id="lockedModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+            <button onclick="closeLockedPopup()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-amber-500 text-4xl block mb-2">🔒</span>
+                <h3 class="text-xl font-black text-slate-800">Kelas Terkunci</h3>
+                <p class="text-sm text-slate-500 mt-1">Anda harus menyelesaikan kelas sebelumnya terlebih dahulu.</p>
+            </div>
+
+            <div id="lockedMessage" class="bg-amber-50 rounded-xl p-4 border border-amber-200 mb-4">
+                <!-- Akan diisi JavaScript -->
+            </div>
+
+            <div id="lockedPreviousSession" class="bg-emerald-50 rounded-xl p-4 border border-emerald-200 mb-4 hidden">
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-600 text-lg">📖</span>
+                    <p class="text-sm font-semibold text-emerald-800">Kelas Sebelumnya:</p>
+                </div>
+                <p id="lockedPrevTitle" class="text-sm text-slate-600 mt-1"></p>
+                <button id="lockedGoToPrevBtn" class="mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-sm transition">
+                    <i class="fa-regular fa-arrow-right mr-1"></i> Lanjutkan ke Kelas Sebelumnya
+                </button>
+            </div>
+
+            <button onclick="closeLockedPopup()" class="w-full mt-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
     <!-- MODAL ULASAN ONBOARDING -->
     <!-- ============================================ -->
     <div id="reviewModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
@@ -686,7 +804,6 @@
         // ============================================
         async function updateQuota(sessionId) {
             try {
-                // Hitung jumlah peserta yang sudah terdaftar (approved)
                 const { count, error: countError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*', { count: 'exact', head: true })
@@ -698,7 +815,6 @@
                     return false;
                 }
 
-                // Update current_participants dengan jumlah aktual
                 const { error: updateError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .update({ current_participants: count || 0 })
@@ -1069,12 +1185,147 @@
         }
 
         // ============================================
-        // 9. OPEN REGISTER MODAL - DENGAN AUTO-FILL DATA
+        // 9. CEK AKSES ONBOARDING (KELAS BERURUTAN)
+        // ============================================
+        async function checkOnboardingAccess(sessionId, userId) {
+            try {
+                // 1. Ambil data session yang sedang dibuka
+                const { data: session, error } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('is_onboarding, title, slug')
+                    .eq('id', sessionId)
+                    .single();
+
+                if (error) throw error;
+
+                // 2. Jika BUKAN kelas onboarding, boleh akses
+                if (!session.is_onboarding) {
+                    return { allowed: true, message: '', previousSession: null };
+                }
+
+                // 3. Ambil SEMUA kelas onboarding yang aktif
+                const { data: onboardingSessions, error: onError } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('id, slug, title')
+                    .eq('is_onboarding', true)
+                    .eq('status', 'published')
+                    .order('created_at', { ascending: true });
+
+                if (onError) throw onError;
+
+                if (!onboardingSessions || onboardingSessions.length === 0) {
+                    return { allowed: true, message: '', previousSession: null };
+                }
+
+                // 4. Cari urutan kelas ini (index ke berapa)
+                const currentIndex = onboardingSessions.findIndex(s => s.id === sessionId);
+                
+                if (currentIndex === -1) {
+                    return { allowed: true, message: '', previousSession: null };
+                }
+
+                // 5. Jika ini kelas PERTAMA (index 0), boleh akses
+                if (currentIndex === 0) {
+                    return { allowed: true, message: '', previousSession: null };
+                }
+
+                // 6. Ambil kelas SEBELUMNYA
+                const previousSession = onboardingSessions[currentIndex - 1];
+
+                // 7. Cek apakah user sudah menyelesaikan kelas sebelumnya
+                const { data: participant, error: pError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('attended, attendance_status, status')
+                    .eq('session_id', previousSession.id)
+                    .eq('user_id', userId)
+                    .maybeSingle();
+
+                if (pError) throw pError;
+
+                // 8. Jika belum pernah daftar ATAU belum hadir di kelas sebelumnya
+                if (!participant || participant.attended !== true) {
+                    return {
+                        allowed: false,
+                        message: `🔒 Anda harus menyelesaikan "${previousSession.title}" terlebih dahulu sebelum mengikuti kelas ini.`,
+                        previousSession: previousSession
+                    };
+                }
+
+                // 9. Jika sudah selesai, boleh akses
+                return { allowed: true, message: '', previousSession: null };
+
+            } catch (err) {
+                console.error('Check onboarding access error:', err);
+                return { allowed: true, message: '', previousSession: null };
+            }
+        }
+
+        // ============================================
+        // 10. POPUP KELAS TERKUNCI
+        // ============================================
+        function showLockedPopup(message, previousSession) {
+            document.getElementById('lockedMessage').textContent = message;
+            
+            if (previousSession) {
+                document.getElementById('lockedPreviousSession').classList.remove('hidden');
+                document.getElementById('lockedPrevTitle').textContent = previousSession.title;
+                document.getElementById('lockedGoToPrevBtn').onclick = function() {
+                    window.location.href = `mentoring-detail.html?id=${previousSession.id}`;
+                };
+            } else {
+                document.getElementById('lockedPreviousSession').classList.add('hidden');
+            }
+
+            document.getElementById('lockedModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+
+            // Tutup modal register jika terbuka
+            const registerModal = document.getElementById('registerModal');
+            if (registerModal) {
+                registerModal.classList.add('hidden');
+            }
+        }
+
+        function closeLockedPopup() {
+            document.getElementById('lockedModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // ============================================
+        // 11. OPEN REGISTER MODAL - DENGAN CEK KUOTA & AKSES
         // ============================================
         async function openRegisterModal() {
             if (!currentUser) {
                 document.getElementById('loginPopupModal').classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
+                return;
+            }
+
+            // 🔥 CEK AKSES ONBOARDING (KELAS BERURUTAN)
+            const access = await checkOnboardingAccess(sessionId, currentUser.id);
+            
+            if (!access.allowed) {
+                showLockedPopup(access.message, access.previousSession);
+                return;
+            }
+
+            // 🔥 CEK KAPASITAS SEBELUM BUKA MODAL
+            try {
+                const { data: session, error } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('current_participants, max_participants, title, schedule, is_onboarding, start_date')
+                    .eq('id', sessionId)
+                    .single();
+
+                if (error) throw error;
+
+                if (session.max_participants > 0 && session.current_participants >= session.max_participants) {
+                    await showQuotaFullPopup(session);
+                    return;
+                }
+            } catch (err) {
+                console.error('Check quota error:', err);
+                showRegisterMessage('Gagal mengecek kuota. Silakan coba lagi.', 'error');
                 return;
             }
 
@@ -1088,7 +1339,6 @@
             document.getElementById('registerSessionId').value = sessionId;
             document.getElementById('registerSubtitle').textContent = `Bergabung sebagai peserta "${sessionData?.title || 'Kelas'}"`;
             
-            // Auto-fill data
             document.getElementById('registerName').value = profile?.full_name || '';
             document.getElementById('registerEmail').value = profile?.email || currentUser.email || '';
             document.getElementById('registerLevel').value = profile?.member_level || 'Tamu';
@@ -1113,7 +1363,122 @@
         }
 
         // ============================================
-        // 10. SUBMIT REGISTER - AUTO APPROVE + NOTIFIKASI + UPDATE KUOTA OTOMATIS
+        // 12. POPUP KUOTA PENUH
+        // ============================================
+        async function showQuotaFullPopup(currentSession) {
+            // Cari kelas onboarding di pekan berikutnya
+            const nextSession = await findNextWeekSession(currentSession);
+
+            // Isi info kelas saat ini
+            const currentInfo = document.getElementById('currentSessionInfo');
+            currentInfo.innerHTML = `
+                <p class="label">Kelas Saat Ini</p>
+                <p class="value">${currentSession.title}</p>
+                <p class="text-sm text-slate-600 mt-1">
+                    <span class="font-semibold">Peserta:</span> ${currentSession.current_participants}/${currentSession.max_participants} (Penuh!)
+                </p>
+                ${currentSession.schedule ? `<p class="text-sm text-slate-600"><span class="font-semibold">Jadwal:</span> ${currentSession.schedule}</p>` : ''}
+            `;
+
+            // Tampilkan info kelas berikutnya jika ada
+            const nextInfo = document.getElementById('nextSessionInfo');
+            const nextAction = document.getElementById('nextSessionAction');
+            const noNextMsg = document.getElementById('noNextSessionMessage');
+
+            if (nextSession) {
+                nextInfo.classList.remove('hidden');
+                nextInfo.innerHTML = `
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-emerald-600 text-lg">📅</span>
+                        <p class="title">Kelas Pekan Berikutnya Tersedia!</p>
+                    </div>
+                    <p class="text-sm text-slate-600">
+                        <strong>Kelas:</strong> ${nextSession.title}
+                    </p>
+                    ${nextSession.schedule ? `<p class="text-sm text-slate-600"><strong>Jadwal:</strong> ${nextSession.schedule}</p>` : ''}
+                    <p class="text-sm text-slate-600">
+                        <strong>Kuota:</strong> ${nextSession.current_participants || 0}/${nextSession.max_participants || '∞'} peserta
+                    </p>
+                `;
+                nextAction.classList.remove('hidden');
+                document.getElementById('btnGoToNextSession').onclick = function() {
+                    window.location.href = `mentoring-detail.html?id=${nextSession.id}`;
+                };
+                noNextMsg.classList.add('hidden');
+            } else {
+                nextInfo.classList.add('hidden');
+                nextAction.classList.add('hidden');
+                noNextMsg.classList.remove('hidden');
+            }
+
+            // Tampilkan modal
+            const modal = document.getElementById('quotaFullModal');
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+
+            // Tutup modal register jika terbuka
+            const registerModal = document.getElementById('registerModal');
+            if (registerModal) {
+                registerModal.classList.add('hidden');
+            }
+        }
+
+        // ============================================
+        // 13. CARI KELAS PEKAN BERIKUTNYA
+        // ============================================
+        async function findNextWeekSession(currentSession) {
+            try {
+                const { data: sessions, error } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('*')
+                    .eq('is_onboarding', true)
+                    .eq('status', 'published')
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+
+                const currentIndex = sessions.findIndex(s => s.id === currentSession.id);
+                
+                for (let i = currentIndex + 1; i < sessions.length; i++) {
+                    const s = sessions[i];
+                    const isFull = s.max_participants > 0 && s.current_participants >= s.max_participants;
+                    
+                    if (!isFull) {
+                        return s;
+                    }
+                }
+
+                for (let i = 0; i < sessions.length; i++) {
+                    if (i === currentIndex) continue;
+                    const s = sessions[i];
+                    const isFull = s.max_participants > 0 && s.current_participants >= s.max_participants;
+                    
+                    if (!isFull) {
+                        return s;
+                    }
+                }
+
+                return null;
+
+            } catch (err) {
+                console.error('Find next week session error:', err);
+                return null;
+            }
+        }
+
+        // ============================================
+        // 14. TUTUP POPUP KUOTA PENUH
+        // ============================================
+        function closeQuotaFullPopup() {
+            const modal = document.getElementById('quotaFullModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // ============================================
+        // 15. SUBMIT REGISTER - AUTO APPROVE + NOTIFIKASI + UPDATE KUOTA OTOMATIS
         // ============================================
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1192,7 +1557,7 @@
                     return;
                 }
 
-                // ✅ UPDATE KUOTA OTOMATIS (berdasarkan jumlah peserta aktual)
+                // ✅ UPDATE KUOTA OTOMATIS
                 await updateQuota(sessionId);
 
                 // ✅ KIRIM NOTIFIKASI KE PESERTA
@@ -1220,10 +1585,9 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
                 showRegisterMessage('✅ Pendaftaran berhasil! Kuota terupdate otomatis.', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
 
-                // ✅ REFRESH HALAMAN UNTUK MENAMPILKAN KUOTA BARU
                 setTimeout(() => {
                     closeRegisterModal();
-                    loadSessionDetail();  // Refresh semua data
+                    loadSessionDetail();
                 }, 1500);
 
             } catch (err) {
@@ -1246,7 +1610,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 11. ULASAN ONBOARDING
+        // 16. ULASAN ONBOARDING
         // ============================================
 
         let materialRatingValue = 0;
@@ -1293,7 +1657,6 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
             document.getElementById('reviewFeedback').value = '';
             document.getElementById('reviewMessage').className = 'text-sm text-center hidden';
             
-            // Reset rating
             materialRatingValue = 0;
             platformRatingValue = 0;
             document.getElementById('materialRating').value = 0;
@@ -1376,7 +1739,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 12. KLAIM SERTIFIKAT
+        // 17. KLAIM SERTIFIKAT
         // ============================================
 
         async function claimCertificate(sessionId) {
@@ -1392,7 +1755,6 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
                     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memproses...';
                 }
 
-                // Cek apakah sudah ada sertifikat
                 const { data: existing } = await _supabase
                     .from('yata_certificates')
                     .select('id')
@@ -1409,7 +1771,6 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
                     return;
                 }
 
-                // Ambil data user & session
                 const { data: profile } = await _supabase
                     .from('yata_profiles')
                     .select('full_name')
@@ -1422,7 +1783,6 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
                     .eq('id', sessionId)
                     .single();
 
-                // Generate nomor sertifikat
                 const now = new Date();
                 const dateStr = now.getFullYear() + 
                     String(now.getMonth() + 1).padStart(2, '0') + 
@@ -1432,7 +1792,6 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
 
                 const certType = mentoringSession?.is_onboarding ? 'onboarding' : 'mentoring';
 
-                // Simpan sertifikat
                 const { data: certData, error } = await _supabase
                     .from('yata_certificates')
                     .insert([{
@@ -1450,7 +1809,6 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
 
                 if (error) throw error;
 
-                // Kirim notifikasi
                 await sendNotification(
                     session.user.id,
                     '🎉 Sertifikat Berhasil Diklaim!',
@@ -1480,7 +1838,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 13. LOGOUT
+        // 18. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -1498,7 +1856,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 14. EVENT LISTENERS
+        // 19. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadSessionDetail();
@@ -1524,6 +1882,14 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
 
             document.getElementById('loginPopupModal').addEventListener('click', function(e) {
                 if (e.target === this) closeLoginPopup();
+            });
+
+            document.getElementById('quotaFullModal').addEventListener('click', function(e) {
+                if (e.target === this) closeQuotaFullPopup();
+            });
+
+            document.getElementById('lockedModal').addEventListener('click', function(e) {
+                if (e.target === this) closeLockedPopup();
             });
         });
     </script>
