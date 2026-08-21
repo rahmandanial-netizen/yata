@@ -609,6 +609,13 @@
         // OPEN NOTIFICATION DETAIL
         async function openNotifDetail(notificationId) {
             try {
+                // 🔥 PASTIKAN USER LOGIN
+                const session = await checkAuth();
+                if (!session) {
+                    showError('Silakan login terlebih dahulu.', 'Error');
+                    return;
+                }
+
                 currentModalNotifId = notificationId;
 
                 const { data: freshNotif, error } = await _supabase
@@ -652,7 +659,7 @@
                     statusEl.className = 'text-xs font-semibold text-yellow-600';
                 }
 
-                // Selalu tampilkan reply section (tidak hanya untuk campaign)
+                // Selalu tampilkan reply section
                 const replySection = document.getElementById('replySection');
                 const replyMessage = document.getElementById('replyMessage');
                 replyMessage.className = 'text-xs text-center mt-2 hidden';
@@ -804,24 +811,37 @@
             messageEl.className = 'text-xs text-center mt-2 hidden';
 
             try {
+                // 🔥 PASTIKAN USER LOGIN
                 const session = await checkAuth();
-                if (!session) return;
+                if (!session) {
+                    messageEl.textContent = 'Silakan login terlebih dahulu.';
+                    messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
+                    return;
+                }
 
-                // 🔥 CARI ADMIN (BUKAN USER YANG SEDANG LOGIN)
+                // 🔥 CARI ADMIN
                 const { data: admins, error: adminError } = await _supabase
                     .from('yata_profiles')
                     .select('id')
                     .eq('role', 'admin')
                     .limit(1);
 
-                if (adminError) throw adminError;
+                if (adminError) {
+                    console.error('Admin query error:', adminError);
+                    messageEl.textContent = 'Gagal mencari admin.';
+                    messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
+                    return;
+                }
+
                 if (!admins || admins.length === 0) {
-                    messageEl.textContent = 'Tidak ada admin yang ditemukan.';
+                    console.error('❌ Tidak ada admin ditemukan di database');
+                    messageEl.textContent = 'Tidak ada admin yang ditemukan. Hubungi pengembang.';
                     messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
                     return;
                 }
 
                 const adminId = admins[0].id;
+                console.log('✅ Admin ditemukan:', adminId);
 
                 // 🔥 KIRIM KE ADMIN
                 const { data: newNotif, error: createError } = await _supabase
@@ -834,7 +854,10 @@
                     .select()
                     .single();
 
-                if (createError) throw createError;
+                if (createError) {
+                    console.error('Create notification error:', createError);
+                    throw createError;
+                }
 
                 await _supabase
                     .from('yata_user_notifications')
