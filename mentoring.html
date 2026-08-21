@@ -161,6 +161,19 @@
             transform: translateY(-4px);
             box-shadow: 0 12px 30px -12px rgba(6, 95, 70, 0.15);
         }
+        .rating-display {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+        }
+        .rating-display .stars {
+            color: #f59e0b;
+            letter-spacing: 1px;
+        }
+        .rating-display .count {
+            color: #94a3b8;
+        }
     </style>
 </head>
 <body>
@@ -483,6 +496,17 @@
             const empty = document.getElementById('onboardingEmpty');
 
             try {
+                const session = await checkSession();
+                if (!session) {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center py-8 text-slate-400 text-sm">
+                            <i class="fa-regular fa-circle-exclamation text-2xl block mb-2"></i>
+                            Silakan login untuk melihat kelas onboarding.
+                        </div>
+                    `;
+                    return;
+                }
+
                 const { data: sessions, error } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('*')
@@ -490,7 +514,27 @@
                     .in('status', ['published', 'ongoing'])
                     .order('created_at', { ascending: true });
 
-                if (error) throw error;
+                if (error) {
+                    if (error.message && error.message.includes('JWT')) {
+                        const { error: refreshError } = await _supabase.auth.refreshSession();
+                        if (refreshError) {
+                            container.innerHTML = `
+                                <div class="col-span-full text-center py-8 text-amber-500 text-sm">
+                                    <i class="fa-regular fa-clock text-2xl block mb-2"></i>
+                                    Sesi Anda kadaluarsa. Silakan login ulang.
+                                    <div class="mt-4">
+                                        <a href="login.html" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                                            <i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> Login Ulang
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                            return;
+                        }
+                        return loadOnboardingSessions();
+                    }
+                    throw error;
+                }
 
                 onboardingSessions = sessions || [];
 
@@ -502,7 +546,6 @@
 
                 empty.classList.add('hidden');
 
-                // Ambil data mentor
                 const mentorIds = [...new Set(onboardingSessions.map(s => s.mentor_id).filter(id => id))];
                 let mentorMap = {};
                 if (mentorIds.length > 0) {
@@ -525,13 +568,16 @@
                 container.innerHTML = `
                     <div class="col-span-full text-center py-8 text-red-400 text-sm">
                         Gagal memuat kelas onboarding: ${err.message}
+                        <button onclick="location.reload()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Refresh
+                        </button>
                     </div>
                 `;
             }
         }
 
         // ============================================
-        // 3. RENDER ONBOARDING
+        // 3. RENDER ONBOARDING - DENGAN RATING
         // ============================================
         function renderOnboarding() {
             const container = document.getElementById('onboardingGrid');
@@ -554,6 +600,11 @@
                 const mentorInitial = mentorName.charAt(0).toUpperCase();
                 const schedule = s.schedule || 'Sabtu, 19:00 WIB';
 
+                // 🔥 RATING DISPLAY
+                const avgRating = s.avg_rating || 0;
+                const totalReviews = s.total_reviews || 0;
+                const stars = '⭐'.repeat(Math.round(avgRating)) + '☆'.repeat(5 - Math.round(avgRating));
+
                 return `
                     <div class="mentoring-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm cursor-pointer" onclick="window.location.href='mentoring-detail.html?id=${s.id}'">
                         <div class="flex items-start gap-3">
@@ -571,6 +622,13 @@
                                     }
                                     <span class="text-xs text-slate-500 font-medium">${mentorName}</span>
                                 </div>
+                                <!-- 🔥 RATING -->
+                                ${totalReviews > 0 ? `
+                                    <div class="rating-display mt-1">
+                                        <span class="stars">${stars}</span>
+                                        <span class="count">(${totalReviews} ulasan)</span>
+                                    </div>
+                                ` : ''}
                                 <p class="text-xs text-slate-400 mt-1 line-clamp-2">${s.description || 'Tidak ada deskripsi'}</p>
                                 <div class="flex items-center gap-3 mt-2 text-xs text-slate-400">
                                     <span><i class="fa-regular fa-user"></i> ${s.current_participants || 0}/${s.max_participants || '∞'}</span>
@@ -624,16 +682,14 @@
                 const from = currentPage * pageSize;
                 const to = from + pageSize - 1;
 
-                // ✅ QUERY UNTUK KELAS REGULER (bukan onboarding)
                 let query = _supabase
                     .from('yata_mentoring_sessions')
                     .select('*', { count: 'exact' })
                     .eq('status', 'published')
-                    .eq('is_onboarding', false)  // ← HANYA reguler
+                    .eq('is_onboarding', false)
                     .order('created_at', { ascending: false })
                     .range(from, to);
 
-                // Terapkan filter tambahan jika ada
                 if (currentFilter === 'gratis') {
                     query = query.eq('price', 0);
                 } else if (currentFilter === 'berbayar') {
@@ -647,7 +703,6 @@
                     query = query.or(`title.ilike.%${searchTerm}%, description.ilike.%${searchTerm}%`);
                 }
 
-                console.log('🔍 Running query for regular mentoring sessions...');
                 const { data: sessions, error, count } = await query;
 
                 if (error) {
@@ -655,9 +710,6 @@
                     throw error;
                 }
 
-                console.log('✅ Reguler sessions ditemukan:', sessions?.length || 0);
-
-                // Ambil data mentor
                 if (sessions && sessions.length > 0) {
                     const mentorIds = [...new Set(sessions.map(s => s.mentor_id).filter(id => id))];
                     let mentorMap = {};
@@ -668,7 +720,6 @@
                             .in('id', mentorIds);
                         if (mentors) {
                             mentors.forEach(m => { mentorMap[m.id] = m; });
-                            console.log('✅ Mentor data loaded:', mentors.length);
                         }
                     }
                     sessions.forEach(s => {
@@ -686,7 +737,6 @@
 
                 renderMentoring();
 
-                // Tampilkan empty state jika tidak ada data
                 if (allSessions.length === 0) {
                     document.getElementById('mentoringEmpty').classList.remove('hidden');
                     container.innerHTML = '';
@@ -732,7 +782,7 @@
         }
 
         // ============================================
-        // 5. RENDER MENTORING REGULER
+        // 5. RENDER MENTORING REGULER - DENGAN RATING
         // ============================================
         function renderMentoring() {
             const container = document.getElementById('mentoringGrid');
@@ -768,9 +818,12 @@
                 const mentorAvatar = s.mentor?.avatar_url || null;
                 const mentorInitial = mentorName.charAt(0).toUpperCase();
                 const icon = categoryIcons[s.category] || '📌';
-
-                // Cek apakah user sudah login untuk tombol daftar
                 const isLoggedIn = !!currentUser;
+
+                // 🔥 RATING DISPLAY
+                const avgRating = s.avg_rating || 0;
+                const totalReviews = s.total_reviews || 0;
+                const stars = '⭐'.repeat(Math.round(avgRating)) + '☆'.repeat(5 - Math.round(avgRating));
 
                 return `
                     <div class="mentoring-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm cursor-pointer" onclick="window.location.href='mentoring-detail.html?id=${s.id}'">
@@ -788,6 +841,13 @@
                                     }
                                     <span class="text-xs text-slate-500 font-medium">${mentorName}</span>
                                 </div>
+                                <!-- 🔥 RATING -->
+                                ${totalReviews > 0 ? `
+                                    <div class="rating-display mt-1">
+                                        <span class="stars">${stars}</span>
+                                        <span class="count">(${totalReviews} ulasan)</span>
+                                    </div>
+                                ` : ''}
                                 <p class="text-xs text-slate-400 mt-1 line-clamp-2">${s.description || 'Tidak ada deskripsi'}</p>
                                 <div class="flex items-center gap-3 mt-2 text-xs text-slate-400">
                                     <span><i class="fa-regular fa-user"></i> ${s.current_participants || 0}/${s.max_participants || '∞'}</span>

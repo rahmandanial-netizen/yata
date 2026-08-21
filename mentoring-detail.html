@@ -173,6 +173,25 @@
             font-weight: 700;
             color: #065F46;
         }
+        .rating-display {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .rating-display .stars {
+            color: #f59e0b;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+        .rating-display .score {
+            font-weight: 700;
+            color: #0f172a;
+            font-size: 14px;
+        }
+        .rating-display .count {
+            font-size: 12px;
+            color: #94a3b8;
+        }
     </style>
 </head>
 <body>
@@ -286,7 +305,17 @@
                                 <span id="onboardingBadge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-700 hidden">🎓 Onboarding</span>
                             </div>
                             <h1 id="sessionTitle" class="text-2xl md:text-3xl font-black text-slate-800">Judul Kelas</h1>
-                            <div class="flex items-center gap-3 mt-2">
+                            
+                            <!-- 🔥 RATING DISPLAY -->
+                            <div id="ratingDisplay" class="flex items-center gap-3 mt-2">
+                                <span class="rating-display">
+                                    <span class="stars" id="ratingStars">☆☆☆☆☆</span>
+                                    <span class="score" id="ratingScore">0.0</span>
+                                    <span class="count" id="ratingCount">(0 ulasan)</span>
+                                </span>
+                            </div>
+
+                            <div class="flex items-center gap-3 mt-1">
                                 <div id="mentorAvatar" class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm overflow-hidden">?</div>
                                 <div>
                                     <p id="mentorName" class="font-bold text-slate-800 text-sm">Nama Mentor</p>
@@ -366,7 +395,7 @@
                         </div>
 
                         <!-- Ulasan -->
-                        <div class="bg-white rounded-2xl p-6 border border-emerald-100/60 shadow-sm">
+                        <div id="review" class="bg-white rounded-2xl p-6 border border-emerald-100/60 shadow-sm">
                             <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2 mb-3">
                                 <i class="fa-regular fa-star text-yellow-500"></i> Ulasan
                                 <span id="reviewCount" class="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">0</span>
@@ -804,7 +833,6 @@
         // ============================================
         async function createCertificate(userId) {
             try {
-                // Cek apakah sertifikat sudah ada
                 const { data: existingCert, error: certError } = await _supabase
                     .from('yata_certificates')
                     .select('id')
@@ -819,7 +847,6 @@
                     return;
                 }
 
-                // Ambil data user
                 const { data: profile, error: profileError } = await _supabase
                     .from('yata_profiles')
                     .select('full_name')
@@ -828,7 +855,6 @@
 
                 if (profileError) throw profileError;
 
-                // Generate nomor sertifikat
                 const now = new Date();
                 const dateStr = now.getFullYear() + 
                     String(now.getMonth() + 1).padStart(2, '0') + 
@@ -836,7 +862,6 @@
                 const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
                 const certNumber = `YATTA-ONBOARD-${dateStr}-${random}`;
 
-                // Simpan sertifikat
                 const { error: insertError } = await _supabase
                     .from('yata_certificates')
                     .insert([{
@@ -863,19 +888,16 @@
         // ============================================
         async function sendCompletionNotifications(userId) {
             try {
-                // NOTIFIKASI 1: SELESAI ONBOARDING
                 const notif1Title = `🎉 Selamat! Anda Telah Menyelesaikan Onboarding!`;
                 const notif1Content = `Anda telah menyelesaikan semua 3 kelas onboarding YATTA! 🎉\n\n📚 Anda sekarang resmi menjadi bagian dari ekosistem YATTA.\n\n🚀 Langkah selanjutnya: Naik level ke "Penulis" untuk mulai menulis dan menerbitkan karya!`;
 
                 await sendNotification(userId, notif1Title, notif1Content, 'success');
 
-                // NOTIFIKASI 2: SERTIFIKAT
                 const notif2Title = `📜 Sertifikat Onboarding Anda Tersedia!`;
                 const notif2Content = `Sertifikat onboarding Anda sudah tersedia di menu Sertifikat.\n\n🏛️ Ditandatangani oleh:\nAbd. Rahman Danial\nFounder & CEO YATTA\n\n📌 Klik menu Sertifikat untuk melihat dan mengunduh.`;
 
                 await sendNotification(userId, notif2Title, notif2Content, 'success');
 
-                // NOTIFIKASI 3: PENGAJUAN NAIK LEVEL
                 const notif3Title = `⭐ Ajukan Naik Level ke "Penulis" Sekarang!`;
                 const notif3Content = `Anda sudah menyelesaikan semua kelas onboarding.\n\n📋 Syarat naik level ke "Penulis":\n✅ 5+ karya dipublikasikan\n✅ 3+ kali mengikuti mentoring\n\n📌 Klik menu Profil untuk melihat detail level dan ajukan naik level.`;
 
@@ -893,7 +915,6 @@
         // ============================================
         async function checkReviewAndCertificate(userId) {
             try {
-                // 1. Ambil semua onboarding session
                 const { data: onboardingSessions, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('id')
@@ -904,7 +925,6 @@
 
                 const sessionIds = onboardingSessions.map(s => s.id);
 
-                // 2. Ambil semua ulasan user untuk onboarding
                 const { data: reviews, error: reviewError } = await _supabase
                     .from('yata_onboarding_reviews')
                     .select('session_id')
@@ -914,8 +934,6 @@
                 if (reviewError) throw reviewError;
 
                 const reviewedSessions = reviews.map(r => r.session_id);
-
-                // 3. Cek apakah semua session sudah di-review
                 const allReviewed = sessionIds.every(id => reviewedSessions.includes(id));
 
                 if (!allReviewed) {
@@ -923,10 +941,8 @@
                     return;
                 }
 
-                // 4. 🔥 SEMUA SUDAH DI-REVIEW → BERI SERTIFIKAT + 3 NOTIFIKASI
                 console.log('✅ Semua kelas sudah di-review! Memberi sertifikat...');
 
-                // Cek apakah sertifikat sudah ada
                 const { data: existingCert, error: certError } = await _supabase
                     .from('yata_certificates')
                     .select('id')
@@ -941,10 +957,7 @@
                     return;
                 }
 
-                // Buat sertifikat
                 await createCertificate(userId);
-
-                // Kirim 3 notifikasi
                 await sendCompletionNotifications(userId);
 
             } catch (err) {
@@ -953,7 +966,45 @@
         }
 
         // ============================================
-        // 7. UPDATE KUOTA OTOMATIS
+        // 7. UPDATE RATING KELAS
+        // ============================================
+        async function updateSessionRating(sessionId) {
+            try {
+                // Ambil semua ulasan untuk sesi ini
+                const { data: reviews, error } = await _supabase
+                    .from('yata_onboarding_reviews')
+                    .select('material_understanding, platform_satisfaction')
+                    .eq('session_id', sessionId);
+
+                if (error) throw error;
+
+                if (reviews && reviews.length > 0) {
+                    // Hitung rata-rata dari kedua rating
+                    let total = 0;
+                    reviews.forEach(r => {
+                        const avgRating = (r.material_understanding + r.platform_satisfaction) / 2;
+                        total += avgRating;
+                    });
+                    const avg = total / reviews.length;
+
+                    // Update session
+                    await _supabase
+                        .from('yata_mentoring_sessions')
+                        .update({ 
+                            avg_rating: parseFloat(avg.toFixed(2)),
+                            total_reviews: reviews.length
+                        })
+                        .eq('id', sessionId);
+
+                    console.log(`✅ Rating diperbarui: ${avg.toFixed(2)} (${reviews.length} ulasan)`);
+                }
+            } catch (err) {
+                console.error('Update rating error:', err);
+            }
+        }
+
+        // ============================================
+        // 8. UPDATE KUOTA OTOMATIS
         // ============================================
         async function updateQuota(sessionId) {
             try {
@@ -988,7 +1039,44 @@
         }
 
         // ============================================
-        // 8. LOAD SESSION DETAIL
+        // 9. RENDER RATING
+        // ============================================
+        function renderRating(session) {
+            const avgRating = session.avg_rating || 0;
+            const totalReviews = session.total_reviews || 0;
+
+            const starsEl = document.getElementById('ratingStars');
+            const scoreEl = document.getElementById('ratingScore');
+            const countEl = document.getElementById('ratingCount');
+
+            // Generate stars
+            const fullStars = Math.floor(avgRating);
+            const hasHalfStar = avgRating - fullStars >= 0.5;
+            let starsHtml = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= fullStars) {
+                    starsHtml += '⭐';
+                } else if (i === fullStars + 1 && hasHalfStar) {
+                    starsHtml += '⭐';
+                } else {
+                    starsHtml += '☆';
+                }
+            }
+            starsEl.textContent = starsHtml;
+            scoreEl.textContent = avgRating.toFixed(1);
+            countEl.textContent = `(${totalReviews} ulasan)`;
+
+            // Sembunyikan jika belum ada rating
+            const ratingDisplay = document.getElementById('ratingDisplay');
+            if (totalReviews === 0) {
+                ratingDisplay.style.display = 'none';
+            } else {
+                ratingDisplay.style.display = 'flex';
+            }
+        }
+
+        // ============================================
+        // 10. LOAD SESSION DETAIL
         // ============================================
         async function loadSessionDetail() {
             sessionId = getSessionId();
@@ -1050,7 +1138,6 @@
                         participantStatus = participant.status;
                     }
 
-                    // Cek status ulasan
                     const { data: review } = await _supabase
                         .from('yata_onboarding_reviews')
                         .select('id')
@@ -1060,7 +1147,6 @@
 
                     reviewStatus = review ? 'reviewed' : 'not_reviewed';
 
-                    // Cek sertifikat
                     const { data: certificate } = await _supabase
                         .from('yata_certificates')
                         .select('id, is_claimed')
@@ -1109,7 +1195,7 @@
         }
 
         // ============================================
-        // 9. RENDER SESSION
+        // 11. RENDER SESSION
         // ============================================
         function renderSession(session) {
             const statusLabels = {
@@ -1146,6 +1232,9 @@
             document.getElementById('sessionCategory').textContent = session.category || 'Umum';
             document.getElementById('sessionTitle').textContent = session.title;
             document.getElementById('sessionDescription').textContent = session.description || 'Tidak ada deskripsi.';
+
+            // 🔥 TAMPILKAN RATING
+            renderRating(session);
 
             // Badge Onboarding
             const onboardingBadge = document.getElementById('onboardingBadge');
@@ -1251,7 +1340,7 @@
         }
 
         // ============================================
-        // 10. RENDER MATERIALS
+        // 12. RENDER MATERIALS
         // ============================================
         function renderMaterials(materials) {
             const container = document.getElementById('materialList');
@@ -1296,7 +1385,7 @@
         }
 
         // ============================================
-        // 11. RENDER REVIEWS
+        // 13. RENDER REVIEWS
         // ============================================
         function renderReviews(reviews) {
             const container = document.getElementById('reviewList');
@@ -1338,7 +1427,7 @@
         }
 
         // ============================================
-        // 12. CEK AKSES ONBOARDING (KELAS BERURUTAN)
+        // 14. CEK AKSES ONBOARDING (KELAS BERURUTAN)
         // ============================================
         async function checkOnboardingAccess(sessionId, userId) {
             try {
@@ -1405,7 +1494,7 @@
         }
 
         // ============================================
-        // 13. POPUP KELAS TERKUNCI
+        // 15. POPUP KELAS TERKUNCI
         // ============================================
         function showLockedPopup(message, previousSession) {
             document.getElementById('lockedMessage').textContent = message;
@@ -1435,7 +1524,7 @@
         }
 
         // ============================================
-        // 14. OPEN REGISTER MODAL - DENGAN CEK KUOTA & AKSES
+        // 16. OPEN REGISTER MODAL - DENGAN CEK KUOTA & AKSES
         // ============================================
         async function openRegisterModal() {
             if (!currentUser) {
@@ -1506,7 +1595,7 @@
         }
 
         // ============================================
-        // 15. POPUP KUOTA PENUH
+        // 17. POPUP KUOTA PENUH
         // ============================================
         async function showQuotaFullPopup(currentSession) {
             const nextSession = await findNextWeekSession(currentSession);
@@ -1562,7 +1651,7 @@
         }
 
         // ============================================
-        // 16. CARI KELAS PEKAN BERIKUTNYA
+        // 18. CARI KELAS PEKAN BERIKUTNYA
         // ============================================
         async function findNextWeekSession(currentSession) {
             try {
@@ -1605,7 +1694,7 @@
         }
 
         // ============================================
-        // 17. TUTUP POPUP KUOTA PENUH
+        // 19. TUTUP POPUP KUOTA PENUH
         // ============================================
         function closeQuotaFullPopup() {
             const modal = document.getElementById('quotaFullModal');
@@ -1616,7 +1705,7 @@
         }
 
         // ============================================
-        // 18. SUBMIT REGISTER - AUTO APPROVE + NOTIFIKASI + UPDATE KUOTA OTOMATIS
+        // 20. SUBMIT REGISTER - AUTO APPROVE + NOTIFIKASI + UPDATE KUOTA OTOMATIS
         // ============================================
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1748,7 +1837,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 19. ULASAN ONBOARDING
+        // 21. ULASAN ONBOARDING + UPDATE RATING
         // ============================================
 
         let materialRatingValue = 0;
@@ -1816,7 +1905,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 20. SUBMIT REVIEW + CEK SERTIFIKAT
+        // 22. SUBMIT REVIEW + UPDATE RATING + CEK SERTIFIKAT
         // ============================================
         document.getElementById('reviewForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1855,6 +1944,9 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
                 showReviewMessage('✅ Ulasan berhasil dikirim!', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
 
+                // 🔥 UPDATE RATING KELAS
+                await updateSessionRating(sessionId);
+
                 // 🔥 CEK ULASAN & SERTIFIKAT (JIKA 3/3)
                 await checkReviewAndCertificate(session.user.id);
 
@@ -1883,7 +1975,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 21. KLAIM SERTIFIKAT
+        // 23. KLAIM SERTIFIKAT
         // ============================================
 
         async function claimCertificate(sessionId) {
@@ -1982,7 +2074,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 22. LOGOUT
+        // 24. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -2000,10 +2092,20 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 23. EVENT LISTENERS
+        // 25. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadSessionDetail();
+
+            // 🔥 SCROLL KE REVIEW JIKA ADA HASH
+            if (window.location.hash === '#review') {
+                setTimeout(() => {
+                    const reviewSection = document.getElementById('review');
+                    if (reviewSection) {
+                        reviewSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 800);
+            }
 
             document.getElementById('btnLogout').addEventListener('click', handleLogout);
             document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);
