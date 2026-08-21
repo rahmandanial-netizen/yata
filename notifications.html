@@ -144,44 +144,6 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
-        .reply-section {
-            border-top: 1px solid #e2e8f0;
-            padding-top: 16px;
-            margin-top: 16px;
-        }
-        .reply-section textarea {
-            width: 100%;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 10px 14px;
-            font-size: 13px;
-            resize: none;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .reply-section textarea:focus {
-            border-color: #065F46;
-            ring: 2px solid rgba(6,95,70,0.2);
-        }
-        .reply-section button {
-            background: #065F46;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 8px 20px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-top: 8px;
-        }
-        .reply-section button:hover {
-            background: #0D9488;
-        }
-        .reply-section button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
         .action-btn {
             background: #065F46;
             color: white;
@@ -200,6 +162,11 @@
         .action-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+        .action-section {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 16px;
+            margin-top: 16px;
         }
     </style>
 </head>
@@ -345,8 +312,8 @@
                 Isi notifikasi akan ditampilkan di sini.
             </div>
 
-            <!-- SECTION AKSI -->
-            <div id="actionSection" class="reply-section">
+            <!-- SECTION AKSI (tanpa balas pesan) -->
+            <div id="actionSection" class="action-section">
                 <div id="actionContainer">
                     <!-- Akan diisi JavaScript -->
                 </div>
@@ -672,7 +639,7 @@
                     statusEl.className = 'text-xs font-semibold text-yellow-600';
                 }
 
-                // 🔥 TENTUKAN TOMBOL BERDASARKAN JENIS NOTIFIKASI
+                // 🔥 TENTUKAN TOMBOL (TANPA FORM BALAS)
                 const actionContainer = document.getElementById('actionContainer');
                 const actionMessage = document.getElementById('actionMessage');
                 actionMessage.className = 'text-xs text-center mt-2 hidden';
@@ -681,28 +648,19 @@
                 const content = notif.content || '';
 
                 if (title.includes('Ajukan Naik Level') || content.includes('naik level')) {
-                    // Tombol "Ajukan Naik Level"
                     actionContainer.innerHTML = `
                         <button id="actionBtn" class="action-btn" onclick="submitLevelUpRequest()">
                             ⭐ Ajukan Naik Level
                         </button>
                     `;
                 } else if (title.includes('Sertifikat') || content.includes('sertifikat')) {
-                    // Tombol "Lihat Sertifikat"
                     actionContainer.innerHTML = `
                         <button id="actionBtn" class="action-btn" onclick="goToCertificates()">
                             📜 Lihat Sertifikat
                         </button>
                     `;
                 } else {
-                    // Form balas normal
-                    actionContainer.innerHTML = `
-                        <label for="replyNotifInput" class="block text-xs font-semibold text-slate-700 mb-1">Balas Notifikasi</label>
-                        <textarea id="replyNotifInput" rows="2" placeholder="Tulis balasan Anda..." class="w-full" style="width:100%;border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px;font-size:13px;resize:none;outline:none;"></textarea>
-                        <button id="actionBtn" class="action-btn" style="margin-top:8px;" onclick="submitReplyNotification()">
-                            <i class="fa-regular fa-paper-plane mr-1"></i> Kirim Balasan
-                        </button>
-                    `;
+                    actionContainer.innerHTML = '';
                 }
 
                 document.getElementById('notifModal').classList.remove('hidden');
@@ -822,87 +780,6 @@
                 if (notif) {
                     setTimeout(() => openNotifDetail(openId), 300);
                 }
-            }
-        }
-
-        // ============================================
-        // SUBMIT REPLY NOTIFICATION
-        // ============================================
-        async function submitReplyNotification() {
-            const input = document.getElementById('replyNotifInput');
-            const reply = input.value.trim();
-            const messageEl = document.getElementById('actionMessage');
-
-            if (!reply) {
-                messageEl.textContent = 'Harap tulis balasan terlebih dahulu.';
-                messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
-                return;
-            }
-
-            const btn = document.getElementById('actionBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
-            messageEl.className = 'text-xs text-center mt-2 hidden';
-
-            try {
-                const session = await checkAuth();
-                if (!session) {
-                    messageEl.textContent = 'Silakan login terlebih dahulu.';
-                    messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
-                    return;
-                }
-
-                // Cari admin
-                const { data: admins, error: adminError } = await _supabase
-                    .from('yata_profiles')
-                    .select('id')
-                    .eq('role', 'admin')
-                    .limit(1);
-
-                if (adminError || !admins || admins.length === 0) {
-                    messageEl.textContent = 'Tidak ada admin yang ditemukan.';
-                    messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
-                    return;
-                }
-
-                const adminId = admins[0].id;
-
-                const { data: newNotif, error: createError } = await _supabase
-                    .from('yata_notifications')
-                    .insert([{
-                        title: '📩 Balasan dari Member',
-                        content: `Balasan dari member untuk notifikasi:\n\n${reply}`,
-                        type: 'info'
-                    }])
-                    .select()
-                    .single();
-
-                if (createError) throw createError;
-
-                await _supabase
-                    .from('yata_user_notifications')
-                    .insert([{
-                        notification_id: newNotif.id,
-                        user_id: adminId,
-                        is_read: false
-                    }]);
-
-                messageEl.textContent = '✅ Balasan berhasil dikirim ke admin!';
-                messageEl.className = 'text-xs text-center mt-2 text-emerald-600 block';
-                input.value = '';
-
-                setTimeout(() => {
-                    closeNotifModal();
-                    loadNotifications(true);
-                }, 2000);
-
-            } catch (err) {
-                console.error('Reply notification error:', err);
-                messageEl.textContent = '❌ Gagal mengirim balasan: ' + err.message;
-                messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Balasan';
             }
         }
 
