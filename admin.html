@@ -126,6 +126,27 @@
             background: #DBEAFE;
             color: #1E40AF;
         }
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            font-size: 14px;
+            transition: all 0.2s;
+            background: white;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #065F46;
+            box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.15);
+        }
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body>
@@ -169,7 +190,6 @@
                     <i class="fa-solid fa-graduation-cap w-5"></i> Kelola Onboarding
                     <span id="onboardingCount" class="ml-auto bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
                 </a>
-                <!-- ✅ TAMBAHAN: Menu Presensi Onboarding -->
                 <a href="admin-presensi.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
                     <i class="fa-solid fa-clipboard-check w-5"></i> Presensi Onboarding
                 </a>
@@ -661,6 +681,81 @@
                 <textarea id="rejectionReason" rows="2" placeholder="Berikan alasan penolakan..." class="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"></textarea>
                 <button onclick="submitRejection()" class="mt-2 bg-red-500 hover:bg-red-600 text-white font-bold px-6 py-2 rounded-xl text-sm transition">Kirim Penolakan</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL EDIT KELAS MENTORING (ADMIN) -->
+    <!-- ============================================ -->
+    <div id="editMentoringModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter max-h-[90vh] overflow-y-auto">
+            <button onclick="closeEditMentoringModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Edit Kelas</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Edit Kelas Mentoring</h3>
+                <p class="text-xs text-slate-500 mt-1">Perbarui informasi kelas yang sudah dibuat.</p>
+            </div>
+
+            <form id="editMentoringForm" class="space-y-4">
+                <input type="hidden" id="editMentoringId" value="" />
+
+                <!-- Judul -->
+                <div>
+                    <label for="editMentoringTitle" class="form-label">Judul <span class="text-red-500">*</span></label>
+                    <input type="text" id="editMentoringTitle" placeholder="Judul kelas" required class="form-input" />
+                </div>
+
+                <!-- Deskripsi -->
+                <div>
+                    <label for="editMentoringDesc" class="form-label">Deskripsi <span class="text-red-500">*</span></label>
+                    <textarea id="editMentoringDesc" rows="3" placeholder="Deskripsi kelas" required class="form-input resize-none"></textarea>
+                </div>
+
+                <!-- Harga & Kuota -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="editMentoringPrice" class="form-label">Harga (Rp)</label>
+                        <input type="number" id="editMentoringPrice" placeholder="0" min="0" class="form-input" />
+                    </div>
+                    <div>
+                        <label for="editMentoringMax" class="form-label">Max Peserta</label>
+                        <input type="number" id="editMentoringMax" placeholder="10" min="1" max="100" class="form-input" />
+                    </div>
+                </div>
+
+                <!-- Jadwal & Link -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="editMentoringSchedule" class="form-label">Jadwal</label>
+                        <input type="text" id="editMentoringSchedule" placeholder="Sabtu, 19:00 WIB" class="form-input" />
+                    </div>
+                    <div>
+                        <label for="editMentoringLink" class="form-label">Link Meeting</label>
+                        <input type="url" id="editMentoringLink" placeholder="https://zoom.us/j/..." class="form-input" />
+                    </div>
+                </div>
+
+                <!-- Status -->
+                <div>
+                    <label for="editMentoringStatus" class="form-label">Status</label>
+                    <select id="editMentoringStatus" class="form-input bg-white">
+                        <option value="draft">📝 Draft</option>
+                        <option value="published">✅ Published</option>
+                        <option value="ongoing">🔄 Ongoing</option>
+                        <option value="completed">✅ Completed</option>
+                        <option value="cancelled">❌ Cancelled</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-regular fa-floppy-disk mr-1"></i> Simpan Perubahan
+                </button>
+
+                <div id="editMentoringMessage" class="text-sm text-center hidden"></div>
+            </form>
         </div>
     </div>
 
@@ -2402,7 +2497,154 @@
         }
 
         // ============================================
-        // 32. LOGOUT
+        // 32. EDIT KELAS MENTORING (ADMIN)
+        // ============================================
+
+        async function openEditMentoringModal(sessionId) {
+            try {
+                // Ambil data kelas
+                const { data: session, error } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('*')
+                    .eq('id', sessionId)
+                    .single();
+
+                if (error) throw error;
+
+                // Isi form
+                document.getElementById('editMentoringId').value = session.id;
+                document.getElementById('editMentoringTitle').value = session.title;
+                document.getElementById('editMentoringDesc').value = session.description || '';
+                document.getElementById('editMentoringPrice').value = session.price || 0;
+                document.getElementById('editMentoringMax').value = session.max_participants || 10;
+                document.getElementById('editMentoringSchedule').value = session.schedule || '';
+                document.getElementById('editMentoringLink').value = session.meeting_link || '';
+                document.getElementById('editMentoringStatus').value = session.status || 'draft';
+
+                document.getElementById('editMentoringMessage').className = 'text-sm text-center hidden';
+                document.getElementById('editMentoringModal').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+
+            } catch (err) {
+                console.error('Open edit modal error:', err);
+                showError('Gagal memuat data kelas: ' + err.message, 'Error');
+            }
+        }
+
+        function closeEditMentoringModal() {
+            document.getElementById('editMentoringModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.getElementById('editMentoringForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const sessionId = document.getElementById('editMentoringId').value;
+            const title = document.getElementById('editMentoringTitle').value.trim();
+            const description = document.getElementById('editMentoringDesc').value.trim();
+            const price = parseInt(document.getElementById('editMentoringPrice').value) || 0;
+            const maxParticipants = parseInt(document.getElementById('editMentoringMax').value) || 10;
+            const schedule = document.getElementById('editMentoringSchedule').value.trim();
+            const meetingLink = document.getElementById('editMentoringLink').value.trim();
+            const status = document.getElementById('editMentoringStatus').value;
+
+            if (!title || !description) {
+                showEditMentoringMessage('Judul dan deskripsi wajib diisi.', 'error');
+                return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...';
+            showEditMentoringMessage('', '');
+
+            try {
+                const { error } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .update({
+                        title: title,
+                        description: description,
+                        price: price,
+                        max_participants: maxParticipants,
+                        schedule: schedule || null,
+                        meeting_link: meetingLink || null,
+                        status: status,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', sessionId);
+
+                if (error) throw error;
+
+                showEditMentoringMessage('✅ Kelas berhasil diperbarui!', 'success');
+                submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
+
+                // Kirim notifikasi ke admin
+                try {
+                    const { data: admins } = await _supabase
+                        .from('yata_profiles')
+                        .select('id')
+                        .eq('role', 'admin');
+
+                    if (admins && admins.length > 0) {
+                        const notifContent = `📝 Kelas "${title}" telah diperbarui oleh admin.`;
+
+                        const { data: notifData } = await _supabase
+                            .from('yata_notifications')
+                            .insert([{
+                                title: '📝 Kelas Mentoring Diperbarui',
+                                content: notifContent,
+                                type: 'info'
+                            }])
+                            .select()
+                            .single();
+
+                        if (notifData) {
+                            const entries = admins.map(admin => ({
+                                notification_id: notifData.id,
+                                user_id: admin.id,
+                                is_read: false
+                            }));
+                            
+                            await _supabase
+                                .from('yata_user_notifications')
+                                .insert(entries);
+                        }
+                    }
+                } catch (notifErr) {
+                    console.error('Notifikasi error:', notifErr);
+                }
+
+                setTimeout(() => {
+                    closeEditMentoringModal();
+                    loadAdminData(); // Refresh data admin
+                }, 1500);
+
+            } catch (err) {
+                console.error('Update session error:', err);
+                showEditMentoringMessage('❌ Gagal memperbarui kelas: ' + err.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> Simpan Perubahan';
+            }
+        });
+
+        function showEditMentoringMessage(text, type) {
+            const msg = document.getElementById('editMentoringMessage');
+            msg.textContent = text;
+            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
+                type === 'success' ? 'text-emerald-600' :
+                type === 'error' ? 'text-red-600' :
+                ''
+            }`;
+        }
+
+        // Tutup modal saat klik di luar
+        document.getElementById('editMentoringModal').addEventListener('click', function(e) {
+            if (e.target === this) closeEditMentoringModal();
+        });
+
+        // ============================================
+        // 33. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -2420,7 +2662,7 @@
         }
 
         // ============================================
-        // 33. EVENT LISTENERS
+        // 34. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadAdminData();
