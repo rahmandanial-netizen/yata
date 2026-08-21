@@ -100,6 +100,8 @@
         .filter-btn:not(.active):hover {
             background-color: #f1f5f9;
         }
+
+        /* 🔥 RATING STARS - WARNA KUNING UNTUK AKTIF, ABU-ABU UNTUK KOSONG */
         .rating-stars {
             display: flex;
             gap: 8px;
@@ -109,9 +111,13 @@
         .rating-stars span {
             transition: all 0.2s;
             color: #d1d5db;
+            font-size: 32px;
+            cursor: pointer;
+            opacity: 0.5;
         }
         .rating-stars span.active {
             color: #f59e0b;
+            opacity: 1;
         }
         .rating-stars span:hover {
             transform: scale(1.15);
@@ -348,6 +354,7 @@
             <form id="reviewForm" class="space-y-4">
                 <input type="hidden" id="reviewSessionId" value="" />
 
+                <!-- Rating Pemahaman Materi -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Pemahaman Materi <span class="text-red-500">*</span></label>
                     <div class="rating-stars" id="materialStars">
@@ -361,6 +368,7 @@
                     <p class="rating-label" id="materialLabel">Klik bintang untuk menilai</p>
                 </div>
 
+                <!-- Rating Kepuasan Platform -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Kepuasan Platform <span class="text-red-500">*</span></label>
                     <div class="rating-stars" id="platformStars">
@@ -374,6 +382,7 @@
                     <p class="rating-label" id="platformLabel">Klik bintang untuk menilai</p>
                 </div>
 
+                <!-- Feedback -->
                 <div>
                     <label for="reviewFeedback" class="block text-xs font-semibold text-slate-700 mb-1">Feedback / Saran</label>
                     <textarea id="reviewFeedback" rows="3" placeholder="Tulis feedback atau saran untuk YATTA..." class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
@@ -703,7 +712,11 @@
             document.getElementById('platformLabel').textContent = 'Klik bintang untuk menilai';
             
             const allStars = document.querySelectorAll('#materialStars span, #platformStars span');
-            allStars.forEach(star => star.classList.remove('active'));
+            allStars.forEach(star => {
+                star.classList.remove('active');
+                star.style.color = '#d1d5db';
+                star.style.opacity = '0.5';
+            });
             
             // Cari judul kelas
             const participant = allParticipants.find(p => p.session_id === sessionId);
@@ -721,7 +734,7 @@
         }
 
         // ============================================
-        // RATING FUNCTIONS
+        // RATING FUNCTIONS - DENGAN WARNA KUNING
         // ============================================
         function setMaterialRating(rating) {
             materialRatingValue = rating;
@@ -731,8 +744,12 @@
             stars.forEach((star, index) => {
                 if (index < rating) {
                     star.classList.add('active');
+                    star.style.color = '#f59e0b';
+                    star.style.opacity = '1';
                 } else {
                     star.classList.remove('active');
+                    star.style.color = '#d1d5db';
+                    star.style.opacity = '0.5';
                 }
             });
             
@@ -748,8 +765,12 @@
             stars.forEach((star, index) => {
                 if (index < rating) {
                     star.classList.add('active');
+                    star.style.color = '#f59e0b';
+                    star.style.opacity = '1';
                 } else {
                     star.classList.remove('active');
+                    star.style.color = '#d1d5db';
+                    star.style.opacity = '0.5';
                 }
             });
             
