@@ -101,7 +101,7 @@
             background-color: #f1f5f9;
         }
 
-        /* 🔥 RATING STARS - WARNA KUNING UNTUK AKTIF, ABU-ABU UNTUK KOSONG */
+        /* Rating Stars */
         .rating-stars {
             display: flex;
             gap: 8px;
@@ -734,7 +734,7 @@
         }
 
         // ============================================
-        // RATING FUNCTIONS - DENGAN WARNA KUNING
+        // RATING FUNCTIONS
         // ============================================
         function setMaterialRating(rating) {
             materialRatingValue = rating;
@@ -1145,6 +1145,7 @@
         // ============================================
         async function checkReviewAndCertificate(userId) {
             try {
+                // Ambil semua onboarding session
                 const { data: onboardingSessions, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('id')
@@ -1155,6 +1156,7 @@
 
                 const sessionIds = onboardingSessions.map(s => s.id);
 
+                // Ambil semua ulasan user
                 const { data: reviews, error: reviewError } = await _supabase
                     .from('yata_onboarding_reviews')
                     .select('session_id')
@@ -1171,8 +1173,7 @@
                     return;
                 }
 
-                console.log('✅ Semua kelas sudah di-review! Memberi sertifikat...');
-
+                // 🔥 Cek apakah sertifikat sudah ada
                 const { data: existingCert, error: certError } = await _supabase
                     .from('yata_certificates')
                     .select('id')
@@ -1187,11 +1188,75 @@
                     return;
                 }
 
+                // 🔥 BUAT SERTIFIKAT
                 await createCertificate(userId);
                 await sendCompletionNotifications(userId);
 
             } catch (err) {
                 console.error('Check review and certificate error:', err);
+            }
+        }
+
+        // ============================================
+        // BUAT SERTIFIKAT OTOMATIS
+        // ============================================
+        async function createCertificate(userId) {
+            try {
+                // Cek apakah sertifikat sudah ada
+                const { data: existingCert, error: certError } = await _supabase
+                    .from('yata_certificates')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .eq('certificate_type', 'onboarding')
+                    .maybeSingle();
+
+                if (certError) throw certError;
+
+                if (existingCert) {
+                    console.log('✅ Sertifikat sudah ada untuk user ini');
+                    return;
+                }
+
+                // Ambil data user
+                const { data: profile, error: profileError } = await _supabase
+                    .from('yata_profiles')
+                    .select('full_name')
+                    .eq('id', userId)
+                    .single();
+
+                if (profileError) throw profileError;
+
+                // Generate nomor sertifikat
+                const now = new Date();
+                const dateStr = now.getFullYear() + 
+                    String(now.getMonth() + 1).padStart(2, '0') + 
+                    String(now.getDate()).padStart(2, '0');
+                const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+                const certNumber = `YATTA-ONBOARD-${dateStr}-${random}`;
+
+                // 🔥 URL TANDA TANGAN (GANTI DENGAN URL ANDA)
+                const signatureUrl = 'https://fowkcubpplwpljfjjcfy.supabase.co/storage/v1/object/public/certificates/signature.png';
+
+                // Simpan sertifikat
+                const { error: insertError } = await _supabase
+                    .from('yata_certificates')
+                    .insert([{
+                        user_id: userId,
+                        certificate_type: 'onboarding',
+                        certificate_number: certNumber,
+                        is_claimed: true,
+                        claimed_at: new Date().toISOString(),
+                        signatory_name: 'Abd. Rahman Danial',
+                        signatory_title: 'Founder & CEO YATTA',
+                        signature_url: signatureUrl
+                    }]);
+
+                if (insertError) throw insertError;
+
+                console.log(`✅ Sertifikat dibuat untuk user ${userId}: ${certNumber}`);
+
+            } catch (err) {
+                console.error('Create certificate error:', err);
             }
         }
 
@@ -1225,47 +1290,6 @@
             } catch (err) {
                 console.error('Send notification error:', err);
                 return false;
-            }
-        }
-
-        // ============================================
-        // BUAT SERTIFIKAT OTOMATIS
-        // ============================================
-        async function createCertificate(userId) {
-            try {
-                const { data: profile, error: profileError } = await _supabase
-                    .from('yata_profiles')
-                    .select('full_name')
-                    .eq('id', userId)
-                    .single();
-
-                if (profileError) throw profileError;
-
-                const now = new Date();
-                const dateStr = now.getFullYear() + 
-                    String(now.getMonth() + 1).padStart(2, '0') + 
-                    String(now.getDate()).padStart(2, '0');
-                const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-                const certNumber = `YATTA-ONBOARD-${dateStr}-${random}`;
-
-                const { error: insertError } = await _supabase
-                    .from('yata_certificates')
-                    .insert([{
-                        user_id: userId,
-                        certificate_type: 'onboarding',
-                        certificate_number: certNumber,
-                        is_claimed: true,
-                        claimed_at: new Date().toISOString(),
-                        signatory_name: 'Abd. Rahman Danial',
-                        signatory_title: 'Founder & CEO YATTA'
-                    }]);
-
-                if (insertError) throw insertError;
-
-                console.log(`✅ Sertifikat dibuat untuk user ${userId}: ${certNumber}`);
-
-            } catch (err) {
-                console.error('Create certificate error:', err);
             }
         }
 

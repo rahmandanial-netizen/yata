@@ -327,7 +327,7 @@
             </div>
 
             <!-- SECTION BALAS NOTIFIKASI -->
-            <div id="replySection" class="reply-section hidden">
+            <div id="replySection" class="reply-section">
                 <label for="replyNotifInput" class="block text-xs font-semibold text-slate-700 mb-1">Balas Notifikasi</label>
                 <textarea id="replyNotifInput" rows="2" placeholder="Tulis balasan Anda..." class="w-full"></textarea>
                 <button onclick="submitReplyNotification()" id="replySubmitBtn">
@@ -435,7 +435,7 @@
                 const from = currentPage * pageSize;
                 const to = from + pageSize - 1;
 
-                // 🔥 AMBIL NOTIFIKASI DARI USER_NOTIFICATIONS (BUKAN LANGSUNG DARI NOTIFICATIONS)
+                // 🔥 AMBIL NOTIFIKASI DARI USER_NOTIFICATIONS
                 const { data: userNotifs, error: userError } = await _supabase
                     .from('yata_user_notifications')
                     .select('notification_id, is_read, created_at')
@@ -474,7 +474,6 @@
                     is_read: readMap[n.id] || false
                 }));
 
-                // Urutkan berdasarkan created_at descending
                 combined.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
                 allNotifications = reset ? combined : [...allNotifications, ...combined];
@@ -653,30 +652,15 @@
                     statusEl.className = 'text-xs font-semibold text-yellow-600';
                 }
 
+                // Selalu tampilkan reply section (tidak hanya untuk campaign)
                 const replySection = document.getElementById('replySection');
                 const replyMessage = document.getElementById('replyMessage');
                 replyMessage.className = 'text-xs text-center mt-2 hidden';
+                replySection.style.display = 'block';
                 
-                if (notif.type === 'campaign' || (notif.title && notif.title.includes('Peserta Baru Kampanye'))) {
-                    replySection.classList.remove('hidden');
-                    
-                    const { data: userNotif } = await _supabase
-                        .from('yata_user_notifications')
-                        .select('user_id')
-                        .eq('notification_id', notificationId)
-                        .limit(1)
-                        .maybeSingle();
-                    
-                    if (userNotif) {
-                        currentModalNotifUserId = userNotif.user_id;
-                    }
-                    
-                    document.getElementById('replyNotifInput').value = '';
-                    document.getElementById('replySubmitBtn').disabled = false;
-                    document.getElementById('replySubmitBtn').innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Balasan';
-                } else {
-                    replySection.classList.add('hidden');
-                }
+                document.getElementById('replyNotifInput').value = '';
+                document.getElementById('replySubmitBtn').disabled = false;
+                document.getElementById('replySubmitBtn').innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Balasan';
 
                 document.getElementById('notifModal').classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
@@ -696,7 +680,7 @@
             document.body.style.overflow = 'auto';
             currentModalNotifId = null;
             currentModalNotifUserId = null;
-            document.getElementById('replySection').classList.add('hidden');
+            document.getElementById('replySection').style.display = 'block';
             document.getElementById('replyMessage').className = 'text-xs text-center mt-2 hidden';
         }
 
@@ -800,7 +784,9 @@
             }
         }
 
-        // SUBMIT REPLY NOTIFICATION
+        // ============================================
+        // SUBMIT REPLY NOTIFICATION - KIRIM KE ADMIN
+        // ============================================
         async function submitReplyNotification() {
             const input = document.getElementById('replyNotifInput');
             const reply = input.value.trim();
@@ -821,33 +807,28 @@
                 const session = await checkAuth();
                 if (!session) return;
 
-                let targetUserId = currentModalNotifUserId;
-                
-                if (!targetUserId) {
-                    const { data: userNotif, error: userError } = await _supabase
-                        .from('yata_user_notifications')
-                        .select('user_id')
-                        .eq('notification_id', currentModalNotifId)
-                        .limit(1)
-                        .maybeSingle();
+                // 🔥 CARI ADMIN (BUKAN USER YANG SEDANG LOGIN)
+                const { data: admins, error: adminError } = await _supabase
+                    .from('yata_profiles')
+                    .select('id')
+                    .eq('role', 'admin')
+                    .limit(1);
 
-                    if (userError) throw userError;
-                    if (userNotif) {
-                        targetUserId = userNotif.user_id;
-                    }
-                }
-
-                if (!targetUserId) {
-                    messageEl.textContent = 'Tidak dapat menemukan penerima notifikasi.';
+                if (adminError) throw adminError;
+                if (!admins || admins.length === 0) {
+                    messageEl.textContent = 'Tidak ada admin yang ditemukan.';
                     messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
                     return;
                 }
 
+                const adminId = admins[0].id;
+
+                // 🔥 KIRIM KE ADMIN
                 const { data: newNotif, error: createError } = await _supabase
                     .from('yata_notifications')
                     .insert([{
-                        title: '📩 Balasan Admin Komunitas',
-                        content: `Balasan untuk notifikasi Anda:\n\n${reply}`,
+                        title: '📩 Balasan dari Member',
+                        content: `Balasan dari member untuk notifikasi:\n\n${reply}`,
                         type: 'info'
                     }])
                     .select()
@@ -859,11 +840,11 @@
                     .from('yata_user_notifications')
                     .insert([{
                         notification_id: newNotif.id,
-                        user_id: targetUserId,
+                        user_id: adminId,
                         is_read: false
                     }]);
 
-                messageEl.textContent = '✅ Balasan berhasil dikirim!';
+                messageEl.textContent = '✅ Balasan berhasil dikirim ke admin!';
                 messageEl.className = 'text-xs text-center mt-2 text-emerald-600 block';
                 input.value = '';
 

@@ -123,10 +123,6 @@
             margin-bottom: 4px;
         }
 
-        .cert-icon {
-            font-size: 32px;
-        }
-
         .cert-brand {
             font-size: 28px;
             font-weight: 900;
@@ -211,14 +207,14 @@
             position: relative;
         }
 
-        .sign-line::before {
-            content: '✍️';
-            position: absolute;
-            left: 50%;
-            top: -12px;
-            transform: translateX(-50%);
-            font-size: 20px;
-            opacity: 0.6;
+        /* 🔥 GAMBAR TANDA TANGAN */
+        .signature-img {
+            width: 180px;
+            height: auto;
+            display: block;
+            margin: 0 auto 4px;
+            max-height: 60px;
+            object-fit: contain;
         }
 
         .sign-name {
@@ -325,6 +321,9 @@
             .cert-border-gold {
                 padding: 12px;
             }
+            .signature-img {
+                width: 120px;
+            }
         }
 
         .download-btn {
@@ -372,11 +371,9 @@
             </div>
 
             <nav class="flex-1 px-4 py-6 space-y-1">
-                <!-- 🌟 Menuju Jelajahi Yatta -->
                 <a href="explore.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-amber-600 hover:text-amber-700 rounded-xl transition">
                     <i class="fa-solid fa-compass w-5 text-amber-500"></i> Menuju Jelajahi YATTA
                 </a>
-                <!-- Beranda -->
                 <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
                     <i class="fa-solid fa-house w-5"></i> Beranda
                 </a>
@@ -470,7 +467,7 @@
             <div id="emptyState" class="hidden bg-white rounded-2xl p-12 text-center border border-emerald-100/60 shadow-sm">
                 <i class="fa-regular fa-certificate text-5xl text-slate-300 block mb-4"></i>
                 <p class="text-slate-500 text-sm">Anda belum memiliki sertifikat.</p>
-                <p class="text-xs text-slate-400 mt-1">Ikuti kelas mentoring dan selesaikan untuk mendapatkan sertifikat.</p>
+                <p class="text-xs text-slate-400 mt-1">Ikuti kelas onboarding dan selesaikan untuk mendapatkan sertifikat.</p>
                 <a href="mentoring.html" class="inline-block mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
                     <i class="fa-solid fa-search mr-1"></i> Cari Kelas Mentoring
                 </a>
@@ -480,7 +477,7 @@
     </main>
 
     <!-- ============================================ -->
-    <!-- MODAL SERTIFIKAT DENGAN QR CODE & PDF -->
+    <!-- MODAL SERTIFIKAT DENGAN QR CODE -->
     <!-- ============================================ -->
     <div id="certificateModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-4xl w-full p-6 md:p-8 relative shadow-2xl modal-enter max-h-[95vh] overflow-y-auto">
@@ -526,7 +523,9 @@
                             <!-- Footer: Tanda Tangan, Stempel, QR Code -->
                             <div class="cert-footer">
                                 <div class="cert-signature">
-                                    <div class="sign-line"></div>
+                                    <!-- 🔥 GAMBAR TANDA TANGAN -->
+                                    <img id="certSignatureImg" src="" alt="Tanda Tangan" class="signature-img" style="display:none;" />
+                                    <div class="sign-line" id="certSignLine"></div>
                                     <div class="sign-name">Abd. Rahman Danial</div>
                                     <div class="sign-title">Founder &amp; CEO YATTA</div>
                                 </div>
@@ -605,7 +604,7 @@
         async function checkProjectAccess(e) {
             if (e) e.preventDefault();
             try {
-                const { data: { session } } = await _supabase.auth.getSession();
+                const session = await checkAuth();
                 if (!session) {
                     window.location.href = 'login.html';
                     return;
@@ -677,7 +676,7 @@
         }
 
         // ============================================
-        // RENDER SERTIFIKAT - DENGAN AVATAR
+        // RENDER SERTIFIKAT
         // ============================================
         function renderCertificates() {
             const container = document.getElementById('certificatesGrid');
@@ -696,7 +695,6 @@
                 mentor: 'bg-amber-100 text-amber-700'
             };
 
-            // Ambil avatar dari currentUser
             const avatarUrl = currentUser?.user_metadata?.avatar_url || null;
             const fullName = currentUser?.user_metadata?.full_name || currentUser?.email || 'Member';
             const initial = fullName.charAt(0).toUpperCase();
@@ -765,6 +763,19 @@
             document.getElementById('certProgram').textContent = typeLabels[cert.certificate_type] || 'Program YATTA';
             document.getElementById('certDate').textContent = `Diberikan pada ${new Date(cert.issued_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`;
             document.getElementById('certNumber').textContent = `No. ${cert.certificate_number || 'YATTA-2026-0001'}`;
+
+            // 🔥 TAMPILKAN GAMBAR TANDA TANGAN
+            const signatureImg = document.getElementById('certSignatureImg');
+            const signLine = document.getElementById('certSignLine');
+            
+            if (cert.signature_url) {
+                signatureImg.src = cert.signature_url;
+                signatureImg.style.display = 'block';
+                signLine.style.display = 'none';
+            } else {
+                signatureImg.style.display = 'none';
+                signLine.style.display = 'block';
+            }
 
             // Generate QR Code
             const userId = currentUser?.id || 'guest';
