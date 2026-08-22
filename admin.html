@@ -632,7 +632,7 @@
             </div>
 
             <!-- ============================================ -->
-            <!-- 🔥 TAB: PENGAJUAN NAIK LEVEL -->
+            <!-- 🔥 TAB: PENGAJUAN NAIK LEVEL - DIPERBAIKI -->
             <!-- ============================================ -->
             <div id="adminLevelRequests" class="hidden bg-white rounded-2xl border border-emerald-100/60 shadow-sm overflow-hidden">
                 <div class="p-4 border-b border-emerald-100/60">
@@ -2678,7 +2678,7 @@
         });
 
         // ============================================
-        // 🔥 33. LOAD PENGAJUAN NAIK LEVEL
+        // 🔥 33. LOAD PENGAJUAN NAIK LEVEL - DIPERBAIKI!
         // ============================================
         async function loadLevelRequests() {
             const container = document.getElementById('levelRequestList');
@@ -2687,7 +2687,7 @@
             try {
                 const { data: profiles, error } = await _supabase
                     .from('yata_profiles')
-                    .select('id, full_name, email, member_level, level_status, created_at')
+                    .select('id, full_name, email, member_level, level_status, created_at, rejection_reason')
                     .eq('level_status', 'pending')
                     .neq('member_level', 'Mentor')
                     .order('created_at', { ascending: true });
@@ -2708,18 +2708,21 @@
 
                 let html = '';
                 for (const p of profiles) {
+                    // Hitung karya
                     const { count: writingsCount } = await _supabase
                         .from('yata_writings')
                         .select('*', { count: 'exact', head: true })
                         .eq('author_id', p.id)
                         .eq('status', 'published');
 
+                    // Hitung mentoring (attended = true)
                     const { count: mentoringCount } = await _supabase
                         .from('yata_mentoring_participants')
                         .select('*', { count: 'exact', head: true })
                         .eq('user_id', p.id)
                         .eq('attended', true);
 
+                    // Ambil karya terbaru
                     const { data: writings } = await _supabase
                         .from('yata_writings')
                         .select('id, title, category, created_at, likes, views')
@@ -2798,7 +2801,7 @@
         }
 
         // ============================================
-        // 🔥 34. APPROVE NAIK LEVEL
+        // 🔥 34. APPROVE NAIK LEVEL - DIPERBAIKI!
         // ============================================
         async function approveLevelUp(userId, userName) {
             if (!confirm(`Setujui pengajuan naik level untuk "${userName}"?`)) return;
@@ -2852,7 +2855,7 @@
         }
 
         // ============================================
-        // 🔥 35. REJECT NAIK LEVEL
+        // 🔥 35. REJECT NAIK LEVEL - DIPERBAIKI!
         // ============================================
         async function rejectLevelUp(userId, userName) {
             const reason = prompt(`Berikan alasan penolakan untuk "${userName}":`);
@@ -2875,7 +2878,11 @@
                     })
                     .eq('id', userId);
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Update error:', error);
+                    alert('❌ Gagal menolak: ' + error.message);
+                    return;
+                }
 
                 await sendNotificationToUser(
                     userId,
