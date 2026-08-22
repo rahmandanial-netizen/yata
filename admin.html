@@ -2742,7 +2742,12 @@
                     .neq('member_level', 'Mentor')
                     .order('created_at', { ascending: true });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Error load profiles:', error);
+                    throw error;
+                }
+
+                console.log('📊 Jumlah pending:', profiles?.length || 0);
 
                 countEl.textContent = profiles?.length || 0;
 
@@ -2842,7 +2847,7 @@
                 container.innerHTML = html;
 
             } catch (err) {
-                console.error('Load level requests error:', err);
+                console.error('❌ Load level requests error:', err);
                 container.innerHTML = `
                     <div class="text-center py-8 text-red-400 text-sm">
                         Gagal memuat pengajuan: ${err.message}
@@ -2855,7 +2860,7 @@
         }
 
         // ============================================
-        // 🔥 34. APPROVE NAIK LEVEL - DIPERBAIKI!
+        // 🔥 34. APPROVE NAIK LEVEL - DIPERBAIKI DENGAN LOGGING
         // ============================================
         async function approveLevelUp(userId, userName) {
             if (!confirm(`Setujui pengajuan naik level untuk "${userName}"?`)) return;
@@ -2864,6 +2869,8 @@
                 const session = await checkAdmin();
                 if (!session) return;
 
+                console.log('✅ Approve level untuk user:', userId, userName);
+
                 // Ambil data user
                 const { data: profile, error: profileError } = await _supabase
                     .from('yata_profiles')
@@ -2871,7 +2878,12 @@
                     .eq('id', userId)
                     .single();
 
-                if (profileError) throw profileError;
+                if (profileError) {
+                    console.error('❌ Error ambil profile:', profileError);
+                    throw profileError;
+                }
+
+                console.log('📊 Profile saat ini:', profile);
 
                 const levelMap = {
                     'Tamu': 'Penulis',
@@ -2880,18 +2892,25 @@
                 };
 
                 const newLevel = levelMap[profile.member_level] || 'Penulis';
+                console.log('📈 Level baru:', newLevel);
 
                 // 🔥 UPDATE LEVEL DAN STATUS
-                const { error } = await _supabase
+                const { error, data } = await _supabase
                     .from('yata_profiles')
                     .update({
                         member_level: newLevel,
                         level_status: 'approved',
                         updated_at: new Date().toISOString()
                     })
-                    .eq('id', userId);
+                    .eq('id', userId)
+                    .select();
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Error update:', error);
+                    throw error;
+                }
+
+                console.log('✅ Update berhasil:', data);
 
                 // Kirim notifikasi ke user
                 await sendNotificationToUser(
@@ -2903,18 +2922,18 @@
 
                 alert(`✅ Level ${userName} berhasil dinaikkan ke "${newLevel}"!`);
                 
-                // 🔥 REFRESH DATA - LANGSUNG HILANG DARI LIST
+                // 🔥 REFRESH DATA
                 await loadLevelRequests();
                 await loadAdminData();
 
             } catch (err) {
-                console.error('Approve level error:', err);
+                console.error('❌ Approve level error:', err);
                 alert('❌ Gagal menyetujui: ' + err.message);
             }
         }
 
         // ============================================
-        // 🔥 35. REJECT NAIK LEVEL - DIPERBAIKI!
+        // 🔥 35. REJECT NAIK LEVEL - DIPERBAIKI DENGAN LOGGING
         // ============================================
         async function rejectLevelUp(userId, userName) {
             const reason = prompt(`Berikan alasan penolakan untuk "${userName}":`);
@@ -2928,21 +2947,27 @@
                 const session = await checkAdmin();
                 if (!session) return;
 
+                console.log('❌ Reject level untuk user:', userId, userName);
+                console.log('📝 Alasan:', reason);
+
                 // 🔥 UPDATE STATUS JADI 'rejected'
-                const { error } = await _supabase
+                const { error, data } = await _supabase
                     .from('yata_profiles')
                     .update({
                         level_status: 'rejected',
                         rejection_reason: reason.trim(),
                         updated_at: new Date().toISOString()
                     })
-                    .eq('id', userId);
+                    .eq('id', userId)
+                    .select();
 
                 if (error) {
-                    console.error('Update error:', error);
+                    console.error('❌ Error update:', error);
                     alert('❌ Gagal menolak: ' + error.message);
                     return;
                 }
+
+                console.log('✅ Update berhasil:', data);
 
                 await sendNotificationToUser(
                     userId,
@@ -2958,7 +2983,7 @@
                 await loadAdminData();
 
             } catch (err) {
-                console.error('Reject level error:', err);
+                console.error('❌ Reject level error:', err);
                 alert('❌ Gagal menolak: ' + err.message);
             }
         }
