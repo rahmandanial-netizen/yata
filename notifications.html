@@ -387,7 +387,7 @@
         }
 
         // ============================================
-        // 🔥 LOAD NOTIFICATIONS (SUDAH BENAR)
+        // LOAD NOTIFICATIONS
         // ============================================
         async function loadNotifications(reset = true) {
             if (reset) {
@@ -420,7 +420,6 @@
                 const from = currentPage * pageSize;
                 const to = from + pageSize - 1;
 
-                // ✅ STEP 1: Ambil notifikasi milik user dari yata_user_notifications
                 const { data: userNotifs, error: userError } = await _supabase
                     .from('yata_user_notifications')
                     .select('notification_id, is_read, created_at')
@@ -439,7 +438,6 @@
                     return;
                 }
 
-                // ✅ STEP 2: Ambil detail notifikasi berdasarkan ID yang sudah difilter
                 const notifIds = userNotifs.map(un => un.notification_id);
                 const readMap = {};
                 userNotifs.forEach(un => {
@@ -454,7 +452,6 @@
 
                 if (notifError) throw notifError;
 
-                // ✅ STEP 3: Gabungkan data
                 const combined = (notifications || []).map(n => ({
                     ...n,
                     is_read: readMap[n.id] || false
@@ -789,7 +786,7 @@
         }
 
         // ============================================
-        // AJUKAN NAIK LEVEL
+        // 🔥 AJUKAN NAIK LEVEL - DIPERBAIKI!
         // ============================================
         async function submitLevelUpRequest() {
             const messageEl = document.getElementById('actionMessage');
@@ -803,22 +800,26 @@
                     return;
                 }
 
-                // Cek syarat
-                const { data: writings } = await _supabase
+                // ✅ HITUNG KARYA
+                const { data: writings, error: writingsError } = await _supabase
                     .from('yata_writings')
                     .select('id')
                     .eq('author_id', session.user.id)
                     .eq('status', 'published');
 
-                const { data: mentoring } = await _supabase
+                // ✅ HITUNG MENTORING - PAKAI attended = true
+                const { data: mentoring, error: mentoringError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('id')
                     .eq('user_id', session.user.id)
-                    .eq('status', 'completed');
+                    .eq('attended', true);  // ← DIPERBAIKI!
 
                 const totalWritings = writings?.length || 0;
                 const totalMentoring = mentoring?.length || 0;
 
+                console.log('📊 Data level up:', { totalWritings, totalMentoring });
+
+                // Cek syarat
                 if (totalWritings < 5 || totalMentoring < 3) {
                     messageEl.textContent = `⚠️ Syarat belum terpenuhi. Butuh 5 karya (${totalWritings}/5) & 3 mentoring (${totalMentoring}/3).`;
                     messageEl.className = 'text-xs text-center mt-2 text-amber-600 block';
@@ -830,15 +831,19 @@
                 btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
 
                 // Kirim notifikasi ke admin
-                const { data: admins } = await _supabase
+                const { data: admins, error: adminError } = await _supabase
                     .from('yata_profiles')
                     .select('id')
                     .eq('role', 'admin');
 
-                if (admins && admins.length > 0) {
-                    const notifContent = `📢 Member mengajukan naik level ke "Penulis".\n\n📊 Data:\n- Karya: ${totalWritings}/5\n- Mentoring: ${totalMentoring}/3`;
+                if (adminError) {
+                    console.error('Error fetching admins:', adminError);
+                }
 
-                    const { data: notifData } = await _supabase
+                if (admins && admins.length > 0) {
+                    const notifContent = `📢 Member mengajukan naik level ke "Penulis".\n\n📊 Data:\n- Karya: ${totalWritings}/5\n- Mentoring: ${totalMentoring}/3\n- User: ${session.user.email}`;
+
+                    const { data: notifData, error: notifError } = await _supabase
                         .from('yata_notifications')
                         .insert([{
                             title: '📢 Pengajuan Naik Level',
@@ -847,6 +852,10 @@
                         }])
                         .select()
                         .single();
+
+                    if (notifError) {
+                        console.error('Error creating notification:', notifError);
+                    }
 
                     if (notifData) {
                         const entries = admins.map(admin => ({
