@@ -304,7 +304,7 @@
                                 <div id="mentorAvatar" class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm overflow-hidden">?</div>
                                 <div>
                                     <p id="mentorName" class="font-bold text-slate-800 text-sm">Nama Mentor</p>
-                                    <p id="mentorLevel" class="text-xs text-slate-400">Level Mentor</p>
+                                    <p id="mentorLevel" class="text-xs text-slate-400">Mentor YATTA</p>
                                 </div>
                             </div>
                             <div class="flex flex-wrap items-center gap-4 mt-3 text-sm text-slate-500">
@@ -798,7 +798,7 @@
         }
 
         // ============================================
-        // 🔥 4. BUAT SERTIFIKAT OTOMATIS
+        // 🔥 BUAT SERTIFIKAT OTOMATIS
         // ============================================
         async function createCertificate(userId) {
             try {
@@ -820,7 +820,7 @@
                 // Ambil data user
                 const { data: profile, error: profileError } = await _supabase
                     .from('yata_profiles')
-                    .select('full_name')
+                    .select('full_name, email')
                     .eq('id', userId)
                     .single();
 
@@ -862,7 +862,7 @@
         }
 
         // ============================================
-        // 🔥 5. CEK ULASAN & BUAT SERTIFIKAT JIKA SEMUA SELESAI
+        // 🔥 CEK ULASAN & BUAT SERTIFIKAT JIKA SEMUA SELESAI
         // ============================================
         async function checkReviewAndCertificate(userId) {
             try {
@@ -871,7 +871,8 @@
                     .from('yata_mentoring_sessions')
                     .select('id')
                     .eq('is_onboarding', true)
-                    .eq('status', 'published');
+                    .eq('status', 'published')
+                    .order('created_at', { ascending: true });
 
                 if (sessionError) throw sessionError;
 
@@ -926,7 +927,7 @@
         }
 
         // ============================================
-        // 🔥 6. 3 NOTIFIKASI SAAT SELESAI 3/3 - HANYA KE USER TERSEBUT
+        // 🔥 3 NOTIFIKASI SAAT SELESAI 3/3 - HANYA KE USER TERSEBUT
         // ============================================
         async function sendCompletionNotifications(userId) {
             try {
@@ -969,7 +970,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 7. UPDATE RATING KELAS
+        // UPDATE RATING KELAS
         // ============================================
         async function updateSessionRating(sessionId) {
             try {
@@ -1004,7 +1005,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 8. UPDATE KUOTA OTOMATIS
+        // UPDATE KUOTA OTOMATIS
         // ============================================
         async function updateQuota(sessionId) {
             try {
@@ -1039,7 +1040,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 9. RENDER RATING
+        // RENDER RATING
         // ============================================
         function renderRating(session) {
             const avgRating = session.avg_rating || 0;
@@ -1074,7 +1075,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 10. LOAD SESSION DETAIL
+        // 🔥 LOAD SESSION DETAIL - DENGAN MENTOR_NAME
         // ============================================
         async function loadSessionDetail() {
             sessionId = getSessionId();
@@ -1112,15 +1113,15 @@ Founder & CEO YATTA
 
                 sessionData = session;
 
-                const { data: mentor, error: mentorError } = await _supabase
-                    .from('yata_profiles')
-                    .select('full_name, username, member_level, avatar_url')
-                    .eq('id', session.mentor_id)
-                    .single();
-
-                if (!mentorError) {
-                    session.mentor = mentor;
-                }
+                // 🔥 TIDAK PERLU QUERY KE yata_profiles - PAKAI mentor_name LANGSUNG
+                // Buat objek mentor dari mentor_name
+                const mentorName = session.mentor_name || 'Mentor YATTA';
+                session.mentor = {
+                    full_name: mentorName,
+                    username: 'mentor',
+                    member_level: 'Mentor',
+                    avatar_url: null
+                };
 
                 if (currentUser) {
                     const { data: participant } = await _supabase
@@ -1225,7 +1226,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 11. RENDER SESSION
+        // RENDER SESSION - DENGAN MENTOR_NAME
         // ============================================
         function renderSession(session) {
             const statusLabels = {
@@ -1272,15 +1273,14 @@ Founder & CEO YATTA
                 onboardingBadge.classList.add('hidden');
             }
 
+            // 🔥 TAMPILKAN MENTOR DARI mentor_name
             const mentor = session.mentor || {};
             const avatarEl = document.getElementById('mentorAvatar');
-            if (mentor.avatar_url) {
-                avatarEl.innerHTML = `<img src="${mentor.avatar_url}" class="w-full h-full rounded-full object-cover" />`;
-            } else {
-                avatarEl.textContent = (mentor.full_name || 'M').charAt(0).toUpperCase();
-            }
-            document.getElementById('mentorName').textContent = mentor.full_name || 'Mentor';
-            document.getElementById('mentorLevel').textContent = mentor.member_level || 'Mentor';
+            // Tampilkan inisial nama mentor
+            avatarEl.textContent = (mentor.full_name || 'M').charAt(0).toUpperCase();
+            avatarEl.className = 'w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm overflow-hidden';
+            document.getElementById('mentorName').textContent = mentor.full_name || 'Mentor YATTA';
+            document.getElementById('mentorLevel').textContent = 'Mentor YATTA';
 
             document.getElementById('participantCount').textContent = session.current_participants || 0;
             document.getElementById('maxParticipants').textContent = session.max_participants || '∞';
@@ -1358,7 +1358,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 12. RENDER MATERIALS
+        // RENDER MATERIALS
         // ============================================
         function renderMaterials(materials) {
             const container = document.getElementById('materialList');
@@ -1403,7 +1403,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 13. RENDER REVIEWS
+        // RENDER REVIEWS
         // ============================================
         function renderReviews(reviews) {
             const container = document.getElementById('reviewList');
@@ -1445,7 +1445,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 14. CEK AKSES ONBOARDING
+        // CEK AKSES ONBOARDING
         // ============================================
         async function checkOnboardingAccess(sessionId, userId) {
             try {
@@ -1512,7 +1512,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 15. POPUP KELAS TERKUNCI
+        // POPUP KELAS TERKUNCI
         // ============================================
         function showLockedPopup(message, previousSession) {
             document.getElementById('lockedMessage').textContent = message;
@@ -1542,7 +1542,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 16. OPEN REGISTER MODAL
+        // OPEN REGISTER MODAL
         // ============================================
         async function openRegisterModal() {
             if (!currentUser) {
@@ -1610,7 +1610,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 17. POPUP KUOTA PENUH
+        // POPUP KUOTA PENUH
         // ============================================
         async function showQuotaFullPopup(currentSession) {
             const nextSession = await findNextWeekSession(currentSession);
@@ -1666,7 +1666,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 18. CARI KELAS PEKAN BERIKUTNYA
+        // CARI KELAS PEKAN BERIKUTNYA
         // ============================================
         async function findNextWeekSession(currentSession) {
             try {
@@ -1709,7 +1709,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 19. TUTUP POPUP KUOTA PENUH
+        // TUTUP POPUP KUOTA PENUH
         // ============================================
         function closeQuotaFullPopup() {
             const modal = document.getElementById('quotaFullModal');
@@ -1720,7 +1720,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 20. SUBMIT REGISTER - DENGAN NOTIFIKASI PER USER
+        // SUBMIT REGISTER - DENGAN NOTIFIKASI PER USER
         // ============================================
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1848,7 +1848,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 21. ULASAN ONBOARDING + UPDATE RATING + SERTIFIKAT
+        // ULASAN ONBOARDING + UPDATE RATING + SERTIFIKAT
         // ============================================
 
         let materialRatingValue = 0;
@@ -1916,7 +1916,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 🔥 22. SUBMIT REVIEW + UPDATE RATING + CEK SERTIFIKAT
+        // 🔥 SUBMIT REVIEW + UPDATE RATING + CEK SERTIFIKAT
         // ============================================
         document.getElementById('reviewForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1986,7 +1986,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 23. LOGOUT
+        // LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -2004,7 +2004,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 24. EVENT LISTENERS
+        // EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadSessionDetail();
