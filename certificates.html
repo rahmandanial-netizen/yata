@@ -844,7 +844,7 @@
         }
 
         // ============================================
-        // QR CODE GENERATOR
+        // 🔥🔥🔥 QR CODE GENERATOR - URL SUDAH BENAR!
         // ============================================
         function generateQRForCertificate(certificateNumber, userId) {
             const container = document.getElementById('qrCodeContainer');
@@ -852,7 +852,10 @@
 
             container.innerHTML = '';
 
+            // ✅ URL YANG BENAR - PASTIKAN INI!
             const verificationUrl = `https://yata-gold.vercel.app/verify.html?cert=${certificateNumber}&user=${userId}`;
+            
+            // 🔥 LOGGING UNTUK DEBUG
             console.log('🔍 QR Code URL:', verificationUrl);
 
             try {
@@ -867,6 +870,7 @@
                     });
                     console.log('✅ QR Code berhasil dibuat');
                 } else {
+                    console.warn('⚠️ QRCode library tidak ditemukan, menggunakan fallback');
                     container.innerHTML = `
                         <div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:#f1f5f9;border-radius:8px;font-size:10px;text-align:center;color:#64748b;padding:8px;">
                             <div><i class="fa-regular fa-qrcode text-2xl block mb-1"></i>Scan QR</div>
@@ -874,7 +878,7 @@
                     `;
                 }
             } catch (err) {
-                console.error('QR Code generation error:', err);
+                console.error('❌ QR Code generation error:', err);
                 container.innerHTML = `
                     <div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:#fef3c7;border-radius:8px;font-size:10px;text-align:center;color:#92400e;padding:8px;">
                         <div>${verificationUrl.substring(0, 20)}...</div>
@@ -996,12 +1000,12 @@ Jika tidak muncul dalam 5 menit, periksa folder SPAM atau hubungi admin YATTA.`;
         function showCertMessage(text, type) {
             const msg = document.getElementById('certMessage');
             msg.textContent = text;
-            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
+            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${{
                 type === 'success' ? 'text-emerald-600' :
                 type === 'error' ? 'text-red-600' :
                 type === 'info' ? 'text-amber-600' :
                 ''
-            }`;
+            }}`;
         }
 
         function downloadCertificateById(certId) {
