@@ -173,12 +173,13 @@
         }
 
         // ============================================
-        // 🔥 VERIFIKASI SERTIFIKAT - DENGAN FALLBACK
+        // 🔥 VERIFIKASI SERTIFIKAT - VERSI SIMPLIFIKASI
         // ============================================
         async function verifyCertificate() {
             const { cert, user } = getParams();
             const resultContainer = document.getElementById('verificationResult');
 
+            // Jika parameter tidak lengkap
             if (!cert || !user) {
                 resultContainer.innerHTML = `
                     <div>
@@ -201,60 +202,29 @@
             console.log('🔍 Verifikasi sertifikat:', { cert, user });
 
             try {
-                // ✅ QUERY 1: Coba dengan user_id (strict)
-                let { data: certificate, error } = await _supabase
+                // 🔥 QUERY PALING SEDERHANA - HANYA BERDASARKAN NOMOR SERTIFIKAT
+                // Tidak peduli user_id, yang penting nomor sertifikat cocok
+                const { data: certificate, error } = await _supabase
                     .from('yata_certificates')
                     .select(`*, user:user_id (full_name, username, email)`)
                     .eq('certificate_number', cert)
-                    .eq('user_id', user)
                     .maybeSingle();
 
-                // ✅ QUERY 2: Jika tidak ditemukan, coba tanpa user_id (fallback)
-                if (!certificate) {
-                    console.log('⚠️ Sertifikat tidak ditemukan dengan user_id, coba tanpa filter...');
-                    const { data: certData, error: certError } = await _supabase
-                        .from('yata_certificates')
-                        .select(`*, user:user_id (full_name, username, email)`)
-                        .eq('certificate_number', cert)
-                        .maybeSingle();
-                    
-                    if (certData) {
-                        certificate = certData;
-                        console.log('✅ Sertifikat ditemukan tanpa filter user_id!');
-                        console.log('📌 User ID di database:', certData.user_id);
-                        console.log('📌 User ID dari QR Code:', user);
-                    }
-                }
-
-                // ✅ QUERY 3: Jika masih tidak ditemukan, coba dengan ILIKE (case insensitive)
-                if (!certificate) {
-                    console.log('⚠️ Masih tidak ditemukan, coba dengan ILIKE...');
-                    const { data: certData, error: certError } = await _supabase
-                        .from('yata_certificates')
-                        .select(`*, user:user_id (full_name, username, email)`)
-                        .ilike('certificate_number', `%${cert}%`)
-                        .maybeSingle();
-                    
-                    if (certData) {
-                        certificate = certData;
-                        console.log('✅ Sertifikat ditemukan dengan ILIKE!');
-                    }
-                }
-
-                console.log('📜 Hasil final query:', certificate);
+                console.log('📜 Hasil query:', certificate);
                 if (error) console.error('❌ Error:', error);
 
+                // Jika sertifikat tidak ditemukan
                 if (!certificate) {
                     resultContainer.innerHTML = `
                         <div>
                             <span class="verify-icon">❌</span>
                             <h2 class="text-2xl font-black text-red-600">Sertifikat Tidak Ditemukan</h2>
-                            <p class="text-slate-500 text-sm mt-2">Sertifikat dengan nomor <strong>${cert}</strong> tidak terdaftar.</p>
+                            <p class="text-slate-500 text-sm mt-2">Sertifikat dengan nomor <strong>${cert}</strong> tidak terdaftar di sistem YATTA.</p>
                             <p class="text-xs text-slate-400 mt-1">Pastikan nomor sertifikat yang Anda masukkan benar.</p>
                             <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4 text-left">
                                 <p class="text-sm text-amber-700 flex items-start gap-2">
                                     <i class="fa-regular fa-lightbulb mt-0.5"></i>
-                                    <span>Jika yakin sudah benar, hubungi admin YATTA untuk bantuan.</span>
+                                    <span>Jika yakin sudah benar, silakan hubungi admin YATTA untuk bantuan.</span>
                                 </p>
                             </div>
                             <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
@@ -270,14 +240,19 @@
                     return;
                 }
 
-                // ✅ TAMPILKAN DATA SERTIFIKAT
+                // ✅ SERTIFIKAT DITEMUKAN! TAMPILKAN DATA
                 const isClaimed = certificate.is_claimed === true;
                 const statusText = isClaimed ? 'VALID' : 'BELUM DIKLAIM';
                 const statusColor = isClaimed ? 'text-emerald-600' : 'text-amber-600';
                 const statusIcon = isClaimed ? '✅' : '⏳';
                 const shieldClass = isClaimed ? 'shield-valid' : 'shield-pending';
 
-                const typeMap = { onboarding: 'Onboarding YATTA', mentoring: 'Kelas Mentoring', penulis: 'Penulis', mentor: 'Mentor' };
+                const typeMap = { 
+                    onboarding: 'Onboarding YATTA', 
+                    mentoring: 'Kelas Mentoring', 
+                    penulis: 'Penulis', 
+                    mentor: 'Mentor' 
+                };
                 const typeName = typeMap[certificate.certificate_type] || 'Program YATTA';
                 const programName = certificate.session?.title || typeName;
 
@@ -286,38 +261,76 @@
                         <span class="verify-icon">${statusIcon}</span>
                         <h2 class="text-2xl font-black ${statusColor}">${statusText}</h2>
                         <p class="text-sm text-slate-500 mt-1">Sertifikat terdaftar di sistem YATTA</p>
+                        
                         <span class="verify-shield ${shieldClass}">
-                            <i class="fa-regular fa-shield-check"></i> ${isClaimed ? 'Terverifikasi' : 'Menunggu Klaim'}
+                            <i class="fa-regular fa-shield-check"></i> 
+                            ${isClaimed ? 'Terverifikasi' : 'Menunggu Klaim'}
                         </span>
+
                         <div class="cert-detail">
-                            <div class="detail-row"><span class="label">Nomor</span><span class="value">${cert}</span></div>
-                            <div class="detail-row"><span class="label">Nama</span><span class="value">${certificate.user?.full_name || 'Member'}</span></div>
-                            <div class="detail-row"><span class="label">Username</span><span class="value">@${certificate.user?.username || 'username'}</span></div>
-                            <div class="detail-row"><span class="label">Program</span><span class="value">${programName}</span></div>
-                            <div class="detail-row"><span class="label">Tipe</span><span class="value">${typeName}</span></div>
-                            <div class="detail-row"><span class="label">Tanggal</span><span class="value">${formatDate(certificate.issued_at)}</span></div>
-                            <div class="detail-row"><span class="label">Status</span><span class="value ${isClaimed ? 'text-emerald-600' : 'text-amber-600'}">${isClaimed ? '✅ Diklaim' : '⏳ Belum Diklaim'}</span></div>
-                            <div class="detail-row"><span class="label">Penandatangan</span><span class="value">${certificate.signatory_name || 'Abd. Rahman Danial'}</span></div>
-                            <div class="detail-row"><span class="label">Jabatan</span><span class="value">${certificate.signatory_title || 'Founder & CEO YATTA'}</span></div>
+                            <div class="detail-row">
+                                <span class="label">Nomor Sertifikat</span>
+                                <span class="value">${cert}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Nama Penerima</span>
+                                <span class="value">${certificate.user?.full_name || 'Member'}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Username</span>
+                                <span class="value">@${certificate.user?.username || 'username'}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Program</span>
+                                <span class="value">${programName}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Tipe Sertifikat</span>
+                                <span class="value">${typeName}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Tanggal Diberikan</span>
+                                <span class="value">${formatDate(certificate.issued_at)}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Status</span>
+                                <span class="value ${isClaimed ? 'text-emerald-600' : 'text-amber-600'}">
+                                    ${isClaimed ? '✅ Telah Diklaim' : '⏳ Belum Diklaim'}
+                                </span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Penandatangan</span>
+                                <span class="value">${certificate.signatory_name || 'Abd. Rahman Danial'}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Jabatan</span>
+                                <span class="value">${certificate.signatory_title || 'Founder & CEO YATTA'}</span>
+                            </div>
                         </div>
+
                         <div class="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs text-slate-400">
                             <span><i class="fa-regular fa-clock mr-1"></i> Diverifikasi ${new Date().toLocaleDateString('id-ID')}</span>
                             <span>•</span>
-                            <span><i class="fa-regular fa-shield-check mr-1"></i> YATTA v1.0</span>
+                            <span><i class="fa-regular fa-shield-check mr-1"></i> Sistem YATTA v1.0</span>
                         </div>
+
                         <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
                             <a href="https://yata-gold.vercel.app" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
                                 <i class="fa-solid fa-globe mr-1"></i> Kunjungi YATTA
                             </a>
                             <button onclick="window.print()" class="print-btn bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-2.5 rounded-xl text-sm transition">
-                                <i class="fa-solid fa-print mr-1"></i> Cetak
+                                <i class="fa-solid fa-print mr-1"></i> Cetak Halaman
                             </button>
                             <a href="certificates.html" class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-6 py-2.5 rounded-xl text-sm transition">
                                 <i class="fa-regular fa-certificate mr-1"></i> Sertifikat Saya
                             </a>
                         </div>
+
                         <div class="mt-4 p-3 bg-emerald-50/50 border border-emerald-200 rounded-xl">
-                            <p class="text-xs text-emerald-700"><i class="fa-regular fa-circle-check mr-1"></i> Sertifikat resmi YATTA.</p>
+                            <p class="text-xs text-emerald-700">
+                                <i class="fa-regular fa-circle-check mr-1"></i>
+                                Sertifikat ini diterbitkan secara resmi oleh YATTA dan dapat diverifikasi kapan saja.
+                            </p>
                         </div>
                     </div>
                 `;
