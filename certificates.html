@@ -631,7 +631,7 @@
         }
 
         // ============================================
-        // LOAD SERTIFIKAT
+        // 🔥🔥🔥 LOAD SERTIFIKAT - DENGAN LOGGING
         // ============================================
         async function loadCertificates() {
             const container = document.getElementById('certificatesGrid');
@@ -642,13 +642,24 @@
                 const session = await checkAuth();
                 if (!session) return;
 
+                console.log('🟢 [loadCertificates] User ID:', session.user.id);
+
+                // ✅ QUERY YANG BENAR - FILTER user_id
                 const { data: certificates, error } = await _supabase
                     .from('yata_certificates')
                     .select('*')
                     .eq('user_id', session.user.id)
                     .order('issued_at', { ascending: false });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ [loadCertificates] Error:', error);
+                    throw error;
+                }
+
+                console.log('📜 [loadCertificates] Sertifikat ditemukan:', certificates?.length || 0, 'items');
+                if (certificates && certificates.length > 0) {
+                    console.log('📜 Detail:', certificates);
+                }
 
                 allCertificates = certificates || [];
 
@@ -656,6 +667,7 @@
                 container.classList.remove('hidden');
 
                 if (allCertificates.length === 0) {
+                    console.log('ℹ️ [loadCertificates] Tidak ada sertifikat untuk user ini');
                     container.classList.add('hidden');
                     empty.classList.remove('hidden');
                     return;
@@ -664,7 +676,7 @@
                 renderCertificates();
 
             } catch (err) {
-                console.error('Load certificates error:', err);
+                console.error('❌ [loadCertificates] Load certificates error:', err);
                 loading.innerHTML = `
                     <i class="fa-solid fa-circle-exclamation text-3xl text-red-500"></i>
                     <p class="text-red-500 text-sm mt-2">Gagal memuat sertifikat: ${err.message}</p>
