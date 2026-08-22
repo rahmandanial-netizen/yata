@@ -594,6 +594,17 @@
                             <p class="text-xs text-slate-400 mt-1">Link akan dikirim ke peserta saat pendaftaran berhasil.</p>
                         </div>
 
+                        <!-- ============================================ -->
+                        <!-- 🔥 TAMBAHKAN DROPDOWN PILIH MENTOR -->
+                        <!-- ============================================ -->
+                        <div>
+                            <label for="onboardingMentor" class="block text-xs font-semibold text-slate-700 mb-1">Pilih Mentor <span class="text-red-500">*</span></label>
+                            <select id="onboardingMentor" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white">
+                                <option value="">-- Pilih Mentor --</option>
+                            </select>
+                            <p class="text-xs text-slate-400 mt-1">Pilih mentor yang akan mengisi kelas onboarding ini.</p>
+                        </div>
+
                         <input type="hidden" id="onboardingIsOnboarding" value="true" />
 
                         <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition text-sm">
@@ -744,6 +755,16 @@
                     <input type="url" id="editOnboardingLink" placeholder="https://zoom.us/j/..." class="form-input" />
                 </div>
 
+                <!-- ============================================ -->
+                <!-- 🔥 TAMBAHKAN DROPDOWN PILIH MENTOR DI EDIT -->
+                <!-- ============================================ -->
+                <div>
+                    <label for="editOnboardingMentor" class="form-label">Pilih Mentor <span class="text-red-500">*</span></label>
+                    <select id="editOnboardingMentor" class="form-input bg-white">
+                        <option value="">-- Pilih Mentor --</option>
+                    </select>
+                </div>
+
                 <!-- Status -->
                 <div>
                     <label for="editOnboardingStatus" class="form-label">Status</label>
@@ -796,6 +817,7 @@
         let allCommunities = [];
         let allCampaigns = [];
         let allBooks = [];
+        let mentorList = [];
 
         // ============================================
         // 1. ADMIN CHECK
@@ -914,7 +936,58 @@
         }
 
         // ============================================
-        // 5. RENDER COMMUNITIES (ADMIN)
+        // 5. LOAD DAFTAR MENTOR UNTUK DROPDOWN
+        // ============================================
+        async function loadMentorList() {
+            try {
+                const { data: mentors, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('id, full_name, member_level')
+                    .in('member_level', ['Penulis', 'Penulis Profesional', 'Mentor'])
+                    .order('full_name', { ascending: true });
+
+                if (error) throw error;
+
+                mentorList = mentors || [];
+                
+                // Update dropdown di form create
+                const selectCreate = document.getElementById('onboardingMentor');
+                selectCreate.innerHTML = '<option value="">-- Pilih Mentor --</option>';
+                
+                if (mentorList.length > 0) {
+                    mentorList.forEach(m => {
+                        const option = document.createElement('option');
+                        option.value = m.id;
+                        option.textContent = `${m.full_name} (${m.member_level})`;
+                        selectCreate.appendChild(option);
+                    });
+                } else {
+                    selectCreate.innerHTML = '<option value="">-- Belum ada mentor --</option>';
+                }
+
+                // Update dropdown di form edit
+                const selectEdit = document.getElementById('editOnboardingMentor');
+                selectEdit.innerHTML = '<option value="">-- Pilih Mentor --</option>';
+                
+                if (mentorList.length > 0) {
+                    mentorList.forEach(m => {
+                        const option = document.createElement('option');
+                        option.value = m.id;
+                        option.textContent = `${m.full_name} (${m.member_level})`;
+                        selectEdit.appendChild(option);
+                    });
+                } else {
+                    selectEdit.innerHTML = '<option value="">-- Belum ada mentor --</option>';
+                }
+
+                console.log('✅ Mentor list loaded:', mentorList.length);
+            } catch (err) {
+                console.error('Load mentor list error:', err);
+            }
+        }
+
+        // ============================================
+        // 6. RENDER COMMUNITIES (ADMIN)
         // ============================================
         function renderCommunities() {
             const container = document.getElementById('communityList');
@@ -968,7 +1041,7 @@
         }
 
         // ============================================
-        // 6. RENDER CAMPAIGNS (ADMIN)
+        // 7. RENDER CAMPAIGNS (ADMIN)
         // ============================================
         function renderCampaigns() {
             const container = document.getElementById('campaignList');
@@ -1007,7 +1080,7 @@
         }
 
         // ============================================
-        // 7. LOAD PENDING COMMUNITIES
+        // 8. LOAD PENDING COMMUNITIES
         // ============================================
         async function loadPendingCommunities(reset = true) {
             if (reset) {
@@ -1094,7 +1167,7 @@
         }
 
         // ============================================
-        // 8. LOAD PENDING CAMPAIGNS
+        // 9. LOAD PENDING CAMPAIGNS
         // ============================================
         async function loadPendingCampaigns(reset = true) {
             if (reset) {
@@ -1181,7 +1254,7 @@
         }
 
         // ============================================
-        // 9. LOAD MESSAGES
+        // 10. LOAD MESSAGES
         // ============================================
         async function loadMessages(reset = true) {
             if (reset) {
@@ -1298,7 +1371,7 @@
         }
 
         // ============================================
-        // 10. RENDER MESSAGES
+        // 11. RENDER MESSAGES
         // ============================================
         function renderMessages() {
             const container = document.getElementById('messageList');
@@ -1347,7 +1420,7 @@
         }
 
         // ============================================
-        // 11. TIME AGO HELPER
+        // 12. TIME AGO HELPER
         // ============================================
         function timeAgo(date) {
             const now = new Date();
@@ -1369,7 +1442,7 @@
         }
 
         // ============================================
-        // 12. OPEN MESSAGE DETAIL & REPLY
+        // 13. OPEN MESSAGE DETAIL & REPLY
         // ============================================
         async function openMessageDetail(messageId) {
             currentMessageId = messageId;
@@ -1450,7 +1523,7 @@
         }
 
         // ============================================
-        // 13. REPLY MESSAGE
+        // 14. REPLY MESSAGE
         // ============================================
         document.getElementById('replyForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1531,7 +1604,7 @@
         });
 
         // ============================================
-        // 14. OPEN VERIFY
+        // 15. OPEN VERIFY
         // ============================================
         async function openVerify(type, id) {
             currentItemId = id;
@@ -1620,7 +1693,7 @@
         }
 
         // ============================================
-        // 15. VERIFY ITEM
+        // 16. VERIFY ITEM
         // ============================================
         function verifyItem(action) {
             if (action === 'reject') {
@@ -1637,7 +1710,7 @@
         }
 
         // ============================================
-        // 16. APPROVE COMMUNITY
+        // 17. APPROVE COMMUNITY
         // ============================================
         async function approveCommunity() {
             try {
@@ -1680,7 +1753,7 @@
         }
 
         // ============================================
-        // 17. APPROVE CAMPAIGN
+        // 18. APPROVE CAMPAIGN
         // ============================================
         async function approveCampaign() {
             try {
@@ -1723,7 +1796,7 @@
         }
 
         // ============================================
-        // 18. SUBMIT REJECTION
+        // 19. SUBMIT REJECTION
         // ============================================
         async function submitRejection() {
             const reason = document.getElementById('rejectionReason').value.trim();
@@ -1803,7 +1876,7 @@
         }
 
         // ============================================
-        // 19. LOAD BOOK SUBMISSIONS
+        // 20. LOAD BOOK SUBMISSIONS
         // ============================================
         async function loadBookSubmissions(reset = true) {
             if (reset) {
@@ -1892,7 +1965,7 @@
         }
 
         // ============================================
-        // 20. RENDER BOOKS (ADMIN)
+        // 21. RENDER BOOKS (ADMIN)
         // ============================================
         function renderBooks() {
             const container = document.getElementById('bookSubmissionList');
@@ -1951,7 +2024,7 @@
         }
 
         // ============================================
-        // 21. UPDATE BOOK STATUS
+        // 22. UPDATE BOOK STATUS
         // ============================================
         async function updateBookStatus(bookId, newStatus) {
             if (!confirm(`Ubah status buku ini menjadi "${newStatus}"?`)) return;
@@ -2026,7 +2099,7 @@
         }
 
         // ============================================
-        // 22. LOAD ALL MEMBERS (UNTUK NOTIFIKASI)
+        // 23. LOAD ALL MEMBERS (UNTUK NOTIFIKASI)
         // ============================================
         async function loadAllMembers() {
             try {
@@ -2049,7 +2122,7 @@
         }
 
         // ============================================
-        // 23. SEARCH MEMBERS
+        // 24. SEARCH MEMBERS
         // ============================================
         async function searchMembers() {
             const query = document.getElementById('searchMember').value.trim().toLowerCase();
@@ -2098,7 +2171,7 @@
         }
 
         // ============================================
-        // 24. TOGGLE MEMBER
+        // 25. TOGGLE MEMBER
         // ============================================
         function toggleMember(memberId) {
             const member = allMembers.find(m => m.id === memberId);
@@ -2117,7 +2190,7 @@
         }
 
         // ============================================
-        // 25. UPDATE SELECTED MEMBERS UI
+        // 26. UPDATE SELECTED MEMBERS UI
         // ============================================
         function updateSelectedMembersUI() {
             const container = document.getElementById('selectedMembersContainer');
@@ -2142,7 +2215,7 @@
         }
 
         // ============================================
-        // 26. SELECT ALL / CLEAR
+        // 27. SELECT ALL / CLEAR
         // ============================================
         function selectAllMembers() {
             selectedMembers = [...allMembers];
@@ -2155,7 +2228,7 @@
         }
 
         // ============================================
-        // 27. SWITCH TAB
+        // 28. SWITCH TAB
         // ============================================
         function switchAdminTab(tab) {
             currentTab = tab;
@@ -2203,7 +2276,7 @@
         }
 
         // ============================================
-        // 28. KIRIM NOTIFIKASI FORM
+        // 29. KIRIM NOTIFIKASI FORM
         // ============================================
         document.getElementById('notifForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -2322,7 +2395,7 @@
         }
 
         // ============================================
-        // 29. LOAD ONBOARDING LIST (ADMIN)
+        // 30. LOAD ONBOARDING LIST (ADMIN)
         // ============================================
         async function loadOnboardingList() {
             const container = document.getElementById('onboardingList');
@@ -2349,6 +2422,22 @@
                     return;
                 }
 
+                // Ambil data mentor untuk setiap onboarding
+                const mentorIds = [...new Set(onboardings.map(o => o.mentor_id).filter(id => id))];
+                let mentorMap = {};
+                if (mentorIds.length > 0) {
+                    const { data: mentors } = await _supabase
+                        .from('yata_profiles')
+                        .select('id, full_name')
+                        .in('id', mentorIds);
+                    if (mentors) {
+                        mentors.forEach(m => { mentorMap[m.id] = m; });
+                    }
+                }
+                onboardings.forEach(o => {
+                    o.mentor = mentorMap[o.mentor_id] || null;
+                });
+
                 // 🔥 RENDER DENGAN TOMBOL EDIT
                 container.innerHTML = onboardings.map(o => `
                     <div class="p-4 hover:bg-slate-50 transition flex items-center justify-between">
@@ -2366,6 +2455,7 @@
                                 <span><i class="fa-regular fa-calendar"></i> ${o.schedule || 'TBA'}</span>
                                 <span class="text-emerald-600 font-semibold">${o.price === 0 ? '🆓 Gratis' : '💰 Rp' + (o.price || 0).toLocaleString()}</span>
                                 ${o.meeting_link ? `<span class="text-blue-500"><i class="fa-regular fa-link"></i> Link tersedia</span>` : ''}
+                                ${o.mentor ? `<span class="text-purple-600"><i class="fa-regular fa-user"></i> Mentor: ${o.mentor.full_name}</span>` : '<span class="text-slate-400">Belum ada mentor</span>'}
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
@@ -2391,7 +2481,7 @@
         }
 
         // ============================================
-        // 30. CREATE ONBOARDING (ADMIN)
+        // 31. CREATE ONBOARDING (ADMIN)
         // ============================================
         document.getElementById('onboardingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -2404,6 +2494,7 @@
             const schedule = document.getElementById('onboardingSchedule').value.trim();
             const price = parseInt(document.getElementById('onboardingPrice').value) || 0;
             const meetingLink = document.getElementById('onboardingLink').value.trim();
+            const mentorId = document.getElementById('onboardingMentor').value;
 
             if (!title || !slug || !description) {
                 showOnboardingMessage('Harap isi semua kolom wajib.', 'error');
@@ -2412,6 +2503,11 @@
 
             if (!/^[a-z0-9-]+$/.test(slug)) {
                 showOnboardingMessage('Slug hanya boleh huruf kecil, angka, dan tanda hubung (-).', 'error');
+                return;
+            }
+
+            if (!mentorId) {
+                showOnboardingMessage('Silakan pilih mentor terlebih dahulu.', 'error');
                 return;
             }
 
@@ -2437,7 +2533,7 @@
                 const { data, error } = await _supabase
                     .from('yata_mentoring_sessions')
                     .insert([{
-                        mentor_id: session.user.id,
+                        mentor_id: mentorId,
                         title: title,
                         slug: slug,
                         description: description,
@@ -2463,6 +2559,7 @@
                 document.getElementById('onboardingPrice').value = '0';
                 document.getElementById('onboardingMax').value = '30';
                 document.getElementById('onboardingLink').value = '';
+                document.getElementById('onboardingMentor').value = '';
                 await loadOnboardingList();
 
             } catch (err) {
@@ -2485,7 +2582,7 @@
         }
 
         // ============================================
-        // 31. DELETE ONBOARDING (ADMIN)
+        // 32. DELETE ONBOARDING (ADMIN)
         // ============================================
         async function deleteOnboarding(id) {
             if (!confirm('Yakin ingin menghapus kelas onboarding ini?')) return;
@@ -2508,7 +2605,7 @@
         }
 
         // ============================================
-        // 32. EDIT ONBOARDING (ADMIN)
+        // 33. EDIT ONBOARDING (ADMIN)
         // ============================================
 
         async function openEditOnboardingModal(sessionId) {
@@ -2529,6 +2626,12 @@
                 document.getElementById('editOnboardingSchedule').value = session.schedule || '';
                 document.getElementById('editOnboardingLink').value = session.meeting_link || '';
                 document.getElementById('editOnboardingStatus').value = session.status || 'draft';
+                
+                // ✅ SET MENTOR YANG DIPILIH
+                const selectEdit = document.getElementById('editOnboardingMentor');
+                if (session.mentor_id) {
+                    selectEdit.value = session.mentor_id;
+                }
 
                 document.getElementById('editOnboardingMessage').className = 'text-sm text-center hidden';
                 document.getElementById('editOnboardingModal').classList.remove('hidden');
@@ -2556,9 +2659,15 @@
             const schedule = document.getElementById('editOnboardingSchedule').value.trim();
             const meetingLink = document.getElementById('editOnboardingLink').value.trim();
             const status = document.getElementById('editOnboardingStatus').value;
+            const mentorId = document.getElementById('editOnboardingMentor').value;
 
             if (!title || !description) {
                 showEditOnboardingMessage('Judul dan deskripsi wajib diisi.', 'error');
+                return;
+            }
+
+            if (!mentorId) {
+                showEditOnboardingMessage('Silakan pilih mentor terlebih dahulu.', 'error');
                 return;
             }
 
@@ -2571,6 +2680,7 @@
                 const { error } = await _supabase
                     .from('yata_mentoring_sessions')
                     .update({
+                        mentor_id: mentorId,
                         title: title,
                         description: description,
                         level: level,
@@ -2617,7 +2727,7 @@
         });
 
         // ============================================
-        // 33. LOGOUT
+        // 34. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -2635,10 +2745,11 @@
         }
 
         // ============================================
-        // 34. EVENT LISTENERS
+        // 35. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadAdminData();
+            loadMentorList(); // 🔥 LOAD DAFTAR MENTOR
 
             document.getElementById('btnLogout').addEventListener('click', handleLogout);
             document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);
