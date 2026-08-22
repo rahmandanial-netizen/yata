@@ -844,7 +844,7 @@
         }
 
         // ============================================
-        // 🔥🔥🔥 QR CODE GENERATOR - URL SUDAH BENAR!
+        // 🔥 QR CODE GENERATOR - URL SUDAH BENAR!
         // ============================================
         function generateQRForCertificate(certificateNumber, userId) {
             const container = document.getElementById('qrCodeContainer');
@@ -852,10 +852,9 @@
 
             container.innerHTML = '';
 
-            // ✅ URL YANG BENAR - PASTIKAN INI!
+            // ✅ URL YANG BENAR
             const verificationUrl = `https://yata-gold.vercel.app/verify.html?cert=${certificateNumber}&user=${userId}`;
             
-            // 🔥 LOGGING UNTUK DEBUG
             console.log('🔍 QR Code URL:', verificationUrl);
 
             try {
@@ -997,15 +996,22 @@ Jika tidak muncul dalam 5 menit, periksa folder SPAM atau hubungi admin YATTA.`;
             }
         }
 
+        // ============================================
+        // ✅ SHOW CERT MESSAGE - DIPERBAIKI!
+        // ============================================
         function showCertMessage(text, type) {
             const msg = document.getElementById('certMessage');
+            if (!msg) return;
+            
             msg.textContent = text;
-            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${{
-                type === 'success' ? 'text-emerald-600' :
-                type === 'error' ? 'text-red-600' :
-                type === 'info' ? 'text-amber-600' :
-                ''
-            }}`;
+            
+            // ✅ PERBAIKAN: Gunakan if-else, bukan object dengan operator ===
+            let typeClass = '';
+            if (type === 'success') typeClass = 'text-emerald-600';
+            else if (type === 'error') typeClass = 'text-red-600';
+            else if (type === 'info') typeClass = 'text-amber-600';
+            
+            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${typeClass}`;
         }
 
         function downloadCertificateById(certId) {
