@@ -59,17 +59,29 @@
             }
 
             try {
-                // 🔥 AMBIL DATA SERTIFIKAT DARI DATABASE
+                // 🔥 QUERY DENGAN POLICY YANG SUDAH DIBUAT
                 const { data: cert, error } = await _supabase
                     .from('yata_certificates')
                     .select('*')
                     .eq('certificate_number', certNumber)
                     .maybeSingle();
 
-                console.log('🔍 Hasil:', cert);
+                console.log('🔍 Hasil query:', cert);
                 console.log('❌ Error:', error);
 
-                if (error || !cert) {
+                if (error) {
+                    console.error('Error detail:', error);
+                    resultDiv.innerHTML = `
+                        <div class="text-red-600">
+                            <span class="text-6xl block mb-4">❌</span>
+                            <h2 class="text-2xl font-black">Error Database</h2>
+                            <p class="text-sm mt-2">${error.message}</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (!cert) {
                     resultDiv.innerHTML = `
                         <div class="text-red-600">
                             <span class="text-6xl block mb-4">❌</span>
@@ -81,7 +93,7 @@
                     return;
                 }
 
-                // ✅ AMBIL NAMA USER
+                // ✅ SERTIFIKAT DITEMUKAN!
                 let userName = 'Member';
                 if (cert.user_id) {
                     const { data: user } = await _supabase
