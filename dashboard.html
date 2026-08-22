@@ -375,6 +375,16 @@
             cursor: not-allowed;
             transform: none;
         }
+        .refresh-status-btn {
+            transition: all 0.3s ease;
+        }
+        .refresh-status-btn:hover {
+            transform: rotate(180deg);
+        }
+        .refresh-status-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -613,9 +623,14 @@
                             <h4 class="font-bold text-sm flex items-center gap-2">
                                 <i class="fa-solid fa-flag-checkered text-yellow-400"></i> Level Anda
                             </h4>
-                            <button onclick="openLevelModal()" class="text-white/60 hover:text-white transition text-xs">
-                                <i class="fa-regular fa-circle-question"></i> Detail
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <button onclick="refreshLevelStatus()" class="refresh-status-btn text-white/40 hover:text-white/70 transition text-xs" title="Refresh status">
+                                    <i class="fa-solid fa-rotate-right"></i>
+                                </button>
+                                <button onclick="openLevelModal()" class="text-white/60 hover:text-white transition text-xs">
+                                    <i class="fa-regular fa-circle-question"></i> Detail
+                                </button>
+                            </div>
                         </div>
                         <div class="flex items-center gap-3 mt-2">
                             <span id="levelBigIcon" class="text-4xl">🌱</span>
@@ -1337,6 +1352,12 @@
                     return;
                 }
 
+                console.log('📊 Profile data:', {
+                    member_level: profile.member_level,
+                    level_status: profile.level_status,
+                    rejection_reason: profile.rejection_reason
+                });
+
                 const { data: writings, error: writingsError } = await _supabase
                     .from('yata_writings')
                     .select('id, status, views, likes')
@@ -1428,6 +1449,15 @@
                 const btnLevelUp = document.getElementById('btnLevelUp');
                 const statusEl = document.getElementById('levelUpStatus');
 
+                // Reset status
+                if (statusEl) {
+                    statusEl.className = 'text-xs text-white/50 mt-1 text-center hidden';
+                }
+                if (btnLevelUp) {
+                    btnLevelUp.disabled = false;
+                    btnLevelUp.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
+                }
+
                 if (profile.level_status === 'pending') {
                     if (statusEl) {
                         statusEl.textContent = '⏳ Pengajuan naik level sedang diproses admin.';
@@ -1439,6 +1469,15 @@
                     }
                 } else if (profile.level_status === 'approved') {
                     // 🔥 LEVEL SUDAH NAIK!
+                    const newDisplayLevel = profile.member_level || 'Tamu';
+                    const newDisplayIcon = LEVEL_ICONS[newDisplayLevel] || '🌱';
+                    
+                    // Update tampilan level
+                    document.getElementById('levelBigIcon').textContent = newDisplayIcon;
+                    document.getElementById('levelBigName').textContent = newDisplayLevel;
+                    document.getElementById('levelName').textContent = newDisplayLevel;
+                    document.getElementById('levelIcon').textContent = newDisplayIcon;
+                    
                     if (statusEl) {
                         statusEl.textContent = '✅ Selamat! Level Anda sudah naik!';
                         statusEl.className = 'text-xs text-emerald-300 mt-1 text-center block';
@@ -1447,33 +1486,25 @@
                         btnLevelUp.disabled = true;
                         btnLevelUp.innerHTML = '✅ Sudah Disetujui';
                     }
-                    // 🔥 UPDATE TAMPILAN LEVEL
-                    const newDisplayLevel = profile.member_level || 'Tamu';
-                    const newDisplayIcon = LEVEL_ICONS[newDisplayLevel] || '🌱';
-                    document.getElementById('levelBigIcon').textContent = newDisplayIcon;
-                    document.getElementById('levelBigName').textContent = newDisplayLevel;
-                    document.getElementById('levelName').textContent = newDisplayLevel;
-                    document.getElementById('levelIcon').textContent = newDisplayIcon;
-                    
                 } else if (profile.level_status === 'rejected') {
+                    // 🔥 PENGAJUAN DITOLAK - TOMBOL AKTIF KEMBALI
                     if (statusEl) {
                         const reason = profile.rejection_reason || 'Silakan coba lagi nanti.';
                         statusEl.textContent = `❌ Pengajuan ditolak. ${reason}`;
                         statusEl.className = 'text-xs text-red-400 mt-1 text-center block';
                     }
-                    // 🔥 TOMBOL AKTIF KEMBALI
                     if (btnLevelUp) {
                         btnLevelUp.disabled = false;
                         btnLevelUp.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
                     }
                 } else {
-                    // Reset button jika tidak ada status
+                    // Tidak ada status - reset
+                    if (statusEl) {
+                        statusEl.className = 'text-xs text-white/50 mt-1 text-center hidden';
+                    }
                     if (btnLevelUp) {
                         btnLevelUp.disabled = false;
                         btnLevelUp.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
-                    }
-                    if (statusEl) {
-                        statusEl.className = 'text-xs text-white/50 mt-1 text-center hidden';
                     }
                 }
 
@@ -2449,7 +2480,31 @@
         }
 
         // ============================================
-        // 16. KIRIM NOTIFIKASI
+        // 🔥 16. REFRESH STATUS LEVEL - MANUAL
+        // ============================================
+        async function refreshLevelStatus() {
+            const btn = event?.target?.closest('button') || document.querySelector('[onclick="refreshLevelStatus()"]');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            }
+            
+            try {
+                await loadUserData();
+                showError('✅ Status level diperbarui!', 'Sukses');
+            } catch (err) {
+                console.error('Refresh error:', err);
+                showError('❌ Gagal refresh status.', 'Error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-rotate-right"></i>';
+                }
+            }
+        }
+
+        // ============================================
+        // 17. KIRIM NOTIFIKASI
         // ============================================
         async function sendNotification(userId, title, content, type = 'info') {
             try {
@@ -2482,7 +2537,7 @@
         }
 
         // ============================================
-        // 17. MODAL FUNCTIONS
+        // 18. MODAL FUNCTIONS
         // ============================================
         function openLevelModal() {
             document.getElementById('levelModal').classList.remove('hidden');
@@ -2495,7 +2550,7 @@
         }
 
         // ============================================
-        // 18. CONTACT FORM
+        // 19. CONTACT FORM
         // ============================================
         function openContactModal() {
             document.getElementById('contactModal').classList.remove('hidden');
@@ -2556,7 +2611,7 @@
         });
 
         // ============================================
-        // 19. LOGOUT
+        // 20. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -2574,10 +2629,21 @@
         }
 
         // ============================================
-        // 20. EVENT LISTENERS
+        // 21. AUTO REFRESH NOTIFICATIONS
+        // ============================================
+        function autoRefreshNotifications() {
+            setInterval(() => {
+                console.log('🔄 Auto-refresh notifications...');
+                loadNotifications();
+            }, 60000);
+        }
+
+        // ============================================
+        // 22. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadUserData();
+            autoRefreshNotifications();
 
             document.getElementById('btnLogout').addEventListener('click', handleLogout);
             document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);
