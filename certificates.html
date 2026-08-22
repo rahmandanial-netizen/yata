@@ -212,15 +212,15 @@
             position: relative;
         }
 
-        /* 🔥 GAMBAR TANDA TANGAN */
-        .signature-img {
-            width: 180px;
-            height: auto;
-            display: block;
-            margin: 0 auto 4px;
-            max-height: 60px;
-            object-fit: contain;
-        }
+        /* 🔥 GAMBAR TANDA TANGAN - UKURAN DEFAULT (Desktop) */
+.signature-img {
+    width: 240px;
+    height: auto;
+    display: block;
+    margin: 0 auto 4px;
+    max-height: 80px;
+    object-fit: contain;
+}
 
         .sign-name {
             font-size: 15px;
@@ -302,37 +302,41 @@
             padding-top: 12px;
         }
 
-        /* Responsive */
-        @media (max-width: 640px) {
-            .cert-title {
-                font-size: 24px;
-                letter-spacing: 4px;
-            }
-            .cert-name {
-                font-size: 24px;
-            }
-            .cert-footer {
-                flex-direction: column;
-                align-items: center;
-            }
-            #qrCodeContainer {
-                width: 80px;
-                height: 80px;
-            }
-            .stamp-circle {
-                width: 60px;
-                height: 60px;
-            }
-            .cert-border-gold {
-                padding: 12px;
-            }
-            .signature-img {
-                width: 120px;
-            }
-            .cert-logo img {
-                height: 40px;
-            }
-        }
+     /* Responsive */
+@media (max-width: 640px) {
+    .cert-title {
+        font-size: 24px;
+        letter-spacing: 4px;
+    }
+    .cert-name {
+        font-size: 24px;
+    }
+    .cert-footer {
+        flex-direction: column;
+        align-items: center;
+    }
+    #qrCodeContainer {
+        width: 80px;
+        height: 80px;
+    }
+    .stamp-circle {
+        width: 60px;
+        height: 60px;
+    }
+    .cert-border-gold {
+        padding: 12px;
+    }
+    /* 🔥 PERBAIKAN: Tanda Tangan di HP */
+    .signature-img {
+        width: 160px !important;
+        max-height: 50px !important;
+    }
+    /* 🔥 PERBAIKAN: Logo di HP */
+    .cert-logo img {
+        height: 60px !important;
+        width: auto !important;
+    }
+}
 
         .download-btn {
             transition: all 0.3s ease;
@@ -509,10 +513,10 @@
                             <!-- Header -->
                             <div class="cert-header">
                                 <div class="cert-logo">
-                                    <img src="https://fowkcubpplwpljfjjcfy.supabase.co/storage/v1/object/public/certificates/Biru%20Kuning%20Modern%20Bisnis%20Logo%20%20(10).png" 
-                                         alt="Logo YATTA" 
-                                         style="height: 60px; width: auto; object-fit: contain;" />
-                                </div>
+    <img src="https://fowkcubpplwpljfjjcfy.supabase.co/storage/v1/object/public/certificates/Biru%20Kuning%20Modern%20Bisnis%20Logo%20%20(10).png" 
+         alt="Logo YATTA" 
+         style="height: 90px; width: auto; object-fit: contain;" />
+</div>
                                 <div class="cert-title">SERTIFIKAT</div>
                                 <div class="cert-subtitle">Diberikan kepada</div>
                             </div>
@@ -534,10 +538,10 @@
                                 <div class="cert-signature">
                                     <!-- 🔥 GAMBAR TANDA TANGAN -->
                                     <img id="certSignatureImg" 
-                                         src="https://fowkcubpplwpljfjjcfy.supabase.co/storage/v1/object/public/certificates/WhatsApp_Image_2026-08-21_at_22.19.11-removebg-preview.png" 
-                                         alt="Tanda Tangan" 
-                                         class="signature-img" 
-                                         style="display: block; width: 180px; max-height: 60px; object-fit: contain; margin: 0 auto;" />
+     src="https://fowkcubpplwpljfjjcfy.supabase.co/storage/v1/object/public/certificates/WhatsApp_Image_2026-08-21_at_22.19.11-removebg-preview.png" 
+     alt="Tanda Tangan" 
+     class="signature-img" 
+     style="display: block; width: 240px; max-height: 80px; object-fit: contain; margin: 0 auto;" />
                                     <div class="sign-line" id="certSignLine" style="display: none;"></div>
                                     <div class="sign-name">Abd. Rahman Danial</div>
                                     <div class="sign-title">Founder &amp; CEO YATTA</div>
