@@ -162,6 +162,31 @@
             background: #f1f1f1;
             border-radius: 9999px;
         }
+        .btn-loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        .btn-loading i {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .level-card-enter {
+            animation: slideIn 0.3s ease-out;
+        }
+        .level-card-exit {
+            animation: slideOut 0.3s ease-in forwards;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideOut {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(20px); }
+        }
     </style>
 </head>
 <body>
@@ -2794,7 +2819,7 @@
                     const nextLevel = levelMap[p.member_level] || 'Penulis';
 
                     html += `
-                        <div class="p-4 hover:bg-slate-50 transition border-b border-slate-100 last:border-0">
+                        <div class="p-4 hover:bg-slate-50 transition border-b border-slate-100 last:border-0" data-user-id="${p.id}">
                             <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-2 flex-wrap">
@@ -2860,7 +2885,7 @@
         }
 
         // ============================================
-        // 🔥 34. APPROVE NAIK LEVEL - DIPERBAIKI DENGAN LOGGING
+        // 🔥 34. APPROVE NAIK LEVEL - OTOMATIS HILANG!
         // ============================================
         async function approveLevelUp(userId, userName) {
             if (!confirm(`Setujui pengajuan naik level untuk "${userName}"?`)) return;
@@ -2869,18 +2894,31 @@
                 const session = await checkAdmin();
                 if (!session) return;
 
-                console.log('✅ Approve level untuk user:', userId, userName);
+                // 🔥 DISABLE TOMBOL DAN TAMPILKAN LOADING
+                const buttons = document.querySelectorAll(`button[onclick*="approveLevelUp('${userId}')"], button[onclick*="rejectLevelUp('${userId}')"]`);
+                buttons.forEach(btn => {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>';
+                    btn.className = 'opacity-50 cursor-not-allowed px-3 py-1.5 rounded-xl text-xs transition bg-slate-200 text-slate-400';
+                });
 
                 // Ambil data user
                 const { data: profile, error: profileError } = await _supabase
                     .from('yata_profiles')
-                    .select('member_level, full_name')
+                    .select('member_level')
                     .eq('id', userId)
                     .single();
 
                 if (profileError) {
-                    console.error('❌ Error ambil profile:', profileError);
-                    throw profileError;
+                    console.error('❌ Profile error:', profileError);
+                    alert('Gagal mengambil data user: ' + profileError.message);
+                    // Reset tombol
+                    buttons.forEach(btn => {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Setujui';
+                        btn.className = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition';
+                    });
+                    return;
                 }
 
                 console.log('📊 Profile saat ini:', profile);
@@ -2895,22 +2933,28 @@
                 console.log('📈 Level baru:', newLevel);
 
                 // 🔥 UPDATE LEVEL DAN STATUS
-                const { error, data } = await _supabase
+                const { error: updateError } = await _supabase
                     .from('yata_profiles')
                     .update({
                         member_level: newLevel,
                         level_status: 'approved',
                         updated_at: new Date().toISOString()
                     })
-                    .eq('id', userId)
-                    .select();
+                    .eq('id', userId);
 
-                if (error) {
-                    console.error('❌ Error update:', error);
-                    throw error;
+                if (updateError) {
+                    console.error('❌ Update error:', updateError);
+                    alert('Gagal update: ' + updateError.message);
+                    // Reset tombol
+                    buttons.forEach(btn => {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Setujui';
+                        btn.className = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition';
+                    });
+                    return;
                 }
 
-                console.log('✅ Update berhasil:', data);
+                console.log('✅ Update berhasil');
 
                 // Kirim notifikasi ke user
                 await sendNotificationToUser(
@@ -2920,20 +2964,40 @@
                     'success'
                 );
 
+                // 🔥 HAPUS ELEMENT DARI DOM LANGSUNG (TANPA RELOAD)
+                const card = document.querySelector(`[data-user-id="${userId}"]`);
+                if (card) {
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(20px)';
+                    setTimeout(() => {
+                        card.remove();
+                        updatePendingCount();
+                        // Refresh data dari database
+                        loadLevelRequests();
+                    }, 300);
+                } else {
+                    // Fallback: refresh data
+                    await loadLevelRequests();
+                }
+
                 alert(`✅ Level ${userName} berhasil dinaikkan ke "${newLevel}"!`);
-                
-                // 🔥 REFRESH DATA
-                await loadLevelRequests();
-                await loadAdminData();
 
             } catch (err) {
                 console.error('❌ Approve level error:', err);
                 alert('❌ Gagal menyetujui: ' + err.message);
+                // Reset tombol jika gagal
+                const buttons = document.querySelectorAll(`button[onclick*="approveLevelUp('${userId}')"]`);
+                buttons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Setujui';
+                    btn.className = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition';
+                });
             }
         }
 
         // ============================================
-        // 🔥 35. REJECT NAIK LEVEL - DIPERBAIKI DENGAN LOGGING
+        // 🔥 35. REJECT NAIK LEVEL - OTOMATIS HILANG!
         // ============================================
         async function rejectLevelUp(userId, userName) {
             const reason = prompt(`Berikan alasan penolakan untuk "${userName}":`);
@@ -2947,27 +3011,40 @@
                 const session = await checkAdmin();
                 if (!session) return;
 
-                console.log('❌ Reject level untuk user:', userId, userName);
+                // 🔥 DISABLE TOMBOL DAN TAMPILKAN LOADING
+                const buttons = document.querySelectorAll(`button[onclick*="approveLevelUp('${userId}')"], button[onclick*="rejectLevelUp('${userId}')"]`);
+                buttons.forEach(btn => {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>';
+                    btn.className = 'opacity-50 cursor-not-allowed px-3 py-1.5 rounded-xl text-xs transition bg-slate-200 text-slate-400';
+                });
+
+                console.log('❌ Reject user:', userId, userName);
                 console.log('📝 Alasan:', reason);
 
                 // 🔥 UPDATE STATUS JADI 'rejected'
-                const { error, data } = await _supabase
+                const { error: updateError } = await _supabase
                     .from('yata_profiles')
                     .update({
                         level_status: 'rejected',
                         rejection_reason: reason.trim(),
                         updated_at: new Date().toISOString()
                     })
-                    .eq('id', userId)
-                    .select();
+                    .eq('id', userId);
 
-                if (error) {
-                    console.error('❌ Error update:', error);
-                    alert('❌ Gagal menolak: ' + error.message);
+                if (updateError) {
+                    console.error('❌ Update error:', updateError);
+                    alert('Gagal menolak: ' + updateError.message);
+                    // Reset tombol
+                    buttons.forEach(btn => {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-xmark mr-1"></i> Tolak';
+                        btn.className = 'bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-4 py-2 rounded-xl text-xs transition';
+                    });
                     return;
                 }
 
-                console.log('✅ Update berhasil:', data);
+                console.log('✅ Update berhasil');
 
                 await sendNotificationToUser(
                     userId,
@@ -2976,20 +3053,64 @@
                     'warning'
                 );
 
+                // 🔥 HAPUS ELEMENT DARI DOM LANGSUNG (TANPA RELOAD)
+                const card = document.querySelector(`[data-user-id="${userId}"]`);
+                if (card) {
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(20px)';
+                    setTimeout(() => {
+                        card.remove();
+                        updatePendingCount();
+                        // Refresh data dari database
+                        loadLevelRequests();
+                    }, 300);
+                } else {
+                    // Fallback: refresh data
+                    await loadLevelRequests();
+                }
+
                 alert(`❌ Pengajuan ${userName} ditolak.`);
-                
-                // 🔥 REFRESH DATA - LANGSUNG HILANG DARI LIST
-                await loadLevelRequests();
-                await loadAdminData();
 
             } catch (err) {
                 console.error('❌ Reject level error:', err);
                 alert('❌ Gagal menolak: ' + err.message);
+                // Reset tombol jika gagal
+                const buttons = document.querySelectorAll(`button[onclick*="rejectLevelUp('${userId}')"]`);
+                buttons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-xmark mr-1"></i> Tolak';
+                    btn.className = 'bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-4 py-2 rounded-xl text-xs transition';
+                });
             }
         }
 
         // ============================================
-        // 🔥 36. VERIFIKASI KARYA (BARU)
+        // 🔥 36. UPDATE PENDING COUNT
+        // ============================================
+        function updatePendingCount() {
+            const container = document.getElementById('levelRequestList');
+            const items = container.querySelectorAll('[data-user-id]');
+            const count = items.length;
+            
+            const countEl = document.getElementById('pendingLevelCount');
+            if (countEl) {
+                countEl.textContent = count;
+            }
+            
+            // Jika tidak ada lagi pengajuan, tampilkan pesan kosong
+            if (count === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-emerald-600 text-sm">
+                        <i class="fa-regular fa-circle-check text-2xl block mb-2"></i>
+                        ✅ Tidak ada pengajuan naik level yang menunggu.
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 🔥 37. VERIFIKASI KARYA (BARU)
         // ============================================
         async function openVerifyWriting(profileId, writingId) {
             try {
@@ -3116,7 +3237,20 @@
         }
 
         // ============================================
-        // 37. LOGOUT
+        // 38. AUTO REFRESH LEVEL REQUESTS
+        // ============================================
+        function autoRefreshLevelRequests() {
+            setInterval(() => {
+                const levelTab = document.getElementById('adminLevelRequests');
+                if (levelTab && !levelTab.classList.contains('hidden')) {
+                    console.log('🔄 Auto-refresh level requests...');
+                    loadLevelRequests();
+                }
+            }, 30000);
+        }
+
+        // ============================================
+        // 39. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -3134,10 +3268,11 @@
         }
 
         // ============================================
-        // 38. EVENT LISTENERS
+        // 40. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadAdminData();
+            autoRefreshLevelRequests();
 
             document.getElementById('btnLogout').addEventListener('click', handleLogout);
             document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);
