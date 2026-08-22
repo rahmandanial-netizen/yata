@@ -1319,7 +1319,10 @@
 
                 await loadRecentWritings(session.user.id);
                 await loadRecentProjects(session.user.id);
+                
+                // 🔥 PERBAIKAN: Load Notifikasi dengan Filter User
                 await loadNotifications();
+                
                 await loadMyCommunityCampaigns();
 
             } catch (err) {
@@ -1926,44 +1929,74 @@
         }
 
         // ============================================
-        // 13. LOAD NOTIFICATIONS
+        // 🔥 13. LOAD NOTIFICATIONS (DIPERBAIKI!)
         // ============================================
         async function loadNotifications() {
             try {
                 const session = await checkAuth();
                 if (!session) return;
 
-                const { data: notifications, error } = await _supabase
-                    .from('yata_notifications')
-                    .select('*')
+                // ✅ STEP 1: Ambil notifikasi milik user dari yata_user_notifications
+                const { data: userNotifs, error: userError } = await _supabase
+                    .from('yata_user_notifications')
+                    .select('notification_id, is_read, created_at')
+                    .eq('user_id', session.user.id)
                     .order('created_at', { ascending: false })
                     .limit(10);
 
-                if (error) throw error;
+                if (userError) {
+                    console.error('Error loading user notifications:', userError);
+                    throw userError;
+                }
 
-                const { data: userNotifs, error: userError } = await _supabase
-                    .from('yata_user_notifications')
-                    .select('notification_id, is_read')
-                    .eq('user_id', session.user.id);
+                // Jika tidak ada notifikasi untuk user ini
+                if (!userNotifs || userNotifs.length === 0) {
+                    allNotifications = [];
+                    unreadCount = 0;
+                    updateNotifBadge();
+                    renderNotificationDropdown();
+                    return;
+                }
 
-                if (userError) throw userError;
-
+                // ✅ STEP 2: Ambil detail notifikasi berdasarkan ID yang sudah difilter
+                const notifIds = userNotifs.map(un => un.notification_id);
                 const readMap = {};
                 userNotifs.forEach(un => {
                     readMap[un.notification_id] = un.is_read;
                 });
 
-                allNotifications = (notifications || []).map(n => ({
+                const { data: notifications, error: notifError } = await _supabase
+                    .from('yata_notifications')
+                    .select('*')
+                    .in('id', notifIds)
+                    .order('created_at', { ascending: false });
+
+                if (notifError) {
+                    console.error('Error loading notification details:', notifError);
+                    throw notifError;
+                }
+
+                // ✅ STEP 3: Gabungkan data
+                const combined = (notifications || []).map(n => ({
                     ...n,
                     is_read: readMap[n.id] || false
                 }));
 
+                // Urutkan berdasarkan created_at
+                combined.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                allNotifications = combined;
                 unreadCount = allNotifications.filter(n => !n.is_read).length;
+                
+                console.log(`✅ Loaded ${allNotifications.length} notifications for user ${session.user.id}`);
+                console.log(`📬 Unread: ${unreadCount}`);
+
                 updateNotifBadge();
                 renderNotificationDropdown();
 
             } catch (err) {
                 console.error('Load notifications error:', err);
+                // Jangan tampilkan error ke user, cukup log
             }
         }
 

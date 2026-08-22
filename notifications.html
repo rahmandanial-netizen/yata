@@ -312,7 +312,7 @@
                 Isi notifikasi akan ditampilkan di sini.
             </div>
 
-            <!-- SECTION AKSI (tanpa balas pesan) -->
+            <!-- SECTION AKSI -->
             <div id="actionSection" class="action-section">
                 <div id="actionContainer">
                     <!-- Akan diisi JavaScript -->
@@ -386,7 +386,9 @@
             }
         }
 
-        // LOAD NOTIFICATIONS
+        // ============================================
+        // 🔥 LOAD NOTIFICATIONS (SUDAH BENAR)
+        // ============================================
         async function loadNotifications(reset = true) {
             if (reset) {
                 currentPage = 0;
@@ -418,6 +420,7 @@
                 const from = currentPage * pageSize;
                 const to = from + pageSize - 1;
 
+                // ✅ STEP 1: Ambil notifikasi milik user dari yata_user_notifications
                 const { data: userNotifs, error: userError } = await _supabase
                     .from('yata_user_notifications')
                     .select('notification_id, is_read, created_at')
@@ -436,6 +439,7 @@
                     return;
                 }
 
+                // ✅ STEP 2: Ambil detail notifikasi berdasarkan ID yang sudah difilter
                 const notifIds = userNotifs.map(un => un.notification_id);
                 const readMap = {};
                 userNotifs.forEach(un => {
@@ -450,6 +454,7 @@
 
                 if (notifError) throw notifError;
 
+                // ✅ STEP 3: Gabungkan data
                 const combined = (notifications || []).map(n => ({
                     ...n,
                     is_read: readMap[n.id] || false
@@ -639,7 +644,7 @@
                     statusEl.className = 'text-xs font-semibold text-yellow-600';
                 }
 
-                // 🔥 TENTUKAN TOMBOL (TANPA FORM BALAS)
+                // TENTUKAN TOMBOL AKSI
                 const actionContainer = document.getElementById('actionContainer');
                 const actionMessage = document.getElementById('actionMessage');
                 actionMessage.className = 'text-xs text-center mt-2 hidden';

@@ -520,7 +520,6 @@
                 const isFull = c.max_participants > 0 && c.participants_count >= c.max_participants;
                 const isApproved = c.verification_status === 'approved';
                 
-                // ✅ PERBAIKAN: Avatar creator dengan avatar_url
                 const creatorName = c.creator?.full_name || 'User';
                 const creatorAvatar = c.creator?.avatar_url || null;
                 const creatorInitial = creatorName.charAt(0).toUpperCase();
@@ -893,6 +892,30 @@
                             }
                         }
                     }
+                }
+
+                // ✅ PERBAIKAN: Kirim notifikasi ke user yang mendaftar
+                const notifTitle = '✅ Pendaftaran Kampanye Berhasil!';
+                const notifContent = `Anda berhasil mendaftar di kampanye "${campaign?.title || 'Kampanye'}".\n\n📋 Data:\n- Nama: ${name}\n- Email: ${email}\n- WhatsApp: ${phone}\n\n📌 Informasi lebih lanjut akan diinfokan oleh panitia.`;
+
+                const { data: notifData } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: notifTitle,
+                        content: notifContent,
+                        type: 'success'
+                    }])
+                    .select()
+                    .single();
+
+                if (notifData) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: session.user.id,
+                            is_read: false
+                        }]);
                 }
 
                 showJoinMessage('✅ Pendaftaran berhasil! Anda sekarang terdaftar sebagai peserta.', 'success');
