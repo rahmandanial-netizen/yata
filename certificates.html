@@ -119,8 +119,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
             margin-bottom: 4px;
+        }
+
+        .cert-logo img {
+            height: 60px;
+            width: auto;
+            object-fit: contain;
         }
 
         .cert-brand {
@@ -324,6 +329,9 @@
             .signature-img {
                 width: 120px;
             }
+            .cert-logo img {
+                height: 40px;
+            }
         }
 
         .download-btn {
@@ -501,8 +509,9 @@
                             <!-- Header -->
                             <div class="cert-header">
                                 <div class="cert-logo">
-                                    <span class="cert-icon">🏛️</span>
-                                    <span class="cert-brand">YATTA</span>
+                                    <img src="https://fowkcubpplwpljfjjcfy.supabase.co/storage/v1/object/public/certificates/Biru%20Kuning%20Modern%20Bisnis%20Logo%20%20(10).png" 
+                                         alt="Logo YATTA" 
+                                         style="height: 60px; width: auto; object-fit: contain;" />
                                 </div>
                                 <div class="cert-title">SERTIFIKAT</div>
                                 <div class="cert-subtitle">Diberikan kepada</div>
@@ -514,7 +523,7 @@
                             <!-- Deskripsi -->
                             <div class="cert-description">
                                 Telah menyelesaikan program
-                                <div class="cert-program" id="certProgram">Onboarding YATTA</div>
+                                <div class="cert-program" id="certProgram">Onboarding YATTA #1 Sosialisasi YATTA Platform Literasi</div>
                             </div>
 
                             <!-- Tanggal -->
@@ -524,8 +533,12 @@
                             <div class="cert-footer">
                                 <div class="cert-signature">
                                     <!-- 🔥 GAMBAR TANDA TANGAN -->
-                                    <img id="certSignatureImg" src="" alt="Tanda Tangan" class="signature-img" style="display:none;" />
-                                    <div class="sign-line" id="certSignLine"></div>
+                                    <img id="certSignatureImg" 
+                                         src="https://fowkcubpplwpljfjjcfy.supabase.co/storage/v1/object/public/certificates/WhatsApp_Image_2026-08-21_at_22.19.11-removebg-preview.png" 
+                                         alt="Tanda Tangan" 
+                                         class="signature-img" 
+                                         style="display: block; width: 180px; max-height: 60px; object-fit: contain; margin: 0 auto;" />
+                                    <div class="sign-line" id="certSignLine" style="display: none;"></div>
                                     <div class="sign-name">Abd. Rahman Danial</div>
                                     <div class="sign-title">Founder &amp; CEO YATTA</div>
                                 </div>
@@ -631,7 +644,7 @@
         }
 
         // ============================================
-        // 🔥🔥🔥 LOAD SERTIFIKAT - DENGAN LOGGING
+        // 🔥 LOAD SERTIFIKAT
         // ============================================
         async function loadCertificates() {
             const container = document.getElementById('certificatesGrid');
@@ -644,7 +657,6 @@
 
                 console.log('🟢 [loadCertificates] User ID:', session.user.id);
 
-                // ✅ QUERY YANG BENAR - FILTER user_id
                 const { data: certificates, error } = await _supabase
                     .from('yata_certificates')
                     .select('*')
@@ -657,9 +669,6 @@
                 }
 
                 console.log('📜 [loadCertificates] Sertifikat ditemukan:', certificates?.length || 0, 'items');
-                if (certificates && certificates.length > 0) {
-                    console.log('📜 Detail:', certificates);
-                }
 
                 allCertificates = certificates || [];
 
@@ -772,7 +781,10 @@
 
             // Isi data
             document.getElementById('certName').textContent = currentUser?.user_metadata?.full_name || 'Member';
-            document.getElementById('certProgram').textContent = typeLabels[cert.certificate_type] || 'Program YATTA';
+            
+            // 🔥 TEKS PROGRAM LENGKAP
+            document.getElementById('certProgram').textContent = 'Onboarding YATTA #1 Sosialisasi YATTA Platform Literasi';
+            
             document.getElementById('certDate').textContent = `Diberikan pada ${new Date(cert.issued_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`;
             document.getElementById('certNumber').textContent = `No. ${cert.certificate_number || 'YATTA-2026-0001'}`;
 
@@ -785,8 +797,10 @@
                 signatureImg.style.display = 'block';
                 signLine.style.display = 'none';
             } else {
-                signatureImg.style.display = 'none';
-                signLine.style.display = 'block';
+                // Gunakan signature default dari URL yang sudah ditentukan
+                signatureImg.src = 'https://fowkcubpplwpljfjjcfy.supabase.co/storage/v1/object/public/certificates/WhatsApp_Image_2026-08-21_at_22.19.11-removebg-preview.png';
+                signatureImg.style.display = 'block';
+                signLine.style.display = 'none';
             }
 
             // Generate QR Code
