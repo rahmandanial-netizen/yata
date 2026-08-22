@@ -187,6 +187,14 @@
             from { opacity: 1; transform: translateX(0); }
             to { opacity: 0; transform: translateX(20px); }
         }
+        .level-requirement-met {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+        .level-requirement-unmet {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
     </style>
 </head>
 <body>
@@ -681,6 +689,7 @@
                             <h2 class="font-bold text-slate-800">📤 Pengajuan Naik Level</h2>
                             <p class="text-xs text-slate-500">Tinjau dan verifikasi pengajuan naik level dari member.</p>
                             <p class="text-xs text-amber-600 mt-1">💡 Klik pada judul karya untuk verifikasi autentikasi.</p>
+                            <p class="text-xs text-emerald-600 mt-1" id="lastRefreshTime"></p>
                         </div>
                         <button onclick="loadLevelRequests()" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold">
                             <i class="fa-solid fa-rotate-right mr-1"></i> Refresh
@@ -2758,8 +2767,14 @@
             const container = document.getElementById('levelRequestList');
             const countEl = document.getElementById('pendingLevelCount');
 
+            // Tampilkan waktu refresh
+            const now = new Date();
+            document.getElementById('lastRefreshTime').textContent = `🔄 Terakhir diperbarui: ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
             try {
-                // 🔥 HANYA TAMPILKAN YANG level_status = 'pending'
+                console.log('🔄 loadLevelRequests dipanggil pada:', now.toISOString());
+                
+                // 🔥 FORCE REFRESH: Ambil data langsung tanpa cache
                 const { data: profiles, error } = await _supabase
                     .from('yata_profiles')
                     .select('id, full_name, email, member_level, level_status, created_at, rejection_reason')
@@ -2773,6 +2788,7 @@
                 }
 
                 console.log('📊 Jumlah pending:', profiles?.length || 0);
+                console.log('📋 Data pending:', profiles);
 
                 countEl.textContent = profiles?.length || 0;
 
@@ -2789,14 +2805,14 @@
                 let html = '';
                 for (const p of profiles) {
                     // Hitung karya
-                    const { count: writingsCount } = await _supabase
+                    const { count: writingsCount, error: wError } = await _supabase
                         .from('yata_writings')
                         .select('*', { count: 'exact', head: true })
                         .eq('author_id', p.id)
                         .eq('status', 'published');
 
                     // Hitung mentoring (attended = true)
-                    const { count: mentoringCount } = await _supabase
+                    const { count: mentoringCount, error: mError } = await _supabase
                         .from('yata_mentoring_participants')
                         .select('*', { count: 'exact', head: true })
                         .eq('user_id', p.id)
@@ -2811,12 +2827,70 @@
                         .order('created_at', { ascending: false })
                         .limit(10);
 
+                    const totalWritings = writingsCount || 0;
+                    const totalMentoring = mentoringCount || 0;
+
                     const levelMap = {
                         'Tamu': 'Penulis',
                         'Penulis': 'Penulis Profesional',
                         'Penulis Profesional': 'Mentor'
                     };
                     const nextLevel = levelMap[p.member_level] || 'Penulis';
+
+                    // 🔥 CEK SYARAT
+                    let requirementsMet = true;
+                    let reqDetails = [];
+                    
+                    if (p.member_level === 'Tamu') {
+                        if (totalWritings < 5) {
+                            requirementsMet = false;
+                            reqDetails.push(`Karya: ${totalWritings}/5`);
+                        }
+                        if (totalMentoring < 3) {
+                            requirementsMet = false;
+                            reqDetails.push(`Mentoring: ${totalMentoring}/3`);
+                        }
+                    } else if (p.member_level === 'Penulis') {
+                        if (totalWritings < 20) {
+                            requirementsMet = false;
+                            reqDetails.push(`Karya: ${totalWritings}/20`);
+                        }
+                        if (totalMentoring < 5) {
+                            requirementsMet = false;
+                            reqDetails.push(`Mentoring: ${totalMentoring}/5`);
+                        }
+                        // Cek buku
+                        const { count: booksCount } = await _supabase
+                            .from('yata_book_projects')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('author_id', p.id)
+                            .eq('status', 'published');
+                        if ((booksCount || 0) < 1) {
+                            requirementsMet = false;
+                            reqDetails.push(`Buku: ${booksCount || 0}/1`);
+                        }
+                    } else if (p.member_level === 'Penulis Profesional') {
+                        if (totalWritings < 50) {
+                            requirementsMet = false;
+                            reqDetails.push(`Karya: ${totalWritings}/50`);
+                        }
+                        if (totalMentoring < 5) {
+                            requirementsMet = false;
+                            reqDetails.push(`Mentoring: ${totalMentoring}/5`);
+                        }
+                        const { count: booksCount } = await _supabase
+                            .from('yata_book_projects')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('author_id', p.id)
+                            .eq('status', 'published');
+                        if ((booksCount || 0) < 3) {
+                            requirementsMet = false;
+                            reqDetails.push(`Buku: ${booksCount || 0}/3`);
+                        }
+                    }
+
+                    const requirementStatus = requirementsMet ? '✅ Memenuhi Syarat' : '⚠️ Belum Memenuhi';
+                    const requirementClass = requirementsMet ? 'level-requirement-met' : 'level-requirement-unmet';
 
                     html += `
                         <div class="p-4 hover:bg-slate-50 transition border-b border-slate-100 last:border-0" data-user-id="${p.id}">
@@ -2827,13 +2901,19 @@
                                         <span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">${p.member_level || 'Tamu'}</span>
                                         <span class="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">⏳ Menunggu</span>
                                         <span class="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">→ ${nextLevel}</span>
+                                        <span class="text-xs px-2 py-0.5 rounded-full ${requirementClass} font-semibold">${requirementStatus}</span>
                                     </div>
                                     <p class="text-xs text-slate-500">${p.email || '-'}</p>
                                     <div class="flex items-center gap-4 mt-1 text-xs text-slate-400">
-                                        <span><i class="fa-regular fa-file-lines mr-1"></i> ${writingsCount || 0} karya</span>
-                                        <span><i class="fa-regular fa-graduation-cap mr-1"></i> ${mentoringCount || 0} mentoring</span>
+                                        <span><i class="fa-regular fa-file-lines mr-1"></i> ${totalWritings} karya</span>
+                                        <span><i class="fa-regular fa-graduation-cap mr-1"></i> ${totalMentoring} mentoring</span>
                                         <span>📅 ${new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                                     </div>
+                                    ${reqDetails.length > 0 ? `
+                                        <div class="mt-1 text-xs text-slate-500">
+                                            <span class="font-semibold">Syarat:</span> ${reqDetails.join(' • ')}
+                                        </div>
+                                    ` : ''}
                                     
                                     ${writings && writings.length > 0 ? `
                                         <div class="mt-2 bg-slate-50 rounded-xl p-3">
@@ -2857,9 +2937,15 @@
                                     `}
                                 </div>
                                 <div class="flex items-center gap-2 flex-shrink-0">
-                                    <button onclick="approveLevelUp('${p.id}', '${p.full_name || 'User'}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition">
-                                        <i class="fa-solid fa-check mr-1"></i> Setujui
-                                    </button>
+                                    ${requirementsMet ? `
+                                        <button onclick="approveLevelUp('${p.id}', '${p.full_name || 'User'}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition">
+                                            <i class="fa-solid fa-check mr-1"></i> Setujui
+                                        </button>
+                                    ` : `
+                                        <span class="text-xs text-red-500 font-semibold px-2 py-1 bg-red-50 rounded-xl border border-red-200" title="Syarat belum terpenuhi">
+                                            ⚠️ Syarat belum cukup
+                                        </span>
+                                    `}
                                     <button onclick="rejectLevelUp('${p.id}', '${p.full_name || 'User'}')" class="bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-4 py-2 rounded-xl text-xs transition">
                                         <i class="fa-solid fa-xmark mr-1"></i> Tolak
                                     </button>
@@ -2885,16 +2971,27 @@
         }
 
         // ============================================
-        // 🔥 34. APPROVE NAIK LEVEL - OTOMATIS HILANG!
+        // 🔥 34. APPROVE NAIK LEVEL - DIPERBAIKI!
         // ============================================
         async function approveLevelUp(userId, userName) {
+            console.log('🔥 approveLevelUp dipanggil!', { userId, userName });
+            
+            if (!userId) {
+                console.error('❌ userId tidak valid!');
+                alert('Terjadi kesalahan: ID user tidak ditemukan.');
+                return;
+            }
+
             if (!confirm(`Setujui pengajuan naik level untuk "${userName}"?`)) return;
 
             try {
                 const session = await checkAdmin();
-                if (!session) return;
+                if (!session) {
+                    alert('Sesi admin tidak valid. Silakan login ulang.');
+                    return;
+                }
 
-                // 🔥 DISABLE TOMBOL DAN TAMPILKAN LOADING
+                // 🔥 DISABLE TOMBOL
                 const buttons = document.querySelectorAll(`button[onclick*="approveLevelUp('${userId}')"], button[onclick*="rejectLevelUp('${userId}')"]`);
                 buttons.forEach(btn => {
                     btn.disabled = true;
@@ -2933,14 +3030,15 @@
                 console.log('📈 Level baru:', newLevel);
 
                 // 🔥 UPDATE LEVEL DAN STATUS
-                const { error: updateError } = await _supabase
+                const { data: updatedProfile, error: updateError } = await _supabase
                     .from('yata_profiles')
                     .update({
                         member_level: newLevel,
                         level_status: 'approved',
                         updated_at: new Date().toISOString()
                     })
-                    .eq('id', userId);
+                    .eq('id', userId)
+                    .select();
 
                 if (updateError) {
                     console.error('❌ Update error:', updateError);
@@ -2954,7 +3052,7 @@
                     return;
                 }
 
-                console.log('✅ Update berhasil');
+                console.log('✅ Update berhasil:', updatedProfile);
 
                 // Kirim notifikasi ke user
                 await sendNotificationToUser(
@@ -2973,7 +3071,7 @@
                     setTimeout(() => {
                         card.remove();
                         updatePendingCount();
-                        // Refresh data dari database
+                        // 🔥 Refresh data dari database dengan force
                         loadLevelRequests();
                     }, 300);
                 } else {
@@ -2997,9 +3095,17 @@
         }
 
         // ============================================
-        // 🔥 35. REJECT NAIK LEVEL - OTOMATIS HILANG!
+        // 🔥 35. REJECT NAIK LEVEL - DIPERBAIKI!
         // ============================================
         async function rejectLevelUp(userId, userName) {
+            console.log('🔥 rejectLevelUp dipanggil!', { userId, userName });
+            
+            if (!userId) {
+                console.error('❌ userId tidak valid!');
+                alert('Terjadi kesalahan: ID user tidak ditemukan.');
+                return;
+            }
+
             const reason = prompt(`Berikan alasan penolakan untuk "${userName}":`);
             if (reason === null) return;
             if (!reason.trim()) {
@@ -3009,9 +3115,12 @@
 
             try {
                 const session = await checkAdmin();
-                if (!session) return;
+                if (!session) {
+                    alert('Sesi admin tidak valid. Silakan login ulang.');
+                    return;
+                }
 
-                // 🔥 DISABLE TOMBOL DAN TAMPILKAN LOADING
+                // 🔥 DISABLE TOMBOL
                 const buttons = document.querySelectorAll(`button[onclick*="approveLevelUp('${userId}')"], button[onclick*="rejectLevelUp('${userId}')"]`);
                 buttons.forEach(btn => {
                     btn.disabled = true;
@@ -3023,14 +3132,15 @@
                 console.log('📝 Alasan:', reason);
 
                 // 🔥 UPDATE STATUS JADI 'rejected'
-                const { error: updateError } = await _supabase
+                const { data: updatedProfile, error: updateError } = await _supabase
                     .from('yata_profiles')
                     .update({
                         level_status: 'rejected',
                         rejection_reason: reason.trim(),
                         updated_at: new Date().toISOString()
                     })
-                    .eq('id', userId);
+                    .eq('id', userId)
+                    .select();
 
                 if (updateError) {
                     console.error('❌ Update error:', updateError);
@@ -3044,7 +3154,7 @@
                     return;
                 }
 
-                console.log('✅ Update berhasil');
+                console.log('✅ Update berhasil:', updatedProfile);
 
                 await sendNotificationToUser(
                     userId,
@@ -3062,7 +3172,7 @@
                     setTimeout(() => {
                         card.remove();
                         updatePendingCount();
-                        // Refresh data dari database
+                        // 🔥 Refresh data dari database dengan force
                         loadLevelRequests();
                     }, 300);
                 } else {
