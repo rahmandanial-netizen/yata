@@ -1163,7 +1163,7 @@
         }
 
         // ============================================
-        // 3. LOAD USER DATA
+        // 🔥 3. LOAD USER DATA - DIPERBAIKI!
         // ============================================
         async function loadUserData() {
             try {
@@ -1191,13 +1191,26 @@
                     console.error('Writings error:', writingsError);
                 }
 
+                // ✅ HITUNG MENTORING - PAKAI attended = true
+                const { data: mentoringData, error: mentoringError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('id')
+                    .eq('user_id', session.user.id)
+                    .eq('attended', true);
+
+                if (mentoringError) {
+                    console.error('Mentoring error:', mentoringError);
+                }
+
                 const totalWritings = writings ? writings.length : 0;
                 const totalPublished = writings ? writings.filter(w => w.status === 'published').length : 0;
                 const totalDrafts = writings ? writings.filter(w => w.status === 'draft').length : 0;
                 const totalViews = writings ? writings.reduce((sum, w) => sum + (w.views || 0), 0) : 0;
                 const totalLikes = writings ? writings.reduce((sum, w) => sum + (w.likes || 0), 0) : 0;
+                const totalMentoring = mentoringData?.length || 0; // ← PAKAI INI!
 
-                const levelKey = calculateLevel(totalPublished, 0, 0, 0, 0);
+                // ✅ PAKAI totalMentoring
+                const levelKey = calculateLevel(totalPublished, totalMentoring, 0, 0, 0);
                 currentLevelKey = levelKey;
                 const level = LEVELS[levelKey];
 
@@ -1281,7 +1294,7 @@
                     document.getElementById('levelProgressText').textContent = '100%';
                     document.getElementById('levelNextInfo').textContent = '🏆 Anda sudah di level tertinggi!';
                 } else {
-                    const progress = getLevelProgress(levelKey, totalPublished, 0, 0, 0, 0);
+                    const progress = getLevelProgress(levelKey, totalPublished, totalMentoring, 0, 0, 0);
                     document.getElementById('levelProgressBar').style.width = progress.progress + '%';
                     document.getElementById('levelProgressText').textContent = progress.progress + '%';
                     document.getElementById('levelNextInfo').textContent = progress.text;
@@ -1319,10 +1332,7 @@
 
                 await loadRecentWritings(session.user.id);
                 await loadRecentProjects(session.user.id);
-                
-                // 🔥 PERBAIKAN: Load Notifikasi dengan Filter User
                 await loadNotifications();
-                
                 await loadMyCommunityCampaigns();
 
             } catch (err) {
@@ -1929,14 +1939,13 @@
         }
 
         // ============================================
-        // 🔥 13. LOAD NOTIFICATIONS (DIPERBAIKI!)
+        // 13. LOAD NOTIFICATIONS
         // ============================================
         async function loadNotifications() {
             try {
                 const session = await checkAuth();
                 if (!session) return;
 
-                // ✅ STEP 1: Ambil notifikasi milik user dari yata_user_notifications
                 const { data: userNotifs, error: userError } = await _supabase
                     .from('yata_user_notifications')
                     .select('notification_id, is_read, created_at')
@@ -1949,7 +1958,6 @@
                     throw userError;
                 }
 
-                // Jika tidak ada notifikasi untuk user ini
                 if (!userNotifs || userNotifs.length === 0) {
                     allNotifications = [];
                     unreadCount = 0;
@@ -1958,7 +1966,6 @@
                     return;
                 }
 
-                // ✅ STEP 2: Ambil detail notifikasi berdasarkan ID yang sudah difilter
                 const notifIds = userNotifs.map(un => un.notification_id);
                 const readMap = {};
                 userNotifs.forEach(un => {
@@ -1976,13 +1983,11 @@
                     throw notifError;
                 }
 
-                // ✅ STEP 3: Gabungkan data
                 const combined = (notifications || []).map(n => ({
                     ...n,
                     is_read: readMap[n.id] || false
                 }));
 
-                // Urutkan berdasarkan created_at
                 combined.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
                 allNotifications = combined;
@@ -1996,7 +2001,6 @@
 
             } catch (err) {
                 console.error('Load notifications error:', err);
-                // Jangan tampilkan error ke user, cukup log
             }
         }
 
