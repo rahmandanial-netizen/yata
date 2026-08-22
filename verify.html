@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Verifikasi Sertifikat - YATTA</title>
 
-    <!-- ============================================ -->
-    <!-- FAVICON YATTA -->
-    <!-- ============================================ -->
     <link rel="icon" type="image/png" href="assets/favicon.png" />
     <link rel="apple-touch-icon" href="assets/favicon.png" />
     <link rel="shortcut icon" href="assets/favicon.png" />
@@ -173,13 +170,14 @@
         }
 
         // ============================================
-        // 🔥 VERIFIKASI SERTIFIKAT - VERSI SIMPLIFIKASI
+        // 🔥 VERIFIKASI - HANYA BERDASARKAN NOMOR SERTIFIKAT
+        // ABAIKAN user_id KARENA MUNGKIN TIDAK COCOK
         // ============================================
         async function verifyCertificate() {
             const { cert, user } = getParams();
             const resultContainer = document.getElementById('verificationResult');
 
-            // Jika parameter tidak lengkap
+            // Validasi parameter
             if (!cert || !user) {
                 resultContainer.innerHTML = `
                     <div>
@@ -202,31 +200,25 @@
             console.log('🔍 Verifikasi sertifikat:', { cert, user });
 
             try {
-                // 🔥 QUERY PALING SEDERHANA - HANYA BERDASARKAN NOMOR SERTIFIKAT
-                // Tidak peduli user_id, yang penting nomor sertifikat cocok
+                // 🔥🔥🔥 HANYA BERDASARKAN NOMOR SERTIFIKAT
+                // ABAIKAN user_id
                 const { data: certificate, error } = await _supabase
                     .from('yata_certificates')
-                    .select(`*, user:user_id (full_name, username, email)`)
+                    .select('*')
                     .eq('certificate_number', cert)
                     .maybeSingle();
 
                 console.log('📜 Hasil query:', certificate);
                 if (error) console.error('❌ Error:', error);
 
-                // Jika sertifikat tidak ditemukan
+                // Jika tidak ditemukan
                 if (!certificate) {
                     resultContainer.innerHTML = `
                         <div>
                             <span class="verify-icon">❌</span>
                             <h2 class="text-2xl font-black text-red-600">Sertifikat Tidak Ditemukan</h2>
-                            <p class="text-slate-500 text-sm mt-2">Sertifikat dengan nomor <strong>${cert}</strong> tidak terdaftar di sistem YATTA.</p>
+                            <p class="text-slate-500 text-sm mt-2">Sertifikat dengan nomor <strong>${cert}</strong> tidak terdaftar.</p>
                             <p class="text-xs text-slate-400 mt-1">Pastikan nomor sertifikat yang Anda masukkan benar.</p>
-                            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4 text-left">
-                                <p class="text-sm text-amber-700 flex items-start gap-2">
-                                    <i class="fa-regular fa-lightbulb mt-0.5"></i>
-                                    <span>Jika yakin sudah benar, silakan hubungi admin YATTA untuk bantuan.</span>
-                                </p>
-                            </div>
                             <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
                                 <a href="index.html" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
                                     <i class="fa-solid fa-house mr-1"></i> Beranda
@@ -240,7 +232,7 @@
                     return;
                 }
 
-                // ✅ SERTIFIKAT DITEMUKAN! TAMPILKAN DATA
+                // ✅ SERTIFIKAT DITEMUKAN!
                 const isClaimed = certificate.is_claimed === true;
                 const statusText = isClaimed ? 'VALID' : 'BELUM DIKLAIM';
                 const statusColor = isClaimed ? 'text-emerald-600' : 'text-amber-600';
@@ -254,7 +246,21 @@
                     mentor: 'Mentor' 
                 };
                 const typeName = typeMap[certificate.certificate_type] || 'Program YATTA';
-                const programName = certificate.session?.title || typeName;
+
+                // Ambil data user terpisah
+                let userName = 'Member';
+                let userUsername = 'username';
+                if (certificate.user_id) {
+                    const { data: userData } = await _supabase
+                        .from('yata_profiles')
+                        .select('full_name, username')
+                        .eq('id', certificate.user_id)
+                        .maybeSingle();
+                    if (userData) {
+                        userName = userData.full_name || 'Member';
+                        userUsername = userData.username || 'username';
+                    }
+                }
 
                 resultContainer.innerHTML = `
                     <div>
@@ -274,15 +280,11 @@
                             </div>
                             <div class="detail-row">
                                 <span class="label">Nama Penerima</span>
-                                <span class="value">${certificate.user?.full_name || 'Member'}</span>
+                                <span class="value">${userName}</span>
                             </div>
                             <div class="detail-row">
                                 <span class="label">Username</span>
-                                <span class="value">@${certificate.user?.username || 'username'}</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="label">Program</span>
-                                <span class="value">${programName}</span>
+                                <span class="value">@${userUsername}</span>
                             </div>
                             <div class="detail-row">
                                 <span class="label">Tipe Sertifikat</span>
