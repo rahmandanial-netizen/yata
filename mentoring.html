@@ -546,21 +546,7 @@
 
                 empty.classList.add('hidden');
 
-                const mentorIds = [...new Set(onboardingSessions.map(s => s.mentor_id).filter(id => id))];
-                let mentorMap = {};
-                if (mentorIds.length > 0) {
-                    const { data: mentors } = await _supabase
-                        .from('yata_profiles')
-                        .select('id, full_name, username, avatar_url, member_level')
-                        .in('id', mentorIds);
-                    if (mentors) {
-                        mentors.forEach(m => { mentorMap[m.id] = m; });
-                    }
-                }
-                onboardingSessions.forEach(s => {
-                    s.mentor = mentorMap[s.mentor_id] || null;
-                });
-
+                // 🔥 TIDAK PERLU QUERY KE yata_profiles - PAKAI mentor_name LANGSUNG
                 renderOnboarding();
 
             } catch (err) {
@@ -577,7 +563,7 @@
         }
 
         // ============================================
-        // 3. RENDER ONBOARDING - DENGAN RATING
+        // 3. RENDER ONBOARDING - PAKAI mentor_name
         // ============================================
         function renderOnboarding() {
             const container = document.getElementById('onboardingGrid');
@@ -595,12 +581,12 @@
 
             container.innerHTML = onboardingSessions.map(s => {
                 const isFull = s.max_participants > 0 && s.current_participants >= s.max_participants;
-                const mentorName = s.mentor?.full_name || 'Admin YATTA';
-                const mentorAvatar = s.mentor?.avatar_url || null;
+                // 🔥 PAKAI mentor_name LANGSUNG
+                const mentorName = s.mentor_name || 'Mentor YATTA';
+                const mentorAvatar = null;
                 const mentorInitial = mentorName.charAt(0).toUpperCase();
                 const schedule = s.schedule || 'Sabtu, 19:00 WIB';
 
-                // 🔥 RATING DISPLAY
                 const avgRating = s.avg_rating || 0;
                 const totalReviews = s.total_reviews || 0;
                 const stars = '⭐'.repeat(Math.round(avgRating)) + '☆'.repeat(5 - Math.round(avgRating));
@@ -616,13 +602,9 @@
                                     <span class="level-badge ${levelClasses[s.level] || 'level-pemula'}">${levelLabels[s.level] || '🌱 Pemula'}</span>
                                 </div>
                                 <div class="flex items-center gap-2 mt-1">
-                                    ${mentorAvatar 
-                                        ? `<img src="${mentorAvatar}" class="w-5 h-5 rounded-full object-cover" />`
-                                        : `<div class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold flex-shrink-0">${mentorInitial}</div>`
-                                    }
+                                    <div class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold flex-shrink-0">${mentorInitial}</div>
                                     <span class="text-xs text-slate-500 font-medium">${mentorName}</span>
                                 </div>
-                                <!-- 🔥 RATING -->
                                 ${totalReviews > 0 ? `
                                     <div class="rating-display mt-1">
                                         <span class="stars">${stars}</span>
@@ -710,23 +692,7 @@
                     throw error;
                 }
 
-                if (sessions && sessions.length > 0) {
-                    const mentorIds = [...new Set(sessions.map(s => s.mentor_id).filter(id => id))];
-                    let mentorMap = {};
-                    if (mentorIds.length > 0) {
-                        const { data: mentors } = await _supabase
-                            .from('yata_profiles')
-                            .select('id, full_name, username, avatar_url, member_level')
-                            .in('id', mentorIds);
-                        if (mentors) {
-                            mentors.forEach(m => { mentorMap[m.id] = m; });
-                        }
-                    }
-                    sessions.forEach(s => {
-                        s.mentor = mentorMap[s.mentor_id] || null;
-                    });
-                }
-
+                // 🔥 TIDAK PERLU QUERY KE yata_profiles - PAKAI mentor_name LANGSUNG
                 if (sessions && sessions.length > 0) {
                     allSessions = reset ? sessions : [...allSessions, ...sessions];
                     currentPage++;
@@ -782,7 +748,7 @@
         }
 
         // ============================================
-        // 5. RENDER MENTORING REGULER - DENGAN RATING
+        // 5. RENDER MENTORING REGULER - PAKAI mentor_name
         // ============================================
         function renderMentoring() {
             const container = document.getElementById('mentoringGrid');
@@ -814,13 +780,13 @@
             container.innerHTML = allSessions.map(s => {
                 const isFull = s.max_participants > 0 && s.current_participants >= s.max_participants;
                 const isFree = s.price === 0;
-                const mentorName = s.mentor?.full_name || 'Mentor';
-                const mentorAvatar = s.mentor?.avatar_url || null;
+                // 🔥 PAKAI mentor_name LANGSUNG
+                const mentorName = s.mentor_name || 'Mentor';
+                const mentorAvatar = null;
                 const mentorInitial = mentorName.charAt(0).toUpperCase();
                 const icon = categoryIcons[s.category] || '📌';
                 const isLoggedIn = !!currentUser;
 
-                // 🔥 RATING DISPLAY
                 const avgRating = s.avg_rating || 0;
                 const totalReviews = s.total_reviews || 0;
                 const stars = '⭐'.repeat(Math.round(avgRating)) + '☆'.repeat(5 - Math.round(avgRating));
@@ -835,13 +801,9 @@
                                     <span class="level-badge ${levelClasses[s.level] || 'level-pemula'}">${levelLabels[s.level] || '🌱 Pemula'}</span>
                                 </div>
                                 <div class="flex items-center gap-2 mt-1">
-                                    ${mentorAvatar 
-                                        ? `<img src="${mentorAvatar}" class="w-5 h-5 rounded-full object-cover" />`
-                                        : `<div class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold flex-shrink-0">${mentorInitial}</div>`
-                                    }
+                                    <div class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold flex-shrink-0">${mentorInitial}</div>
                                     <span class="text-xs text-slate-500 font-medium">${mentorName}</span>
                                 </div>
-                                <!-- 🔥 RATING -->
                                 ${totalReviews > 0 ? `
                                     <div class="rating-display mt-1">
                                         <span class="stars">${stars}</span>

@@ -190,6 +190,11 @@
                     <i class="fa-solid fa-graduation-cap w-5"></i> Kelola Onboarding
                     <span id="onboardingCount" class="ml-auto bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
                 </a>
+                <!-- 🔥 TAMBAHAN: Pengajuan Naik Level -->
+                <a href="#" onclick="switchAdminTab('levelRequests')" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition" id="tabLevelRequests">
+                    <i class="fa-solid fa-arrow-up w-5"></i> Pengajuan Naik Level
+                    <span id="pendingLevelCount" class="ml-auto bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+                </a>
                 <a href="admin-presensi.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
                     <i class="fa-solid fa-clipboard-check w-5"></i> Presensi Onboarding
                 </a>
@@ -229,6 +234,7 @@
             <a href="#" onclick="switchAdminTab('campaigns')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kampanye</a>
             <a href="#" onclick="switchAdminTab('books')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Pengajuan Buku</a>
             <a href="#" onclick="switchAdminTab('onboarding')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kelola Onboarding</a>
+            <a href="#" onclick="switchAdminTab('levelRequests')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Pengajuan Naik Level</a>
             <a href="admin-presensi.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Presensi Onboarding</a>
             <hr class="my-2 border-emerald-100" />
             <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kembali ke Yatta</a>
@@ -594,9 +600,7 @@
                             <p class="text-xs text-slate-400 mt-1">Link akan dikirim ke peserta saat pendaftaran berhasil.</p>
                         </div>
 
-                        <!-- ============================================ -->
                         <!-- 🔥 NAMA MENTOR (INPUT TEKS MANUAL) -->
-                        <!-- ============================================ -->
                         <div>
                             <label for="onboardingMentor" class="block text-xs font-semibold text-slate-700 mb-1">Nama Mentor <span class="text-red-500">*</span></label>
                             <input type="text" id="onboardingMentor" placeholder="Contoh: Abd. Rahman Danial" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
@@ -623,6 +627,28 @@
                         <div class="text-center py-6 text-slate-400 text-sm">
                             <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat...
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- 🔥 TAB: PENGAJUAN NAIK LEVEL -->
+            <!-- ============================================ -->
+            <div id="adminLevelRequests" class="hidden bg-white rounded-2xl border border-emerald-100/60 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-emerald-100/60">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="font-bold text-slate-800">📤 Pengajuan Naik Level</h2>
+                            <p class="text-xs text-slate-500">Tinjau dan verifikasi pengajuan naik level dari member.</p>
+                        </div>
+                        <button onclick="loadLevelRequests()" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div id="levelRequestList" class="divide-y divide-slate-100 admin-tab-content p-4">
+                    <div class="text-center py-8 text-slate-400 text-sm">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat pengajuan...
                     </div>
                 </div>
             </div>
@@ -753,9 +779,7 @@
                     <input type="url" id="editOnboardingLink" placeholder="https://zoom.us/j/..." class="form-input" />
                 </div>
 
-                <!-- ============================================ -->
                 <!-- 🔥 NAMA MENTOR (INPUT TEKS MANUAL) DI EDIT -->
-                <!-- ============================================ -->
                 <div>
                     <label for="editOnboardingMentor" class="form-label">Nama Mentor <span class="text-red-500">*</span></label>
                     <input type="text" id="editOnboardingMentor" placeholder="Nama mentor..." class="form-input" />
@@ -893,7 +917,8 @@
                 loadMessages(true),
                 loadBookSubmissions(true),
                 loadAllMembers(),
-                loadOnboardingList()
+                loadOnboardingList(),
+                loadLevelRequests() // 🔥 TAMBAHKAN
             ]);
         }
 
@@ -2192,7 +2217,8 @@
                 'communities': { id: 'tabCommunities', content: 'adminCommunities' },
                 'campaigns': { id: 'tabCampaigns', content: 'adminCampaigns' },
                 'books': { id: 'tabBooks', content: 'adminBooks' },
-                'onboarding': { id: 'tabOnboarding', content: 'adminOnboarding' }
+                'onboarding': { id: 'tabOnboarding', content: 'adminOnboarding' },
+                'levelRequests': { id: 'tabLevelRequests', content: 'adminLevelRequests' }
             };
 
             const info = tabMap[tab];
@@ -2216,6 +2242,10 @@
             const contentEl = document.getElementById(info.content);
             if (contentEl) {
                 contentEl.classList.remove('hidden');
+                // 🔥 Jika tab levelRequests, load data
+                if (tab === 'levelRequests') {
+                    loadLevelRequests();
+                }
             }
         }
 
@@ -2366,7 +2396,6 @@
                     return;
                 }
 
-                // 🔥 RENDER DENGAN TOMBOL EDIT - TAMPILKAN NAMA MENTOR
                 container.innerHTML = onboardings.map(o => `
                     <div class="p-4 hover:bg-slate-50 transition flex items-center justify-between">
                         <div>
@@ -2387,7 +2416,6 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
-                            <!-- 🔥 TOMBOL EDIT -->
                             <button onclick="openEditOnboardingModal('${o.id}')" class="text-blue-400 hover:text-blue-600 transition text-sm font-semibold">
                                 <i class="fa-regular fa-pen-to-square"></i> Edit
                             </button>
@@ -2555,7 +2583,6 @@
                 document.getElementById('editOnboardingLink').value = session.meeting_link || '';
                 document.getElementById('editOnboardingStatus').value = session.status || 'draft';
                 
-                // ✅ SET NAMA MENTOR
                 document.getElementById('editOnboardingMentor').value = session.mentor_name || '';
 
                 document.getElementById('editOnboardingMessage').className = 'text-sm text-center hidden';
@@ -2646,13 +2673,229 @@
             }`;
         }
 
-        // Tutup modal saat klik di luar
         document.getElementById('editOnboardingModal').addEventListener('click', function(e) {
             if (e.target === this) closeEditOnboardingModal();
         });
 
         // ============================================
-        // 33. LOGOUT
+        // 🔥 33. LOAD PENGAJUAN NAIK LEVEL
+        // ============================================
+        async function loadLevelRequests() {
+            const container = document.getElementById('levelRequestList');
+            const countEl = document.getElementById('pendingLevelCount');
+
+            try {
+                const { data: profiles, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('id, full_name, email, member_level, level_status, created_at')
+                    .eq('level_status', 'pending')
+                    .neq('member_level', 'Mentor')
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+
+                countEl.textContent = profiles?.length || 0;
+
+                if (!profiles || profiles.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-emerald-600 text-sm">
+                            <i class="fa-regular fa-circle-check text-2xl block mb-2"></i>
+                            Tidak ada pengajuan naik level.
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                for (const p of profiles) {
+                    const { count: writingsCount } = await _supabase
+                        .from('yata_writings')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('author_id', p.id)
+                        .eq('status', 'published');
+
+                    const { count: mentoringCount } = await _supabase
+                        .from('yata_mentoring_participants')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('user_id', p.id)
+                        .eq('attended', true);
+
+                    const { data: writings } = await _supabase
+                        .from('yata_writings')
+                        .select('id, title, category, created_at, likes, views')
+                        .eq('author_id', p.id)
+                        .eq('status', 'published')
+                        .order('created_at', { ascending: false })
+                        .limit(5);
+
+                    const levelMap = {
+                        'Tamu': 'Penulis',
+                        'Penulis': 'Penulis Profesional',
+                        'Penulis Profesional': 'Mentor'
+                    };
+                    const nextLevel = levelMap[p.member_level] || 'Penulis';
+
+                    html += `
+                        <div class="p-4 hover:bg-slate-50 transition border-b border-slate-100 last:border-0">
+                            <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <h4 class="font-bold text-slate-800">${p.full_name || 'User'}</h4>
+                                        <span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">${p.member_level || 'Tamu'}</span>
+                                        <span class="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">⏳ Menunggu</span>
+                                        <span class="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">→ ${nextLevel}</span>
+                                    </div>
+                                    <p class="text-xs text-slate-500">${p.email || '-'}</p>
+                                    <div class="flex items-center gap-4 mt-1 text-xs text-slate-400">
+                                        <span><i class="fa-regular fa-file-lines mr-1"></i> ${writingsCount || 0} karya</span>
+                                        <span><i class="fa-regular fa-graduation-cap mr-1"></i> ${mentoringCount || 0} mentoring</span>
+                                        <span>📅 ${new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                    </div>
+                                    
+                                    ${writings && writings.length > 0 ? `
+                                        <div class="mt-2 bg-slate-50 rounded-xl p-3">
+                                            <p class="text-xs font-semibold text-slate-600 mb-2">📖 Karya Terbaru:</p>
+                                            <div class="space-y-1 max-h-32 overflow-y-auto">
+                                                ${writings.map(w => `
+                                                    <div class="flex items-center justify-between text-xs py-1 border-b border-slate-100 last:border-0">
+                                                        <span class="text-slate-700 truncate max-w-[200px]">${w.title}</span>
+                                                        <span class="text-slate-400 flex-shrink-0">${w.category || 'Umum'} • ❤️ ${w.likes || 0}</span>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                            ${writingsCount > 5 ? `<p class="text-xs text-slate-400 mt-1">+${writingsCount - 5} karya lainnya</p>` : ''}
+                                        </div>
+                                    ` : `
+                                        <p class="text-xs text-slate-400 mt-2">Belum ada karya yang dipublikasikan.</p>
+                                    `}
+                                </div>
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    <button onclick="approveLevelUp('${p.id}', '${p.full_name || 'User'}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition">
+                                        <i class="fa-solid fa-check mr-1"></i> Setujui
+                                    </button>
+                                    <button onclick="rejectLevelUp('${p.id}', '${p.full_name || 'User'}')" class="bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-4 py-2 rounded-xl text-xs transition">
+                                        <i class="fa-solid fa-xmark mr-1"></i> Tolak
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = html;
+
+            } catch (err) {
+                console.error('Load level requests error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-8 text-red-400 text-sm">
+                        Gagal memuat pengajuan: ${err.message}
+                        <button onclick="loadLevelRequests()" class="block mt-2 text-emerald-600 hover:text-emerald-700 font-semibold text-sm">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 🔥 34. APPROVE NAIK LEVEL
+        // ============================================
+        async function approveLevelUp(userId, userName) {
+            if (!confirm(`Setujui pengajuan naik level untuk "${userName}"?`)) return;
+
+            try {
+                const session = await checkAdmin();
+                if (!session) return;
+
+                const { data: profile, error: profileError } = await _supabase
+                    .from('yata_profiles')
+                    .select('member_level')
+                    .eq('id', userId)
+                    .single();
+
+                if (profileError) throw profileError;
+
+                const levelMap = {
+                    'Tamu': 'Penulis',
+                    'Penulis': 'Penulis Profesional',
+                    'Penulis Profesional': 'Mentor'
+                };
+
+                const newLevel = levelMap[profile.member_level] || 'Penulis';
+
+                const { error } = await _supabase
+                    .from('yata_profiles')
+                    .update({
+                        member_level: newLevel,
+                        level_status: 'approved',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', userId);
+
+                if (error) throw error;
+
+                await sendNotificationToUser(
+                    userId,
+                    '🎉 Selamat! Level Anda Naik!',
+                    `Selamat! Level Anda telah naik dari "${profile.member_level}" menjadi "${newLevel}". Terus berkarya!`,
+                    'success'
+                );
+
+                alert(`✅ Level ${userName} berhasil dinaikkan ke "${newLevel}"!`);
+                loadLevelRequests();
+                loadAdminData();
+
+            } catch (err) {
+                console.error('Approve level error:', err);
+                alert('❌ Gagal menyetujui: ' + err.message);
+            }
+        }
+
+        // ============================================
+        // 🔥 35. REJECT NAIK LEVEL
+        // ============================================
+        async function rejectLevelUp(userId, userName) {
+            const reason = prompt(`Berikan alasan penolakan untuk "${userName}":`);
+            if (reason === null) return;
+            if (!reason.trim()) {
+                alert('Harap berikan alasan penolakan.');
+                return;
+            }
+
+            try {
+                const session = await checkAdmin();
+                if (!session) return;
+
+                const { error } = await _supabase
+                    .from('yata_profiles')
+                    .update({
+                        level_status: 'rejected',
+                        rejection_reason: reason.trim(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', userId);
+
+                if (error) throw error;
+
+                await sendNotificationToUser(
+                    userId,
+                    '❌ Pengajuan Naik Level Ditolak',
+                    `Pengajuan naik level Anda ditolak dengan alasan: ${reason}`,
+                    'warning'
+                );
+
+                alert(`❌ Pengajuan ${userName} ditolak.`);
+                loadLevelRequests();
+                loadAdminData();
+
+            } catch (err) {
+                console.error('Reject level error:', err);
+                alert('❌ Gagal menolak: ' + err.message);
+            }
+        }
+
+        // ============================================
+        // 36. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -2670,7 +2913,7 @@
         }
 
         // ============================================
-        // 34. EVENT LISTENERS
+        // 37. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadAdminData();

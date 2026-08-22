@@ -393,7 +393,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- JAVASCRIPT -->
+    <!-- JAVASCRIPT - FULL -->
     <!-- ============================================ -->
     <script>
         const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
@@ -575,35 +575,43 @@
         }
 
         // ============================================
-        // 🔥 BUAT SERTIFIKAT OTOMATIS
+        // 🔥🔥🔥 BUAT SERTIFIKAT OTOMATIS - VERSI ROBUST
         // ============================================
         async function createCertificate(userId) {
             try {
-                // Cek apakah sertifikat sudah ada
+                console.log('🔍 [createCertificate] Dipanggil untuk user:', userId);
+                
+                // ✅ CEK APAKAH SERTIFIKAT SUDAH ADA
                 const { data: existingCert, error: certError } = await _supabase
                     .from('yata_certificates')
-                    .select('id')
+                    .select('id, certificate_number')
                     .eq('user_id', userId)
                     .eq('certificate_type', 'onboarding')
                     .maybeSingle();
 
-                if (certError) throw certError;
-
-                if (existingCert) {
-                    console.log('✅ Sertifikat sudah ada untuk user ini');
-                    return;
+                if (certError) {
+                    console.error('❌ [createCertificate] Error cek sertifikat:', certError);
+                    return false;
                 }
 
-                // Ambil data user
+                if (existingCert) {
+                    console.log('✅ [createCertificate] Sertifikat sudah ada:', existingCert.certificate_number);
+                    return true;
+                }
+
+                // ✅ AMBIL DATA USER
                 const { data: profile, error: profileError } = await _supabase
                     .from('yata_profiles')
-                    .select('full_name')
+                    .select('full_name, email')
                     .eq('id', userId)
                     .single();
 
-                if (profileError) throw profileError;
+                if (profileError) {
+                    console.error('❌ [createCertificate] Error ambil profil:', profileError);
+                    return false;
+                }
 
-                // Generate nomor sertifikat
+                // ✅ GENERATE NOMOR SERTIFIKAT
                 const now = new Date();
                 const dateStr = now.getFullYear() + 
                     String(now.getMonth() + 1).padStart(2, '0') + 
@@ -611,10 +619,10 @@
                 const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
                 const certNumber = `YATTA-ONBOARD-${dateStr}-${random}`;
 
-                const signatureUrl = 'https://fowkcubpplwpljfjjcfy.supabase.co/storage/v1/object/public/certificates/signature.png';
+                console.log('📜 [createCertificate] Membuat sertifikat:', certNumber);
 
                 // ✅ INSERT SERTIFIKAT
-                const { error: insertError } = await _supabase
+                const { data: newCert, error: insertError } = await _supabase
                     .from('yata_certificates')
                     .insert([{
                         user_id: userId,
@@ -624,59 +632,78 @@
                         claimed_at: new Date().toISOString(),
                         signatory_name: 'Abd. Rahman Danial',
                         signatory_title: 'Founder & CEO YATTA',
-                        signature_url: signatureUrl,
                         issued_at: new Date().toISOString(),
                         created_at: new Date().toISOString()
-                    }]);
+                    }])
+                    .select()
+                    .single();
 
-                if (insertError) throw insertError;
+                if (insertError) {
+                    console.error('❌ [createCertificate] Error insert:', insertError);
+                    return false;
+                }
 
-                console.log(`✅ Sertifikat dibuat untuk user ${userId}: ${certNumber}`);
+                console.log(`✅ [createCertificate] Sertifikat BERHASIL dibuat: ${certNumber}`);
+                return true;
 
             } catch (err) {
-                console.error('Create certificate error:', err);
+                console.error('❌ [createCertificate] Error:', err);
+                return false;
             }
         }
 
         // ============================================
-        // 🔥 CEK ULASAN & BUAT SERTIFIKAT JIKA SEMUA SELESAI
+        // 🔥🔥🔥 CEK ULASAN & BUAT SERTIFIKAT - VERSI ROBUST
         // ============================================
         async function checkReviewAndCertificate(userId) {
             try {
-                // Ambil semua kelas onboarding
+                console.log('🔍 [checkReviewAndCertificate] Dipanggil untuk user:', userId);
+                
+                // ✅ AMBIL SEMUA KELAS ONBOARDING
                 const { data: onboardingSessions, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
-                    .select('id')
+                    .select('id, title')
                     .eq('is_onboarding', true)
-                    .eq('status', 'published');
+                    .eq('status', 'published')
+                    .order('created_at', { ascending: true });
 
-                if (sessionError) throw sessionError;
+                if (sessionError) {
+                    console.error('❌ [checkReviewAndCertificate] Error ambil sesi:', sessionError);
+                    return false;
+                }
 
                 if (!onboardingSessions || onboardingSessions.length === 0) {
-                    console.log('ℹ️ Tidak ada kelas onboarding');
-                    return;
+                    console.log('ℹ️ [checkReviewAndCertificate] Tidak ada kelas onboarding');
+                    return false;
                 }
+
+                console.log(`📚 [checkReviewAndCertificate] ${onboardingSessions.length} kelas onboarding ditemukan`);
 
                 const sessionIds = onboardingSessions.map(s => s.id);
 
-                // Cek review user untuk semua kelas
+                // ✅ CEK REVIEW USER UNTUK SEMUA KELAS
                 const { data: reviews, error: reviewError } = await _supabase
                     .from('yata_onboarding_reviews')
                     .select('session_id')
                     .eq('user_id', userId)
                     .in('session_id', sessionIds);
 
-                if (reviewError) throw reviewError;
+                if (reviewError) {
+                    console.error('❌ [checkReviewAndCertificate] Error ambil review:', reviewError);
+                    return false;
+                }
 
                 const reviewedSessions = reviews.map(r => r.session_id);
                 const allReviewed = sessionIds.every(id => reviewedSessions.includes(id));
 
+                console.log(`📝 [checkReviewAndCertificate] Review: ${reviewedSessions.length}/${sessionIds.length} kelas`);
+
                 if (!allReviewed) {
-                    console.log(`⏳ Belum semua kelas di-review (${reviewedSessions.length}/${sessionIds.length})`);
-                    return;
+                    console.log(`⏳ [checkReviewAndCertificate] Belum semua kelas di-review`);
+                    return false;
                 }
 
-                console.log('✅ Semua kelas sudah di-review!');
+                console.log('✅ [checkReviewAndCertificate] Semua kelas sudah di-review!');
 
                 // ✅ CEK APAKAH SERTIFIKAT SUDAH ADA
                 const { data: existingCert, error: certError } = await _supabase
@@ -686,27 +713,41 @@
                     .eq('certificate_type', 'onboarding')
                     .maybeSingle();
 
-                if (certError) throw certError;
+                if (certError) {
+                    console.error('❌ [checkReviewAndCertificate] Error cek sertifikat:', certError);
+                    return false;
+                }
 
                 if (existingCert) {
-                    console.log('✅ Sertifikat sudah ada');
-                    return;
+                    console.log('✅ [checkReviewAndCertificate] Sertifikat sudah ada');
+                    return true;
                 }
 
                 // ✅ BUAT SERTIFIKAT
-                await createCertificate(userId);
-                await sendCompletionNotifications(userId);
+                const result = await createCertificate(userId);
+                
+                if (result) {
+                    console.log('🎉 [checkReviewAndCertificate] Sertifikat berhasil dibuat!');
+                    await sendCompletionNotifications(userId);
+                    return true;
+                } else {
+                    console.log('❌ [checkReviewAndCertificate] Gagal membuat sertifikat');
+                    return false;
+                }
 
             } catch (err) {
-                console.error('Check review and certificate error:', err);
+                console.error('❌ [checkReviewAndCertificate] Error:', err);
+                return false;
             }
         }
 
         // ============================================
-        // 🔥 3 NOTIFIKASI SAAT SELESAI 3/3 - HANYA KE USER TERSEBUT
+        // 🔥 3 NOTIFIKASI SAAT SELESAI
         // ============================================
         async function sendCompletionNotifications(userId) {
             try {
+                console.log('📬 [sendCompletionNotifications] Mengirim notifikasi ke:', userId);
+                
                 const notif1Title = `🎉 Selamat! Anda Telah Menyelesaikan Onboarding!`;
                 const notif1Content = `Anda telah menyelesaikan semua 3 kelas onboarding YATTA! 🎉
         
@@ -741,7 +782,7 @@ Founder & CEO YATTA
                 console.log(`✅ 3 notifikasi completion terkirim ke user ${userId}`);
 
             } catch (err) {
-                console.error('Send completion notifications error:', err);
+                console.error('❌ [sendCompletionNotifications] Error:', err);
             }
         }
 
@@ -1278,7 +1319,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 🔥 SUBMIT REVIEW - DENGAN SERTIFIKAT OTOMATIS
+        // 🔥🔥🔥 SUBMIT REVIEW - DENGAN SERTIFIKAT OTOMATIS
         // ============================================
         document.getElementById('reviewForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1321,8 +1362,10 @@ Founder & CEO YATTA
                 // ✅ UPDATE RATING KELAS
                 await updateSessionRating(sessionId);
 
-                // ✅ CEK DAN BUAT SERTIFIKAT OTOMATIS!
-                await checkReviewAndCertificate(session.user.id);
+                // 🔥🔥🔥 CEK DAN BUAT SERTIFIKAT OTOMATIS!
+                console.log('🔍 Memanggil checkReviewAndCertificate untuk user:', session.user.id);
+                const certResult = await checkReviewAndCertificate(session.user.id);
+                console.log('📜 Hasil sertifikat:', certResult ? 'BERHASIL' : 'GAGAL');
 
                 setTimeout(() => {
                     closeReviewModal();
