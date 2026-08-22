@@ -224,7 +224,7 @@
         }
 
         // ============================================
-        // VERIFIKASI SERTIFIKAT
+        // VERIFIKASI SERTIFIKAT - DENGAN LOGGING
         // ============================================
         async function verifyCertificate() {
             const { cert, user } = getParams();
@@ -251,8 +251,10 @@
                 return;
             }
 
+            console.log('🔍 Verifikasi sertifikat:', { cert, user });
+
             try {
-                // Cari sertifikat di database
+                // ✅ QUERY YANG BENAR
                 const { data: certificate, error } = await _supabase
                     .from('yata_certificates')
                     .select(`
@@ -261,15 +263,14 @@
                             full_name,
                             username,
                             email
-                        ),
-                        session:session_id (
-                            title,
-                            is_onboarding
                         )
                     `)
                     .eq('certificate_number', cert)
                     .eq('user_id', user)
                     .maybeSingle();
+
+                console.log('📜 Hasil query:', certificate);
+                console.log('❌ Error:', error);
 
                 if (error) {
                     console.error('Query error:', error);
@@ -418,7 +419,7 @@
                 `;
 
             } catch (err) {
-                console.error('Verification error:', err);
+                console.error('❌ Verification error:', err);
                 resultContainer.innerHTML = `
                     <div>
                         <span class="verify-icon">❌</span>
