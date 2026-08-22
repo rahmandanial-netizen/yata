@@ -47,6 +47,8 @@
             const certNumber = params.get('cert');
             const resultDiv = document.getElementById('result');
 
+            console.log('🔍 Cert Number:', certNumber);
+
             if (!certNumber) {
                 resultDiv.innerHTML = `
                     <div class="text-red-600">
@@ -59,29 +61,17 @@
             }
 
             try {
-                // 🔥 QUERY DENGAN POLICY YANG SUDAH DIBUAT
+                // 🔥 AMBIL SERTIFIKAT
                 const { data: cert, error } = await _supabase
                     .from('yata_certificates')
                     .select('*')
                     .eq('certificate_number', certNumber)
                     .maybeSingle();
 
-                console.log('🔍 Hasil query:', cert);
+                console.log('📜 Hasil query cert:', cert);
                 console.log('❌ Error:', error);
 
-                if (error) {
-                    console.error('Error detail:', error);
-                    resultDiv.innerHTML = `
-                        <div class="text-red-600">
-                            <span class="text-6xl block mb-4">❌</span>
-                            <h2 class="text-2xl font-black">Error Database</h2>
-                            <p class="text-sm mt-2">${error.message}</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                if (!cert) {
+                if (error || !cert) {
                     resultDiv.innerHTML = `
                         <div class="text-red-600">
                             <span class="text-6xl block mb-4">❌</span>
@@ -93,15 +83,22 @@
                     return;
                 }
 
-                // ✅ SERTIFIKAT DITEMUKAN!
+                // 🔥 AMBIL NAMA USER
                 let userName = 'Member';
                 if (cert.user_id) {
-                    const { data: user } = await _supabase
+                    console.log('👤 User ID:', cert.user_id);
+                    const { data: user, error: userError } = await _supabase
                         .from('yata_profiles')
                         .select('full_name')
                         .eq('id', cert.user_id)
                         .maybeSingle();
-                    if (user) userName = user.full_name || 'Member';
+                    
+                    console.log('👤 User data:', user);
+                    console.log('❌ User error:', userError);
+                    
+                    if (user && user.full_name) {
+                        userName = user.full_name;
+                    }
                 }
 
                 const isClaimed = cert.is_claimed ? '✅ Terverifikasi' : '⏳ Belum Diklaim';
