@@ -172,6 +172,9 @@
             } catch { return dateString; }
         }
 
+        // ============================================
+        // 🔥 VERIFIKASI SERTIFIKAT - DENGAN FALLBACK
+        // ============================================
         async function verifyCertificate() {
             const { cert, user } = getParams();
             const resultContainer = document.getElementById('verificationResult');
@@ -198,14 +201,47 @@
             console.log('🔍 Verifikasi sertifikat:', { cert, user });
 
             try {
-                const { data: certificate, error } = await _supabase
+                // ✅ QUERY 1: Coba dengan user_id (strict)
+                let { data: certificate, error } = await _supabase
                     .from('yata_certificates')
                     .select(`*, user:user_id (full_name, username, email)`)
                     .eq('certificate_number', cert)
                     .eq('user_id', user)
                     .maybeSingle();
 
-                console.log('📜 Hasil query:', certificate);
+                // ✅ QUERY 2: Jika tidak ditemukan, coba tanpa user_id (fallback)
+                if (!certificate) {
+                    console.log('⚠️ Sertifikat tidak ditemukan dengan user_id, coba tanpa filter...');
+                    const { data: certData, error: certError } = await _supabase
+                        .from('yata_certificates')
+                        .select(`*, user:user_id (full_name, username, email)`)
+                        .eq('certificate_number', cert)
+                        .maybeSingle();
+                    
+                    if (certData) {
+                        certificate = certData;
+                        console.log('✅ Sertifikat ditemukan tanpa filter user_id!');
+                        console.log('📌 User ID di database:', certData.user_id);
+                        console.log('📌 User ID dari QR Code:', user);
+                    }
+                }
+
+                // ✅ QUERY 3: Jika masih tidak ditemukan, coba dengan ILIKE (case insensitive)
+                if (!certificate) {
+                    console.log('⚠️ Masih tidak ditemukan, coba dengan ILIKE...');
+                    const { data: certData, error: certError } = await _supabase
+                        .from('yata_certificates')
+                        .select(`*, user:user_id (full_name, username, email)`)
+                        .ilike('certificate_number', `%${cert}%`)
+                        .maybeSingle();
+                    
+                    if (certData) {
+                        certificate = certData;
+                        console.log('✅ Sertifikat ditemukan dengan ILIKE!');
+                    }
+                }
+
+                console.log('📜 Hasil final query:', certificate);
                 if (error) console.error('❌ Error:', error);
 
                 if (!certificate) {
@@ -214,6 +250,13 @@
                             <span class="verify-icon">❌</span>
                             <h2 class="text-2xl font-black text-red-600">Sertifikat Tidak Ditemukan</h2>
                             <p class="text-slate-500 text-sm mt-2">Sertifikat dengan nomor <strong>${cert}</strong> tidak terdaftar.</p>
+                            <p class="text-xs text-slate-400 mt-1">Pastikan nomor sertifikat yang Anda masukkan benar.</p>
+                            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4 text-left">
+                                <p class="text-sm text-amber-700 flex items-start gap-2">
+                                    <i class="fa-regular fa-lightbulb mt-0.5"></i>
+                                    <span>Jika yakin sudah benar, hubungi admin YATTA untuk bantuan.</span>
+                                </p>
+                            </div>
                             <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
                                 <a href="index.html" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
                                     <i class="fa-solid fa-house mr-1"></i> Beranda
@@ -227,6 +270,7 @@
                     return;
                 }
 
+                // ✅ TAMPILKAN DATA SERTIFIKAT
                 const isClaimed = certificate.is_claimed === true;
                 const statusText = isClaimed ? 'VALID' : 'BELUM DIKLAIM';
                 const statusColor = isClaimed ? 'text-emerald-600' : 'text-amber-600';

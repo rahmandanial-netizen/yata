@@ -1005,7 +1005,6 @@ Jika tidak muncul dalam 5 menit, periksa folder SPAM atau hubungi admin YATTA.`;
             
             msg.textContent = text;
             
-            // ✅ PERBAIKAN: Gunakan if-else, bukan object dengan operator ===
             let typeClass = '';
             if (type === 'success') typeClass = 'text-emerald-600';
             else if (type === 'error') typeClass = 'text-red-600';
