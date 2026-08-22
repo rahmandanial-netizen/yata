@@ -61,7 +61,7 @@
             }
 
             try {
-                // 🔥 AMBIL SERTIFIKAT
+                // 🔥 AMBIL SERTIFIKAT - LANGSUNG DAPAT NAMA DARI recipient_name
                 const { data: cert, error } = await _supabase
                     .from('yata_certificates')
                     .select('*')
@@ -83,23 +83,8 @@
                     return;
                 }
 
-                // 🔥 AMBIL NAMA USER
-                let userName = 'Member';
-                if (cert.user_id) {
-                    console.log('👤 User ID:', cert.user_id);
-                    const { data: user, error: userError } = await _supabase
-                        .from('yata_profiles')
-                        .select('full_name')
-                        .eq('id', cert.user_id)
-                        .maybeSingle();
-                    
-                    console.log('👤 User data:', user);
-                    console.log('❌ User error:', userError);
-                    
-                    if (user && user.full_name) {
-                        userName = user.full_name;
-                    }
-                }
+                // ✅ AMBIL NAMA DARI recipient_name (LANGSUNG, TANPA QUERY USER!)
+                const userName = cert.recipient_name || 'Member';
 
                 const isClaimed = cert.is_claimed ? '✅ Terverifikasi' : '⏳ Belum Diklaim';
                 const date = formatDate(cert.issued_at);
