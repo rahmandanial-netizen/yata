@@ -329,6 +329,16 @@
         .owner-only.inline-visible {
             display: inline-block;
         }
+        .level-status-badge {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 12px;
+            border-radius: 9999px;
+            display: inline-block;
+        }
+        .level-status-pending { background: #FEF3C7; color: #92400E; }
+        .level-status-approved { background: #D1FAE5; color: #065F46; }
+        .level-status-rejected { background: #FEE2E2; color: #991B1B; }
     </style>
 </head>
 <body>
@@ -340,17 +350,17 @@
         <div class="flex flex-col h-full">
             <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
                 <a href="dashboard.html" class="flex items-center space-x-2 group">
-    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30" />
-    <span class="text-xl font-extrabold text-emerald-800">yatta</span>
-</a>
+                    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30" />
+                    <span class="text-xl font-extrabold text-emerald-800">yatta</span>
+                </a>
             </div>
 
             <!-- SIDEBAR NAVIGATION - STRUKTUR MENU FINAL -->
             <nav class="flex-1 px-4 py-6 space-y-1">
                 <!-- 🌟 Menuju Jelajahi Yatta -->
-<a href="explore.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-amber-600 hover:text-amber-700 rounded-xl transition">
-    <i class="fa-solid fa-compass w-5 text-amber-500"></i> Menuju Jelajahi Yatta
-</a>
+                <a href="explore.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-amber-600 hover:text-amber-700 rounded-xl transition">
+                    <i class="fa-solid fa-compass w-5 text-amber-500"></i> Menuju Jelajahi Yatta
+                </a>
                 <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
                     <i class="fa-solid fa-house w-5"></i> Beranda
                 </a>
@@ -371,20 +381,15 @@
                         <i class="fa-solid fa-flag w-5 text-slate-400"></i> Lihat Kampanye
                     </a>
                 </div>
-                <!-- Mentoring -->
-<a href="mentoring-my.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
-    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring Saya
-</a>
-
-<!-- Sertifikat -->
-<a href="certificates.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
-    <i class="fa-solid fa-certificate w-5"></i> Sertifikat
-</a>
-
-<!-- Profil -->
-<a href="profile.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
-    <i class="fa-solid fa-user w-5"></i> Profil
-</a>
+                <a href="mentoring-my.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring Saya
+                </a>
+                <a href="certificates.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-certificate w-5"></i> Sertifikat
+                </a>
+                <a href="profile.html" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-sm font-semibold text-emerald-800 rounded-xl transition">
+                    <i class="fa-solid fa-user w-5 text-emerald-600"></i> Profil
+                </a>
             </nav>
 
             <div class="p-4 border-t border-emerald-100/60">
@@ -402,9 +407,9 @@
     <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
         <div class="flex items-center justify-between px-4 h-16">
             <a href="dashboard.html" class="flex items-center space-x-2">
-    <img src="assets/favicon.png" alt="Yatta" class="h-8 w-8 rounded-xl object-cover" />
-    <span class="text-lg font-extrabold text-emerald-800">yatta</span>
-</a>
+                <img src="assets/favicon.png" alt="Yatta" class="h-8 w-8 rounded-xl object-cover" />
+                <span class="text-lg font-extrabold text-emerald-800">yatta</span>
+            </a>
             <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
                 <i class="fa-solid fa-bars text-xl"></i>
             </button>
@@ -412,8 +417,8 @@
 
         <div id="mobileMenu" class="hidden bg-white border-t border-emerald-100/60 px-4 py-4 space-y-2">
             <a href="explore.html" class="block px-4 py-2.5 text-amber-600 font-semibold hover:bg-amber-50 rounded-xl">
-    <i class="fa-solid fa-compass mr-2 text-amber-500"></i> Menuju Jelajahi Yatta
-</a>
+                <i class="fa-solid fa-compass mr-2 text-amber-500"></i> Menuju Jelajahi Yatta
+            </a>
             <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Beranda</a>
             <a href="write.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Tulis</a>
             <a href="#" onclick="checkProjectAccess(event)" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Proyek Buku</a>
@@ -423,8 +428,8 @@
                 <i class="fa-solid fa-flag mr-1 text-slate-400"></i> Lihat Kampanye
             </a>
             <a href="mentoring-my.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Mentoring Saya</a>
-<a href="certificates.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Sertifikat</a>
-<a href="profile.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Profil</a>
+            <a href="certificates.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Sertifikat</a>
+            <a href="profile.html" class="block px-4 py-2.5 bg-emerald-50 text-emerald-800 font-semibold rounded-xl">Profil</a>
             <hr class="my-2 border-emerald-100" />
             <button id="btnLogoutMobile" class="owner-only block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
         </div>
@@ -476,6 +481,8 @@
                                     <span id="profileLevelIcon" class="level-icon">🌱</span> 
                                     <span id="profileLevelName">Tamu</span>
                                 </span>
+                                <!-- 🔥 STATUS LEVEL -->
+                                <span id="profileLevelStatus" class="level-status-badge hidden"></span>
                                 <span class="text-slate-400">•</span>
                                 <span id="profileMemberId" class="text-xs font-mono text-slate-500">yatta-T-00001</span>
                             </div>
@@ -483,6 +490,11 @@
                             <div class="flex flex-wrap items-center justify-center sm:justify-start gap-4 mt-3 text-xs text-slate-400">
                                 <span><i class="fa-regular fa-user mr-1"></i> <span id="profileUsername">@username</span></span>
                                 <span><i class="fa-regular fa-envelope mr-1"></i> <span id="profileEmail">email@domain.com</span></span>
+                            </div>
+                            <!-- 🔥 REJECTION REASON -->
+                            <div id="rejectionReasonContainer" class="hidden mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 max-w-md">
+                                <span class="font-semibold">❌ Alasan penolakan:</span>
+                                <span id="rejectionReasonText"></span>
                             </div>
                         </div>
                         <button onclick="openEditProfile()" id="editProfileBtn" class="owner-only bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2">
@@ -907,23 +919,19 @@
             try {
                 const session = await checkAuth();
                 
-                // Ambil ID dari URL
                 const params = new URLSearchParams(window.location.search);
                 profileUserId = params.get('id');
 
-                // Jika tidak ada ID di URL dan user login, redirect ke profil sendiri
                 if (!profileUserId) {
                     if (session) {
                         window.location.href = `profile.html?id=${session.user.id}`;
                         return;
                     } else {
-                        // Jika tidak login dan tidak ada ID, redirect ke explore
                         window.location.href = 'explore.html';
                         return;
                     }
                 }
 
-                // Ambil data profile
                 const { data: profile, error } = await _supabase
                     .from('yata_profiles')
                     .select('*')
@@ -940,10 +948,8 @@
                 currentProfile = profile;
                 currentAvatarUrl = profile.avatar_url || null;
 
-                // Cek apakah ini profil sendiri
                 isOwnProfile = session && profileUserId === session.user.id;
 
-                // Tampilkan/sembunyikan elemen owner-only
                 document.querySelectorAll('.owner-only').forEach(el => {
                     if (isOwnProfile) {
                         el.classList.add('visible');
@@ -958,7 +964,6 @@
                     }
                 });
 
-                // Jika bukan pemilik, sembunyikan tombol edit
                 if (!isOwnProfile) {
                     const editBtn = document.getElementById('editProfileBtn');
                     if (editBtn) editBtn.style.display = 'none';
@@ -1009,7 +1014,6 @@
                         const prefix = prefixMap[levelKey] || 'yatta-T';
                         const newMemberId = `${prefix}-${timestamp}${tanggal}${bulan}${tahun}`;
                         
-                        // Update ke database jika ini profil sendiri
                         if (isOwnProfile) {
                             const { error: updateError } = await _supabase
                                 .from('yata_profiles')
@@ -1037,7 +1041,6 @@
                 document.getElementById('loadingState').classList.add('hidden');
                 document.getElementById('profileContent').classList.remove('hidden');
 
-                // Load kampanye hanya jika ini profil sendiri
                 if (isOwnProfile) {
                     await loadUserCampaigns();
                 }
@@ -1055,7 +1058,7 @@
         }
 
         // ============================================
-        // RENDER PROFILE
+        // RENDER PROFILE - DENGAN STATUS LEVEL
         // ============================================
         function renderProfile(profile, user) {
             // Avatar
@@ -1095,6 +1098,32 @@
             document.getElementById('profileLevelIcon').textContent = lv.icon;
             document.getElementById('profileLevelName').textContent = levelName;
             document.getElementById('profileLevel').className = `level-badge ${lv.class}`;
+
+            // 🔥 STATUS LEVEL
+            const statusEl = document.getElementById('profileLevelStatus');
+            const rejectContainer = document.getElementById('rejectionReasonContainer');
+            const rejectText = document.getElementById('rejectionReasonText');
+
+            if (profile.level_status === 'pending') {
+                statusEl.textContent = '⏳ Menunggu Verifikasi';
+                statusEl.className = 'level-status-badge level-status-pending';
+                statusEl.classList.remove('hidden');
+                rejectContainer.classList.add('hidden');
+            } else if (profile.level_status === 'approved') {
+                statusEl.textContent = '✅ Level Disetujui';
+                statusEl.className = 'level-status-badge level-status-approved';
+                statusEl.classList.remove('hidden');
+                rejectContainer.classList.add('hidden');
+            } else if (profile.level_status === 'rejected') {
+                statusEl.textContent = '❌ Ditolak';
+                statusEl.className = 'level-status-badge level-status-rejected';
+                statusEl.classList.remove('hidden');
+                rejectContainer.classList.remove('hidden');
+                rejectText.textContent = profile.rejection_reason || 'Tidak ada alasan yang diberikan.';
+            } else {
+                statusEl.classList.add('hidden');
+                rejectContainer.classList.add('hidden');
+            }
 
             // Member ID
             const memberId = profile.member_id || formatMemberId();
@@ -1675,7 +1704,6 @@
 
                 if (error) throw error;
 
-                // Ambil data community terpisah
                 if (campaigns && campaigns.length > 0) {
                     const communityIds = [...new Set(campaigns.map(c => c.community_id).filter(id => id))];
                     

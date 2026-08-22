@@ -1247,12 +1247,11 @@
         }
 
         // ============================================
-        // 🔥 3. GET LEVEL PROGRESS - DIPERBAIKI!
+        // 3. GET LEVEL PROGRESS
         // ============================================
         function getLevelProgress(levelKey, writings, mentoring, books, speakerInternal, speakerExternal) {
             const level = LEVELS[levelKey];
             
-            // Jika sudah di level tertinggi (Mentor)
             if (!level || !level.nextLevel) {
                 return { 
                     progress: 100, 
@@ -1276,7 +1275,6 @@
             let total = 0;
             let details = [];
 
-            // Hitung progress berdasarkan requirements yang ada
             if (req.writings) {
                 total += req.writings;
                 const val = Math.min(writings || 0, req.writings);
@@ -1339,7 +1337,6 @@
                     return;
                 }
 
-                // Hitung total karya
                 const { data: writings, error: writingsError } = await _supabase
                     .from('yata_writings')
                     .select('id, status, views, likes')
@@ -1349,7 +1346,6 @@
                     console.error('Writings error:', writingsError);
                 }
 
-                // Hitung mentoring (attended = true)
                 const { data: mentoringData, error: mentoringError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('id')
@@ -1360,7 +1356,6 @@
                     console.error('Mentoring error:', mentoringError);
                 }
 
-                // Hitung buku yang diterbitkan
                 const { data: booksData, error: booksError } = await _supabase
                     .from('yata_book_projects')
                     .select('id')
@@ -1371,7 +1366,6 @@
                     console.error('Books error:', booksError);
                 }
 
-                // Data statistik
                 const totalWritings = writings ? writings.length : 0;
                 const totalPublished = writings ? writings.filter(w => w.status === 'published').length : 0;
                 const totalDrafts = writings ? writings.filter(w => w.status === 'draft').length : 0;
@@ -1380,7 +1374,6 @@
                 const totalMentoring = mentoringData?.length || 0;
                 const totalBooks = booksData?.length || 0;
 
-                // 🔥 LEVEL DARI DATABASE
                 const displayLevel = profile.member_level || 'Tamu';
                 const levelMap = {
                     'Tamu': 'tamu',
@@ -1391,17 +1384,15 @@
                 const levelKey = levelMap[displayLevel] || 'tamu';
                 const level = LEVELS[levelKey];
 
-                // ✅ HITUNG PROGRESS BERDASARKAN LEVEL SAAT INI
                 const progress = getLevelProgress(
                     levelKey, 
                     totalPublished, 
                     totalMentoring, 
                     totalBooks, 
-                    0, // speakerInternal (belum dihitung)
-                    0  // speakerExternal (belum dihitung)
+                    0,
+                    0
                 );
 
-                // Display level
                 const displayIcon = LEVEL_ICONS[displayLevel] || '🌱';
                 const displayDescription = LEVEL_DESCRIPTIONS[displayLevel] || LEVEL_DESCRIPTIONS['Tamu'];
 
@@ -1426,12 +1417,14 @@
                 const joinDate = new Date(profile.created_at);
                 document.getElementById('userJoinDate').textContent = `Bergabung ${joinDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`;
 
-                // ✅ Progress Level - PAKAI progress YANG SUDAH DIHITUNG
+                // ✅ Progress Level
                 document.getElementById('levelProgressBar').style.width = progress.progress + '%';
                 document.getElementById('levelProgressText').textContent = progress.progress + '%';
                 document.getElementById('levelNextInfo').textContent = progress.text;
 
-                // ✅ Status pengajuan naik level
+                // ============================================
+                // 🔥 STATUS PENGAJUAN NAIK LEVEL - DIPERBAIKI!
+                // ============================================
                 const btnLevelUp = document.getElementById('btnLevelUp');
                 const statusEl = document.getElementById('levelUpStatus');
 
@@ -1445,19 +1438,33 @@
                         btnLevelUp.innerHTML = '<i class="fa-solid fa-clock"></i> Menunggu Verifikasi';
                     }
                 } else if (profile.level_status === 'approved') {
+                    // 🔥 LEVEL SUDAH NAIK!
                     if (statusEl) {
-                        statusEl.textContent = '✅ Pengajuan naik level DISETUJUI! Level Anda sudah naik.';
+                        statusEl.textContent = '✅ Selamat! Level Anda sudah naik!';
                         statusEl.className = 'text-xs text-emerald-300 mt-1 text-center block';
                     }
                     if (btnLevelUp) {
                         btnLevelUp.disabled = true;
                         btnLevelUp.innerHTML = '✅ Sudah Disetujui';
                     }
+                    // 🔥 UPDATE TAMPILAN LEVEL
+                    const newDisplayLevel = profile.member_level || 'Tamu';
+                    const newDisplayIcon = LEVEL_ICONS[newDisplayLevel] || '🌱';
+                    document.getElementById('levelBigIcon').textContent = newDisplayIcon;
+                    document.getElementById('levelBigName').textContent = newDisplayLevel;
+                    document.getElementById('levelName').textContent = newDisplayLevel;
+                    document.getElementById('levelIcon').textContent = newDisplayIcon;
+                    
                 } else if (profile.level_status === 'rejected') {
                     if (statusEl) {
                         const reason = profile.rejection_reason || 'Silakan coba lagi nanti.';
                         statusEl.textContent = `❌ Pengajuan ditolak. ${reason}`;
                         statusEl.className = 'text-xs text-red-400 mt-1 text-center block';
+                    }
+                    // 🔥 TOMBOL AKTIF KEMBALI
+                    if (btnLevelUp) {
+                        btnLevelUp.disabled = false;
+                        btnLevelUp.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
                     }
                 } else {
                     // Reset button jika tidak ada status
@@ -1896,7 +1903,6 @@
 
                 const communityIds = memberships.map(m => m.community_id);
 
-                // Get campaigns
                 const { data: campaigns, error } = await _supabase
                     .from('yata_community_campaigns')
                     .select('*')
@@ -1908,7 +1914,6 @@
 
                 if (error) throw error;
 
-                // Get community data
                 if (campaigns && campaigns.length > 0) {
                     const commIds = [...new Set(campaigns.map(c => c.community_id).filter(id => id))];
                     const creatorIds = [...new Set(campaigns.map(c => c.creator_id).filter(id => id))];
@@ -1958,7 +1963,6 @@
                     return;
                 }
 
-                // Get supporters count
                 const campaignIds = campaigns.map(c => c.id);
                 const { data: supporters, error: supportError } = await _supabase
                     .from('yata_campaign_supporters')
@@ -2288,7 +2292,6 @@
             const btn = document.getElementById('btnLevelUp');
             const statusEl = document.getElementById('levelUpStatus');
             
-            // Reset status
             statusEl.className = 'text-xs text-white/50 mt-1 text-center hidden';
             
             try {
@@ -2299,7 +2302,6 @@
                     return;
                 }
 
-                // 🔥 CEK SYARAT LEVEL SAAT INI
                 const { data: profile, error: profileError } = await _supabase
                     .from('yata_profiles')
                     .select('member_level, level_status, rejection_reason')
@@ -2312,7 +2314,6 @@
                     return;
                 }
 
-                // Cek apakah sudah pernah mengajukan
                 if (profile.level_status === 'pending') {
                     statusEl.textContent = '⏳ Pengajuan Anda sedang diproses oleh admin.';
                     statusEl.className = 'text-xs text-yellow-300 mt-1 text-center block';
@@ -2325,14 +2326,12 @@
                     return;
                 }
 
-                // ✅ HITUNG KARYA
                 const { data: writings, error: writingsError } = await _supabase
                     .from('yata_writings')
                     .select('id')
                     .eq('author_id', session.user.id)
                     .eq('status', 'published');
 
-                // ✅ HITUNG MENTORING (attended = true)
                 const { data: mentoring, error: mentoringError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('id')
@@ -2342,7 +2341,6 @@
                 const totalWritings = writings?.length || 0;
                 const totalMentoring = mentoring?.length || 0;
 
-                // 🔥 TENTUKAN SYARAT BERDASARKAN LEVEL SAAT INI
                 const levelMap = {
                     'Tamu': { next: 'Penulis', reqWritings: 5, reqMentoring: 3, reqBooks: 0 },
                     'Penulis': { next: 'Penulis Profesional', reqWritings: 20, reqMentoring: 5, reqBooks: 1 },
@@ -2357,7 +2355,6 @@
                     return;
                 }
 
-                // Cek syarat
                 let requirementsMet = true;
                 let requirementsText = [];
 
@@ -2388,11 +2385,9 @@
                     return;
                 }
 
-                // ✅ SEMUA SYARAT TERPENUHI - KIRIM PENGAJUAN
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
 
-                // Kirim notifikasi ke admin
                 const { data: admins, error: adminError } = await _supabase
                     .from('yata_profiles')
                     .select('id')
@@ -2423,7 +2418,6 @@
                     }
                 }
 
-                // Update status profile
                 await _supabase
                     .from('yata_profiles')
                     .update({ level_status: 'pending' })
@@ -2433,7 +2427,6 @@
                 statusEl.className = 'text-xs text-emerald-300 mt-1 text-center block';
                 btn.innerHTML = '✅ Terkirim!';
 
-                // Notifikasi ke user
                 await sendNotification(
                     session.user.id,
                     '⭐ Pengajuan Naik Level Dikirim!',

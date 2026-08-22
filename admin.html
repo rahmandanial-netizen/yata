@@ -147,6 +147,21 @@
             color: #475569;
             margin-bottom: 4px;
         }
+        .verify-writing-content {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .verify-writing-content::-webkit-scrollbar {
+            width: 4px;
+        }
+        .verify-writing-content::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 9999px;
+        }
+        .verify-writing-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 9999px;
+        }
     </style>
 </head>
 <body>
@@ -640,6 +655,7 @@
                         <div>
                             <h2 class="font-bold text-slate-800">📤 Pengajuan Naik Level</h2>
                             <p class="text-xs text-slate-500">Tinjau dan verifikasi pengajuan naik level dari member.</p>
+                            <p class="text-xs text-amber-600 mt-1">💡 Klik pada judul karya untuk verifikasi autentikasi.</p>
                         </div>
                         <button onclick="loadLevelRequests()" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold">
                             <i class="fa-solid fa-rotate-right mr-1"></i> Refresh
@@ -807,6 +823,40 @@
     </div>
 
     <!-- ============================================ -->
+    <!-- 🔥 MODAL VERIFIKASI KARYA (BARU) -->
+    <!-- ============================================ -->
+    <div id="verifyWritingModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 relative shadow-2xl modal-enter max-h-[90vh] overflow-y-auto">
+            <button onclick="closeVerifyWritingModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Verifikasi Karya</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">🔍 Verifikasi Autentikasi Karya</h3>
+                <p class="text-xs text-slate-500 mt-1">Periksa apakah karya ini benar-benar ditulis oleh member.</p>
+            </div>
+
+            <div id="verifyWritingContent" class="verify-writing-content">
+                <div class="text-center py-8 text-slate-400 text-sm">
+                    <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat karya...
+                </div>
+            </div>
+
+            <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                <button onclick="confirmVerifyWriting()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm">
+                    <i class="fa-solid fa-check mr-1"></i> Verifikasi Karya (Asli)
+                </button>
+                <button onclick="closeVerifyWritingModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition text-sm">
+                    Tutup
+                </button>
+            </div>
+
+            <div id="verifyWritingMessage" class="mt-3 text-sm text-center hidden"></div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
     <!-- JAVASCRIPT -->
     <!-- ============================================ -->
     <script>
@@ -918,7 +968,7 @@
                 loadBookSubmissions(true),
                 loadAllMembers(),
                 loadOnboardingList(),
-                loadLevelRequests() // 🔥 TAMBAHKAN
+                loadLevelRequests()
             ]);
         }
 
@@ -2242,7 +2292,6 @@
             const contentEl = document.getElementById(info.content);
             if (contentEl) {
                 contentEl.classList.remove('hidden');
-                // 🔥 Jika tab levelRequests, load data
                 if (tab === 'levelRequests') {
                     loadLevelRequests();
                 }
@@ -2685,6 +2734,7 @@
             const countEl = document.getElementById('pendingLevelCount');
 
             try {
+                // 🔥 HANYA TAMPILKAN YANG level_status = 'pending'
                 const { data: profiles, error } = await _supabase
                     .from('yata_profiles')
                     .select('id, full_name, email, member_level, level_status, created_at, rejection_reason')
@@ -2700,7 +2750,7 @@
                     container.innerHTML = `
                         <div class="text-center py-8 text-emerald-600 text-sm">
                             <i class="fa-regular fa-circle-check text-2xl block mb-2"></i>
-                            Tidak ada pengajuan naik level.
+                            Tidak ada pengajuan naik level yang menunggu.
                         </div>
                     `;
                     return;
@@ -2725,11 +2775,11 @@
                     // Ambil karya terbaru
                     const { data: writings } = await _supabase
                         .from('yata_writings')
-                        .select('id, title, category, created_at, likes, views')
+                        .select('id, title, category, created_at, likes, views, is_verified')
                         .eq('author_id', p.id)
                         .eq('status', 'published')
                         .order('created_at', { ascending: false })
-                        .limit(5);
+                        .limit(10);
 
                     const levelMap = {
                         'Tamu': 'Penulis',
@@ -2758,15 +2808,19 @@
                                     ${writings && writings.length > 0 ? `
                                         <div class="mt-2 bg-slate-50 rounded-xl p-3">
                                             <p class="text-xs font-semibold text-slate-600 mb-2">📖 Karya Terbaru:</p>
-                                            <div class="space-y-1 max-h-32 overflow-y-auto">
+                                            <div class="space-y-1 max-h-40 overflow-y-auto">
                                                 ${writings.map(w => `
                                                     <div class="flex items-center justify-between text-xs py-1 border-b border-slate-100 last:border-0">
-                                                        <span class="text-slate-700 truncate max-w-[200px]">${w.title}</span>
+                                                        <span class="text-slate-700 truncate max-w-[200px] cursor-pointer hover:text-emerald-600" onclick="openVerifyWriting('${p.id}', '${w.id}')" title="Klik untuk verifikasi autentikasi">
+                                                            ${w.title}
+                                                            ${w.is_verified ? '<span class="text-emerald-600">✅</span>' : '<span class="text-amber-500">🔍</span>'}
+                                                        </span>
                                                         <span class="text-slate-400 flex-shrink-0">${w.category || 'Umum'} • ❤️ ${w.likes || 0}</span>
                                                     </div>
                                                 `).join('')}
                                             </div>
-                                            ${writingsCount > 5 ? `<p class="text-xs text-slate-400 mt-1">+${writingsCount - 5} karya lainnya</p>` : ''}
+                                            ${writingsCount > 10 ? `<p class="text-xs text-slate-400 mt-1">+${writingsCount - 10} karya lainnya</p>` : ''}
+                                            <p class="text-xs text-amber-600 mt-1">💡 Klik judul karya untuk verifikasi autentikasi.</p>
                                         </div>
                                     ` : `
                                         <p class="text-xs text-slate-400 mt-2">Belum ada karya yang dipublikasikan.</p>
@@ -2810,9 +2864,10 @@
                 const session = await checkAdmin();
                 if (!session) return;
 
+                // Ambil data user
                 const { data: profile, error: profileError } = await _supabase
                     .from('yata_profiles')
-                    .select('member_level')
+                    .select('member_level, full_name')
                     .eq('id', userId)
                     .single();
 
@@ -2826,6 +2881,7 @@
 
                 const newLevel = levelMap[profile.member_level] || 'Penulis';
 
+                // 🔥 UPDATE LEVEL DAN STATUS
                 const { error } = await _supabase
                     .from('yata_profiles')
                     .update({
@@ -2837,6 +2893,7 @@
 
                 if (error) throw error;
 
+                // Kirim notifikasi ke user
                 await sendNotificationToUser(
                     userId,
                     '🎉 Selamat! Level Anda Naik!',
@@ -2845,8 +2902,10 @@
                 );
 
                 alert(`✅ Level ${userName} berhasil dinaikkan ke "${newLevel}"!`);
-                loadLevelRequests();
-                loadAdminData();
+                
+                // 🔥 REFRESH DATA - LANGSUNG HILANG DARI LIST
+                await loadLevelRequests();
+                await loadAdminData();
 
             } catch (err) {
                 console.error('Approve level error:', err);
@@ -2869,6 +2928,7 @@
                 const session = await checkAdmin();
                 if (!session) return;
 
+                // 🔥 UPDATE STATUS JADI 'rejected'
                 const { error } = await _supabase
                     .from('yata_profiles')
                     .update({
@@ -2892,8 +2952,10 @@
                 );
 
                 alert(`❌ Pengajuan ${userName} ditolak.`);
-                loadLevelRequests();
-                loadAdminData();
+                
+                // 🔥 REFRESH DATA - LANGSUNG HILANG DARI LIST
+                await loadLevelRequests();
+                await loadAdminData();
 
             } catch (err) {
                 console.error('Reject level error:', err);
@@ -2902,7 +2964,134 @@
         }
 
         // ============================================
-        // 36. LOGOUT
+        // 🔥 36. VERIFIKASI KARYA (BARU)
+        // ============================================
+        async function openVerifyWriting(profileId, writingId) {
+            try {
+                // Ambil detail karya
+                const { data: writing, error } = await _supabase
+                    .from('yata_writings')
+                    .select('*')
+                    .eq('id', writingId)
+                    .single();
+
+                if (error) throw error;
+
+                // Tampilkan modal verifikasi
+                const modal = document.getElementById('verifyWritingModal');
+                const content = document.getElementById('verifyWritingContent');
+                
+                content.innerHTML = `
+                    <div class="bg-slate-50 rounded-xl p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <p><strong>Judul:</strong> ${writing.title}</p>
+                            ${writing.is_verified ? '<span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">✅ Terverifikasi</span>' : '<span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">⏳ Belum Diverifikasi</span>'}
+                        </div>
+                        <p><strong>Kategori:</strong> ${writing.category || 'Umum'}</p>
+                        <p><strong>Tanggal:</strong> ${new Date(writing.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 max-h-40 overflow-y-auto text-sm">
+                            ${writing.content ? writing.content.substring(0, 500) + (writing.content.length > 500 ? '...' : '') : 'Tidak ada konten'}
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-400">
+                            <span><i class="fa-regular fa-eye"></i> ${writing.views || 0} views</span>
+                            <span><i class="fa-regular fa-heart"></i> ${writing.likes || 0} likes</span>
+                            ${writing.verified_at ? `<span>✅ Diverifikasi: ${new Date(writing.verified_at).toLocaleDateString('id-ID')}</span>` : ''}
+                        </div>
+                        <div class="text-xs text-slate-400 mt-1">
+                            <p class="font-semibold">📌 Tips Verifikasi:</p>
+                            <ul class="list-disc pl-4 space-y-0.5">
+                                <li>Periksa apakah gaya penulisan sesuai dengan karya lain member</li>
+                                <li>Periksa konsistensi tema dan ide</li>
+                                <li>Jika ragu, bandingkan dengan karya di platform lain</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+
+                // Simpan ID untuk verifikasi
+                window._verifyWritingId = writingId;
+                window._verifyProfileId = profileId;
+
+            } catch (err) {
+                console.error('Verify writing error:', err);
+                alert('Gagal memuat karya: ' + err.message);
+            }
+        }
+
+        function closeVerifyWritingModal() {
+            document.getElementById('verifyWritingModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            window._verifyWritingId = null;
+            window._verifyProfileId = null;
+        }
+
+        async function confirmVerifyWriting() {
+            const writingId = window._verifyWritingId;
+            const profileId = window._verifyProfileId;
+
+            if (!writingId) {
+                alert('Tidak ada karya yang dipilih untuk diverifikasi.');
+                return;
+            }
+
+            if (!confirm('Verifikasi bahwa karya ini ASLI ditulis oleh member tersebut?')) return;
+
+            const btn = document.querySelector('#verifyWritingModal .flex-1.bg-emerald-600');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memverifikasi...';
+            document.getElementById('verifyWritingMessage').className = 'text-sm text-center hidden';
+
+            try {
+                // Update status verifikasi karya
+                await _supabase
+                    .from('yata_writings')
+                    .update({ 
+                        is_verified: true, 
+                        verified_at: new Date().toISOString() 
+                    })
+                    .eq('id', writingId);
+
+                // Catat aktivitas verifikasi
+                const session = await checkAdmin();
+                if (session) {
+                    await _supabase
+                        .from('yata_activity_logs')
+                        .insert([{
+                            user_id: session.user.id,
+                            action: 'verify_writing',
+                            details: { 
+                                writing_id: writingId, 
+                                profile_id: profileId,
+                                timestamp: new Date().toISOString()
+                            }
+                        }]);
+                }
+
+                document.getElementById('verifyWritingMessage').textContent = '✅ Karya berhasil diverifikasi!';
+                document.getElementById('verifyWritingMessage').className = 'text-sm text-center text-emerald-600 block';
+                btn.innerHTML = '✅ Terverifikasi!';
+
+                setTimeout(() => {
+                    closeVerifyWritingModal();
+                    loadLevelRequests();
+                }, 1500);
+
+            } catch (err) {
+                console.error('Confirm verify error:', err);
+                document.getElementById('verifyWritingMessage').textContent = '❌ Gagal verifikasi: ' + err.message;
+                document.getElementById('verifyWritingMessage').className = 'text-sm text-center text-red-600 block';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // ============================================
+        // 37. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -2920,7 +3109,7 @@
         }
 
         // ============================================
-        // 37. EVENT LISTENERS
+        // 38. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadAdminData();
@@ -2938,6 +3127,10 @@
 
             document.getElementById('verifyModal').addEventListener('click', function(e) {
                 if (e.target === this) closeVerifyModal();
+            });
+
+            document.getElementById('verifyWritingModal').addEventListener('click', function(e) {
+                if (e.target === this) closeVerifyWritingModal();
             });
 
             document.addEventListener('click', function(e) {
