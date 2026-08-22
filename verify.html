@@ -6,6 +6,8 @@
     <title>Verifikasi Sertifikat - YATTA</title>
     <link rel="icon" type="image/png" href="assets/favicon.png" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
 </head>
 <body class="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-50 to-white p-4">
 
@@ -17,44 +19,133 @@
         </div>
 
         <div id="result" class="py-8">
-            <!-- LANGSUNG TAMPILKAN DATA -->
-            <span class="text-6xl block mb-4">✅</span>
-            <h2 class="text-2xl font-black text-emerald-600">VALID</h2>
-            <p class="text-sm text-slate-500 mt-1">Sertifikat terdaftar di sistem YATTA</p>
-            
-            <div class="bg-slate-50 rounded-xl p-4 mt-6 text-left text-sm">
-                <div class="flex justify-between py-2 border-b border-slate-200">
-                    <span class="text-slate-500">Nomor</span>
-                    <span class="font-semibold">YATTA-ONBOARD-20260822-3520</span>
-                </div>
-                <div class="flex justify-between py-2 border-b border-slate-200">
-                    <span class="text-slate-500">Penerima</span>
-                    <span class="font-semibold">Devanka Danilasa</span>
-                </div>
-                <div class="flex justify-between py-2 border-b border-slate-200">
-                    <span class="text-slate-500">Tipe</span>
-                    <span class="font-semibold">Onboarding YATTA</span>
-                </div>
-                <div class="flex justify-between py-2 border-b border-slate-200">
-                    <span class="text-slate-500">Tanggal</span>
-                    <span class="font-semibold">22 Agustus 2026</span>
-                </div>
-                <div class="flex justify-between py-2">
-                    <span class="text-slate-500">Status</span>
-                    <span class="font-semibold text-emerald-600">✅ Terverifikasi</span>
-                </div>
+            <div class="flex justify-center">
+                <div class="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
             </div>
-
-            <div class="mt-6 text-xs text-slate-400">
-                Ditandatangani oleh: <strong>Abd. Rahman Danial</strong>
-                <br>Founder & CEO YATTA
-            </div>
+            <p class="text-slate-500 mt-4">Memverifikasi sertifikat...</p>
         </div>
 
         <div class="mt-6 text-xs text-slate-400">
             <a href="index.html" class="hover:text-emerald-600">← Kembali ke Beranda</a>
         </div>
     </div>
+
+    <script>
+        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Tanggal tidak tersedia';
+            try {
+                return new Date(dateString).toLocaleDateString('id-ID', {
+                    day: 'numeric', month: 'long', year: 'numeric'
+                });
+            } catch { return dateString; }
+        }
+
+        async function verify() {
+            const params = new URLSearchParams(window.location.search);
+            const certNumber = params.get('cert');
+            const resultDiv = document.getElementById('result');
+
+            if (!certNumber) {
+                resultDiv.innerHTML = `
+                    <div class="text-red-600">
+                        <span class="text-6xl block mb-4">❌</span>
+                        <h2 class="text-2xl font-black">Link Tidak Valid</h2>
+                        <p class="text-sm mt-2">Parameter sertifikat tidak ditemukan.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                // 🔥 AMBIL DATA SERTIFIKAT DARI DATABASE
+                const { data: cert, error } = await _supabase
+                    .from('yata_certificates')
+                    .select('*')
+                    .eq('certificate_number', certNumber)
+                    .maybeSingle();
+
+                console.log('🔍 Hasil:', cert);
+                console.log('❌ Error:', error);
+
+                if (error || !cert) {
+                    resultDiv.innerHTML = `
+                        <div class="text-red-600">
+                            <span class="text-6xl block mb-4">❌</span>
+                            <h2 class="text-2xl font-black">Sertifikat Tidak Ditemukan</h2>
+                            <p class="text-sm mt-2">Nomor: <strong>${certNumber}</strong></p>
+                            <p class="text-xs text-slate-400 mt-4">Pastikan nomor sertifikat benar.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // ✅ AMBIL NAMA USER
+                let userName = 'Member';
+                if (cert.user_id) {
+                    const { data: user } = await _supabase
+                        .from('yata_profiles')
+                        .select('full_name')
+                        .eq('id', cert.user_id)
+                        .maybeSingle();
+                    if (user) userName = user.full_name || 'Member';
+                }
+
+                const isClaimed = cert.is_claimed ? '✅ Terverifikasi' : '⏳ Belum Diklaim';
+                const date = formatDate(cert.issued_at);
+                const typeName = cert.certificate_type === 'onboarding' ? 'Onboarding YATTA' : cert.certificate_type || 'Program YATTA';
+
+                resultDiv.innerHTML = `
+                    <div>
+                        <span class="text-6xl block mb-4">✅</span>
+                        <h2 class="text-2xl font-black text-emerald-600">VALID</h2>
+                        <p class="text-sm text-slate-500 mt-1">Sertifikat terdaftar di sistem YATTA</p>
+                        
+                        <div class="bg-slate-50 rounded-xl p-4 mt-6 text-left text-sm">
+                            <div class="flex justify-between py-2 border-b border-slate-200">
+                                <span class="text-slate-500">Nomor</span>
+                                <span class="font-semibold">${cert.certificate_number}</span>
+                            </div>
+                            <div class="flex justify-between py-2 border-b border-slate-200">
+                                <span class="text-slate-500">Penerima</span>
+                                <span class="font-semibold">${userName}</span>
+                            </div>
+                            <div class="flex justify-between py-2 border-b border-slate-200">
+                                <span class="text-slate-500">Tipe</span>
+                                <span class="font-semibold">${typeName}</span>
+                            </div>
+                            <div class="flex justify-between py-2 border-b border-slate-200">
+                                <span class="text-slate-500">Tanggal</span>
+                                <span class="font-semibold">${date}</span>
+                            </div>
+                            <div class="flex justify-between py-2">
+                                <span class="text-slate-500">Status</span>
+                                <span class="font-semibold text-emerald-600">${isClaimed}</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 text-xs text-slate-400">
+                            Ditandatangani oleh: <strong>${cert.signatory_name || 'Abd. Rahman Danial'}</strong>
+                            <br>${cert.signatory_title || 'Founder & CEO YATTA'}
+                        </div>
+                    </div>
+                `;
+
+            } catch (err) {
+                console.error('Error:', err);
+                resultDiv.innerHTML = `
+                    <div class="text-red-600">
+                        <span class="text-6xl block mb-4">❌</span>
+                        <h2 class="text-2xl font-black">Terjadi Kesalahan</h2>
+                        <p class="text-sm mt-2">${err.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', verify);
+    </script>
 
 </body>
 </html>
