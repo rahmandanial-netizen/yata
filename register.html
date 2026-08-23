@@ -120,6 +120,153 @@
         }
         checkSession();
 
+        // ============================================
+        // GENERATE MEMBER ID DENGAN LEVEL
+        // ============================================
+        async function generateMemberIdWithLevel(levelKey) {
+            const prefixMap = {
+                'tamu': 'Yatta-T',
+                'penulis': 'Yatta-P',
+                'penulis_profesional': 'Yatta-PP',
+                'mentor': 'Yatta-M'
+            };
+            
+            const prefix = prefixMap[levelKey] || 'Yatta-T';
+            
+            const now = new Date();
+            const tanggal = String(now.getDate()).padStart(2, '0');
+            const bulan = String(now.getMonth() + 1).padStart(2, '0');
+            const tahun = String(now.getFullYear()).slice(-2);
+            const dateSuffix = `${tanggal}${bulan}${tahun}`;
+            
+            try {
+                const { count, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('*', { count: 'exact', head: true })
+                    .ilike('member_id', `${prefix}-%`);
+                
+                if (error) {
+                    console.error('Error counting members:', error);
+                    const timestamp = String(Date.now()).slice(-2);
+                    return `${prefix}-${timestamp}${dateSuffix}`;
+                }
+                
+                const number = (count || 0) + 1;
+                const urutan = number < 10 ? `0${number}` : String(number);
+                
+                return `${prefix}-${urutan}${dateSuffix}`;
+                
+            } catch (err) {
+                console.error('Generate member ID error:', err);
+                const timestamp = String(Date.now()).slice(-2);
+                return `${prefix}-${timestamp}${dateSuffix}`;
+            }
+        }
+
+        // ============================================
+        // FUNGSI BUAT PROFIL
+        // ============================================
+        async function createProfile(userId, username, fullName, email) {
+            try {
+                const profileData = {
+                    id: userId,
+                    username: username,
+                    full_name: fullName,
+                    email: email,
+                    role: 'member',
+                    member_level: 'Tamu',
+                    points: 0,
+                    created_at: new Date().toISOString()
+                };
+
+                console.log('📝 Mencoba insert profil:', profileData);
+
+                const { error: profileError } = await _supabase
+                    .from('yata_profiles')
+                    .insert([profileData]);
+
+                if (profileError) {
+                    console.error('❌ Profile Error:', profileError);
+                    console.error('❌ Code:', profileError.code);
+                    console.error('❌ Message:', profileError.message);
+                    
+                    // TAMPILKAN ERROR KE USER
+                    let errorMessage = 'Gagal menyimpan profil. ';
+                    if (profileError.code === '23505') {
+                        if (profileError.details?.includes('username')) {
+                            errorMessage += 'Username sudah digunakan. Silakan gunakan username lain.';
+                        } else if (profileError.details?.includes('email')) {
+                            errorMessage += 'Email sudah terdaftar. Silakan gunakan email lain.';
+                        } else {
+                            errorMessage += 'Data duplikat ditemukan.';
+                        }
+                    } else {
+                        errorMessage += profileError.message;
+                    }
+                    
+                    showError(errorMessage, 'Error');
+                    
+                    // HAPUS AUTH AGAR TIDAK ORPHAN
+                    try {
+                        await _supabase.auth.admin.deleteUser(userId);
+                        console.log('🧹 Akun auth dihapus karena profil gagal');
+                    } catch (delErr) {
+                        console.warn('⚠️ Gagal menghapus akun auth:', delErr);
+                    }
+                    return false;
+                }
+
+                console.log('✅ Profil berhasil disimpan!');
+
+                // GENERATE MEMBER ID
+                try {
+                    const newMemberId = await generateMemberIdWithLevel('tamu');
+                    await _supabase
+                        .from('yata_profiles')
+                        .update({ member_id: newMemberId })
+                        .eq('id', userId);
+                    console.log('✅ Member ID generated:', newMemberId);
+                } catch (err) {
+                    console.error('Generate member_id error:', err);
+                }
+
+                // KIRIM NOTIFIKASI SELAMAT DATANG
+                try {
+                    const { data: notifData, error: notifError } = await _supabase
+                        .from('yata_notifications')
+                        .insert([{
+                            title: '🎉 Selamat Datang di Yatta!',
+                            content: `Halo ${fullName}! Selamat bergabung di Yatta. Mulai tulis karyamu, temukan komunitas, dan ikuti kampanye literasi. Jangan lupa lengkapi profilmu!`,
+                            type: 'success'
+                        }])
+                        .select()
+                        .single();
+
+                    if (!notifError && notifData) {
+                        await _supabase
+                            .from('yata_user_notifications')
+                            .insert([{
+                                notification_id: notifData.id,
+                                user_id: userId,
+                                is_read: false
+                            }]);
+                        console.log('✅ Notifikasi selamat datang terkirim');
+                    }
+                } catch (notifErr) {
+                    console.error('Send welcome notification error:', notifErr);
+                }
+
+                return true;
+
+            } catch (err) {
+                console.error('Create profile error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // SUBMIT FORM
+        // ============================================
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -165,6 +312,9 @@
             message.className = 'text-sm text-center hidden';
 
             try {
+                // ============================================
+                // STEP 1: REGISTER KE AUTH DENGAN EMAIL CONFIRMATION
+                // ============================================
                 const { data: authData, error: authError } = await _supabase.auth.signUp({
                     email: emailValue,
                     password: pass,
@@ -172,93 +322,91 @@
                         data: {
                             full_name: name,
                             username: user,
-                        }
+                        },
+                        // 🔥 URL REDIRECT SETELAH KONFIRMASI EMAIL
+                        emailRedirectTo: 'https://yata-gold.vercel.app/login.html'
                     }
                 });
 
                 if (authError) {
-                    console.error('Auth Error:', authError);
-                    showError('Gagal daftar: ' + authError.message, 'Error');
+                    console.error('❌ Auth Error:', authError);
+                    if (authError.message.includes('User already registered')) {
+                        showError('Email sudah terdaftar. Silakan login.', 'Error');
+                    } else {
+                        showError('Gagal daftar: ' + authError.message, 'Error');
+                    }
                     return;
                 }
 
-                if (authData && authData.user) {
-                    saveRateLimit('register');
+                if (!authData || !authData.user) {
+                    showError('Gagal membuat akun. Silakan coba lagi.', 'Error');
+                    return;
+                }
 
-                    // ✅ PERBAIKAN: email disimpan ke profile
-                    const { error: profileError } = await _supabase
-                        .from('yata_profiles')
-                        .insert([{
-                            id: authData.user.id,
-                            username: user,
-                            full_name: name,
-                            email: emailValue,  // ✅ EMAIL DISIMPAN
-                            role: 'member',
-                            member_level: 'Tamu',
-                            points: 0,
-                        }]);
+                console.log('✅ Auth berhasil:', authData.user.id);
 
-                    if (profileError) {
-                        console.error('Profile Error:', profileError);
-                        showError('Akun berhasil dibuat, tapi profil gagal disimpan. Hubungi admin.', 'Warning');
-                        return;
-                    }
+                // ============================================
+                // STEP 2: CEK APAKAH EMAIL PERLU KONFIRMASI
+                // ============================================
+                const emailConfirmed = authData.user.confirmed_at !== null;
+                console.log('📧 Email confirmed:', emailConfirmed);
 
-                    try {
-                        const newMemberId = await generateMemberId('tamu');
-                        await _supabase
-                            .from('yata_profiles')
-                            .update({ member_id: newMemberId })
-                            .eq('id', authData.user.id);
-                        console.log('✅ Member ID generated:', newMemberId);
-                    } catch (err) {
-                        console.error('Generate member_id error:', err);
-                    }
+                // ============================================
+                // STEP 3: BUAT PROFIL (TETAP DIBUAT!)
+                // ============================================
+                const profileCreated = await createProfile(
+                    authData.user.id,
+                    user,
+                    name,
+                    emailValue
+                );
 
-                    try {
-                        const { data: notifData, error: notifError } = await _supabase
-                            .from('yata_notifications')
-                            .insert([{
-                                title: '🎉 Selamat Datang di Yatta!',
-                                content: `Halo ${name}! Selamat bergabung di Yatta. Mulai tulis karyamu, temukan komunitas, dan ikuti kampanye literasi. Jangan lupa lengkapi profilmu!`,
-                                type: 'success'
-                            }])
-                            .select()
-                            .single();
+                if (!profileCreated) {
+                    return;
+                }
 
-                        if (!notifError && notifData) {
-                            await _supabase
-                                .from('yata_user_notifications')
-                                .insert([{
-                                    notification_id: notifData.id,
-                                    user_id: authData.user.id,
-                                    is_read: false
-                                }]);
-                            console.log('✅ Notifikasi selamat datang terkirim');
-                        }
-                    } catch (notifErr) {
-                        console.error('Send welcome notification error:', notifErr);
-                    }
+                saveRateLimit('register');
 
-                    message.textContent = '✅ Pendaftaran berhasil! Cek email Anda untuk konfirmasi.';
+                // ============================================
+                // STEP 4: TAMPILKAN PESAN SESUAI STATUS
+                // ============================================
+                if (!emailConfirmed) {
+                    // 🔥 EMAIL BELUM DIKONFIRMASI - TAMPILKAN PESAN VERIFIKASI
+                    message.innerHTML = `
+                        ✅ Pendaftaran berhasil!<br>
+                        <span class="text-sm text-slate-500">
+                            Silakan cek <strong>email Anda</strong> (termasuk folder SPAM) 
+                            untuk verifikasi sebelum login.
+                        </span>
+                        <br><br>
+                        <span class="text-xs text-slate-400">
+                            🔗 Link verifikasi akan dikirim ke: <strong>${emailValue}</strong>
+                        </span>
+                    `;
                     message.className = 'text-sm text-center text-emerald-600 block';
+                    
+                    registerBtn.disabled = false;
+                    registerBtn.innerHTML = '<i class="fa-solid fa-user-plus mr-2"></i> Daftar Komunitas';
+                    
+                    // RESET FORM
                     form.reset();
-
+                    
+                } else {
+                    // EMAIL SUDAH DIKONFIRMASI (LANGSUNG LOGIN)
+                    message.textContent = '✅ Pendaftaran berhasil! Mengalihkan ke halaman login...';
+                    message.className = 'text-sm text-center text-emerald-600 block';
+                    
                     setTimeout(() => {
                         window.location.href = 'login.html';
-                    }, 3000);
+                    }, 2000);
                 }
 
             } catch (err) {
-                console.error('Register error:', err);
-                if (err.message.includes('User already registered')) {
-                    showError('Email sudah terdaftar. Silakan login.', 'Error');
-                } else {
-                    showError('Terjadi kesalahan: ' + err.message, 'Error');
-                }
+                console.error('❌ Register error:', err);
+                showError('Terjadi kesalahan: ' + err.message, 'Error');
             } finally {
-                registerBtn.disabled = false;
-                registerBtn.innerHTML = '<i class="fa-solid fa-user-plus mr-2"></i> Daftar Komunitas';
+                // JANGAN RESET BUTTON JIKA EMAIL BELUM DIKONFIRMASI
+                // (SUDAH DIATUR DI ATAS)
             }
         });
 
@@ -266,6 +414,10 @@
             const msg = document.getElementById('message');
             msg.textContent = title + ': ' + message;
             msg.className = 'text-sm text-center text-red-600 block';
+            
+            // RESET BUTTON
+            registerBtn.disabled = false;
+            registerBtn.innerHTML = '<i class="fa-solid fa-user-plus mr-2"></i> Daftar Komunitas';
         }
     </script>
 
