@@ -155,6 +155,30 @@
             min-height: 80px;
             resize: vertical;
         }
+        .action-btn {
+            background: #065F46;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: 100%;
+        }
+        .action-btn:hover {
+            background: #0D9488;
+        }
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .action-section {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 16px;
+            margin-top: 16px;
+        }
     </style>
 </head>
 <body>
@@ -575,7 +599,58 @@
         }
 
         // ============================================
-        // 🔥🔥🔥 BUAT SERTIFIKAT OTOMATIS - VERSI ROBUST
+        // 🔥 KIRIM NOTIFIKASI DENGAN TOMBOL AKSI
+        // ============================================
+        async function sendNotificationWithAction(userId, title, content, type = 'success', actionLabel = null, actionUrl = null) {
+            try {
+                let notifData = {
+                    title: title,
+                    content: content,
+                    type: type
+                };
+
+                if (actionLabel && actionUrl) {
+                    notifData.action_label = actionLabel;
+                    notifData.action_url = actionUrl;
+                }
+
+                const { data: notifDataResult, error } = await _supabase
+                    .from('yata_notifications')
+                    .insert([notifData])
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('❌ Insert notif error:', error);
+                    return false;
+                }
+
+                if (notifDataResult && userId) {
+                    const { error: linkError } = await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifDataResult.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+
+                    if (linkError) {
+                        console.error('❌ Link notif error:', linkError);
+                        return false;
+                    }
+                }
+
+                console.log(`✅ Notifikasi dengan aksi ke user ${userId}: ${title}`);
+                return true;
+
+            } catch (err) {
+                console.error('❌ Send notification with action error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // 🔥 BUAT SERTIFIKAT OTOMATIS
         // ============================================
         async function createCertificate(userId) {
             try {
@@ -653,7 +728,7 @@
         }
 
         // ============================================
-        // 🔥🔥🔥 CEK ULASAN & BUAT SERTIFIKAT - VERSI ROBUST
+        // 🔥 CEK ULASAN & BUAT SERTIFIKAT
         // ============================================
         async function checkReviewAndCertificate(userId) {
             try {
@@ -742,21 +817,105 @@
         }
 
         // ============================================
-        // 🔥 3 NOTIFIKASI SAAT SELESAI
+        // 🔥 KIRIM NOTIFIKASI SELESAI ONBOARDING (DENGAN SYARAT)
         // ============================================
         async function sendCompletionNotifications(userId) {
             try {
                 console.log('📬 [sendCompletionNotifications] Mengirim notifikasi ke:', userId);
                 
-                const notif1Title = `🎉 Selamat! Anda Telah Menyelesaikan Onboarding!`;
+                const { data: profile, error: profileError } = await _supabase
+                    .from('yata_profiles')
+                    .select('full_name, member_level')
+                    .eq('id', userId)
+                    .single();
+                
+                if (profileError) {
+                    console.error('❌ Profile error:', profileError);
+                    return;
+                }
+
+                const userName = profile?.full_name || 'Member';
+                const currentLevel = profile?.member_level || 'Tamu';
+
+                // ============================================
+                // 🔥 CEK SYARAT NAIK LEVEL
+                // ============================================
+                
+                // 1. Hitung karya yang dipublikasikan
+                const { count: totalWritings, error: wError } = await _supabase
+                    .from('yata_writings')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('author_id', userId)
+                    .eq('status', 'published');
+
+                // 2. Hitung mentoring yang sudah diikuti (attended = true)
+                const { count: totalMentoring, error: mError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', userId)
+                    .eq('attended', true);
+
+                const writings = totalWritings || 0;
+                const mentoring = totalMentoring || 0;
+
+                console.log(`📊 Statistik user: ${writings} karya, ${mentoring} mentoring`);
+
+                // ============================================
+                // 🔥 TENTUKAN APAKAH SYARAT TERPENUHI
+                // ============================================
+                let canLevelUp = false;
+                let levelRequirements = '';
+
+                if (currentLevel === 'Tamu') {
+                    canLevelUp = (writings >= 5 && mentoring >= 3);
+                    levelRequirements = '5 karya dan 3 mentoring';
+                } else if (currentLevel === 'Penulis') {
+                    const { count: books } = await _supabase
+                        .from('yata_book_projects')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('author_id', userId)
+                        .eq('status', 'published');
+                    
+                    canLevelUp = (writings >= 20 && mentoring >= 5 && (books || 0) >= 1);
+                    levelRequirements = '20 karya, 5 mentoring, dan 1 buku terbit';
+                } else if (currentLevel === 'Penulis Profesional') {
+                    const { count: books } = await _supabase
+                        .from('yata_book_projects')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('author_id', userId)
+                        .eq('status', 'published');
+                    
+                    canLevelUp = (writings >= 50 && mentoring >= 5 && (books || 0) >= 3);
+                    levelRequirements = '50 karya, 5 mentoring, dan 3 buku terbit';
+                } else {
+                    // Mentor = level tertinggi
+                    canLevelUp = false;
+                }
+
+                console.log(`📈 Bisa naik level? ${canLevelUp}`);
+
+                // ============================================
+                // 📨 KIRIM NOTIFIKASI 1: SELAMAT ONBOARDING
+                // ============================================
+                const notif1Title = `🎉 Selamat ${userName}! Anda Telah Menyelesaikan Onboarding!`;
                 const notif1Content = `Anda telah menyelesaikan semua 3 kelas onboarding YATTA! 🎉
         
 📚 Anda sekarang resmi menjadi bagian dari ekosistem YATTA.
 
-🚀 Langkah selanjutnya: Naik level ke "Penulis" untuk mulai menulis dan menerbitkan karya!`;
+📌 Klik tombol di bawah untuk melihat sertifikat Anda.`;
 
-                await sendNotification(userId, notif1Title, notif1Content, 'success');
+                await sendNotificationWithAction(
+                    userId,
+                    notif1Title,
+                    notif1Content,
+                    'success',
+                    '📜 Lihat Sertifikat',
+                    '/certificates.html'
+                );
 
+                // ============================================
+                // 📨 KIRIM NOTIFIKASI 2: SERTIFIKAT TERSEDIA
+                // ============================================
                 const notif2Title = `📜 Sertifikat Onboarding Anda Tersedia!`;
                 const notif2Content = `Sertifikat onboarding Anda sudah tersedia di menu Sertifikat.
 
@@ -764,22 +923,77 @@
 Abd. Rahman Danial
 Founder & CEO YATTA
 
-📌 Klik menu Sertifikat untuk melihat dan mengunduh.`;
+📌 Klik tombol di bawah untuk melihat sertifikat Anda.`;
 
-                await sendNotification(userId, notif2Title, notif2Content, 'success');
+                await sendNotificationWithAction(
+                    userId,
+                    notif2Title,
+                    notif2Content,
+                    'success',
+                    '📜 Lihat Sertifikat',
+                    '/certificates.html'
+                );
 
-                const notif3Title = `⭐ Ajukan Naik Level ke "Penulis" Sekarang!`;
-                const notif3Content = `Anda sudah menyelesaikan semua kelas onboarding.
+                // ============================================
+                // 🔥 KIRIM NOTIFIKASI 3: NAIK LEVEL (HANYA JIKA SYARAT TERPENUHI!)
+                // ============================================
+                if (canLevelUp) {
+                    const levelMap = {
+                        'Tamu': 'Penulis',
+                        'Penulis': 'Penulis Profesional',
+                        'Penulis Profesional': 'Mentor'
+                    };
+                    const nextLevel = levelMap[currentLevel] || 'Penulis';
 
-📋 Syarat naik level ke "Penulis":
-✅ 5+ karya dipublikasikan
-✅ 3+ kali mengikuti mentoring
+                    const notif3Title = `⭐ Ajukan Naik Level ke "${nextLevel}" Sekarang!`;
+                    const notif3Content = `Anda sudah memenuhi semua syarat untuk naik level!
 
-📌 Klik menu Profil untuk melihat detail level dan ajukan naik level.`;
+📋 Level Anda saat ini: ${currentLevel}
+🎯 Target level: ${nextLevel}
 
-                await sendNotification(userId, notif3Title, notif3Content, 'campaign');
+📊 Data Anda:
+✅ ${writings} karya dipublikasikan
+✅ ${mentoring} kali mengikuti mentoring
 
-                console.log(`✅ 3 notifikasi completion terkirim ke user ${userId}`);
+📌 Klik tombol di bawah untuk mengajukan naik level.`;
+
+                    await sendNotificationWithAction(
+                        userId,
+                        notif3Title,
+                        notif3Content,
+                        'campaign',
+                        '⭐ Ajukan Naik Level',
+                        '/profile.html'
+                    );
+
+                    console.log(`✅ Notifikasi naik level terkirim ke ${userId}`);
+                } else {
+                    // 🔥 KIRIM NOTIFIKASI ALTERNATIF: SYARAT BELUM TERPENUHI
+                    const notif3Title = `📝 Yuk, Kejar Syarat Naik Level!`;
+                    const notif3Content = `Anda sudah menyelesaikan semua kelas onboarding. Sekarang saatnya menulis!
+
+📋 Syarat naik level dari "${currentLevel}":
+✅ ${levelRequirements}
+
+📊 Progress Anda:
+📖 ${writings} karya (target: ${currentLevel === 'Tamu' ? 5 : currentLevel === 'Penulis' ? 20 : 50})
+🎓 ${mentoring} mentoring (target: ${currentLevel === 'Tamu' ? 3 : 5})
+
+📌 Terus berkarya dan jangan menyerah! 🚀`;
+
+                    await sendNotificationWithAction(
+                        userId,
+                        notif3Title,
+                        notif3Content,
+                        'info',
+                        '✍️ Mulai Menulis',
+                        '/write.html'
+                    );
+
+                    console.log(`✅ Notifikasi progress terkirim ke ${userId}`);
+                }
+
+                console.log(`✅ Semua notifikasi completion terkirim ke user ${userId}`);
 
             } catch (err) {
                 console.error('❌ [sendCompletionNotifications] Error:', err);
@@ -1319,7 +1533,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 🔥🔥🔥 SUBMIT REVIEW - DENGAN SERTIFIKAT OTOMATIS
+        // 🔥 SUBMIT REVIEW - DENGAN SERTIFIKAT OTOMATIS
         // ============================================
         document.getElementById('reviewForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1362,7 +1576,7 @@ Founder & CEO YATTA
                 // ✅ UPDATE RATING KELAS
                 await updateSessionRating(sessionId);
 
-                // 🔥🔥🔥 CEK DAN BUAT SERTIFIKAT OTOMATIS!
+                // 🔥 CEK DAN BUAT SERTIFIKAT OTOMATIS!
                 console.log('🔍 Memanggil checkReviewAndCertificate untuk user:', session.user.id);
                 const certResult = await checkReviewAndCertificate(session.user.id);
                 console.log('📜 Hasil sertifikat:', certResult ? 'BERHASIL' : 'GAGAL');
