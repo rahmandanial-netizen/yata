@@ -140,12 +140,37 @@
             border-color: #065F46;
             box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.15);
         }
+        .form-input.error {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+        }
         .form-label {
             display: block;
             font-size: 12px;
             font-weight: 600;
             color: #475569;
             margin-bottom: 4px;
+        }
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+            background-position: right 12px center;
+            background-repeat: no-repeat;
+            background-size: 20px;
+            padding-right: 40px;
+        }
+        .error-message {
+            color: #ef4444;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+        .error-message.show {
+            display: block;
         }
         .verify-writing-content {
             max-height: 400px;
@@ -245,7 +270,11 @@
                     <i class="fa-solid fa-graduation-cap w-5"></i> Kelola Onboarding
                     <span id="onboardingCount" class="ml-auto bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
                 </a>
-                <!-- 🔥 TAMBAHAN: Pengajuan Naik Level -->
+                <!-- 🔥 TAMBAHAN: Buat Kelas Mentoring (Admin) -->
+                <a href="#" onclick="switchAdminTab('create-mentoring')" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition" id="tabCreateMentoring">
+                    <i class="fa-solid fa-plus-circle w-5 text-emerald-500"></i> Buat Kelas Mentoring
+                    <span class="ml-auto text-[10px] text-emerald-500 font-semibold">Admin</span>
+                </a>
                 <a href="#" onclick="switchAdminTab('levelRequests')" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition" id="tabLevelRequests">
                     <i class="fa-solid fa-arrow-up w-5"></i> Pengajuan Naik Level
                     <span id="pendingLevelCount" class="ml-auto bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
@@ -289,6 +318,7 @@
             <a href="#" onclick="switchAdminTab('campaigns')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kampanye</a>
             <a href="#" onclick="switchAdminTab('books')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Pengajuan Buku</a>
             <a href="#" onclick="switchAdminTab('onboarding')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kelola Onboarding</a>
+            <a href="#" onclick="switchAdminTab('create-mentoring')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Buat Kelas Mentoring</a>
             <a href="#" onclick="switchAdminTab('levelRequests')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Pengajuan Naik Level</a>
             <a href="admin-presensi.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Presensi Onboarding</a>
             <hr class="my-2 border-emerald-100" />
@@ -655,14 +685,12 @@
                             <p class="text-xs text-slate-400 mt-1">Link akan dikirim ke peserta saat pendaftaran berhasil.</p>
                         </div>
 
-                        <!-- 🔥 NAMA MENTOR (INPUT TEKS MANUAL) -->
                         <div>
                             <label for="onboardingMentor" class="block text-xs font-semibold text-slate-700 mb-1">Nama Mentor <span class="text-red-500">*</span></label>
                             <input type="text" id="onboardingMentor" placeholder="Contoh: Abd. Rahman Danial" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
                             <p class="text-xs text-slate-400 mt-1">Masukkan nama mentor dari tim internal YATTA yang akan mengisi kelas.</p>
                         </div>
 
-                        <!-- 🔥 IS_ONBOARDING & IS_MANDATORY (HIDDEN, SELALU TRUE UNTUK ONBOARDING) -->
                         <input type="hidden" id="onboardingIsOnboarding" value="true" />
                         <input type="hidden" id="onboardingIsMandatory" value="true" />
 
@@ -684,6 +712,165 @@
                         <div class="text-center py-6 text-slate-400 text-sm">
                             <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat...
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- 🔥 TAB: BUAT KELAS MENTORING (ADMIN) -->
+            <!-- ============================================ -->
+            <div id="adminCreateMentoring" class="hidden bg-white rounded-2xl border border-emerald-100/60 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-emerald-100/60">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="font-bold text-slate-800">📝 Buat Kelas Mentoring</h2>
+                            <p class="text-xs text-slate-500">Buat kelas mentoring reguler atau wajib untuk member.</p>
+                        </div>
+                        <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">🛡️ Admin Only</span>
+                    </div>
+                </div>
+
+                <div class="p-5">
+                    <form id="adminCreateMentoringForm" class="space-y-5">
+
+                        <!-- Judul -->
+                        <div>
+                            <label for="adminMentoringTitle" class="form-label">Judul Kelas <span class="text-red-500">*</span></label>
+                            <input type="text" id="adminMentoringTitle" placeholder="Contoh: Mentoring Menulis Cerpen" required class="form-input" />
+                            <div id="adminMentoringTitleError" class="error-message">Judul wajib diisi (minimal 5 karakter).</div>
+                        </div>
+
+                        <!-- Slug -->
+                        <div>
+                            <label for="adminMentoringSlug" class="form-label">Slug <span class="text-red-500">*</span></label>
+                            <input type="text" id="adminMentoringSlug" placeholder="Contoh: mentoring-menulis-cerpen" required class="form-input lowercase" />
+                            <p class="text-xs text-slate-400 mt-1">Hanya huruf kecil, angka, dan tanda hubung (-).</p>
+                            <div id="adminMentoringSlugError" class="error-message">Slug hanya boleh huruf kecil, angka, dan tanda hubung (-).</div>
+                            <div id="adminMentoringSlugAvailability" class="text-xs mt-1 hidden"></div>
+                        </div>
+
+                        <!-- Deskripsi -->
+                        <div>
+                            <label for="adminMentoringDescription" class="form-label">Deskripsi <span class="text-red-500">*</span></label>
+                            <textarea id="adminMentoringDescription" rows="3" placeholder="Jelaskan materi yang akan diajarkan..." required class="form-input form-textarea"></textarea>
+                            <div id="adminMentoringDescError" class="error-message">Deskripsi wajib diisi (minimal 20 karakter).</div>
+                            <p class="text-xs text-slate-400 mt-1"><span id="adminMentoringDescCharCount">0</span> karakter</p>
+                        </div>
+
+                        <!-- Kategori & Level -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="adminMentoringCategory" class="form-label">Kategori</label>
+                                <select id="adminMentoringCategory" class="form-input form-select">
+                                    <option value="umum">📌 Umum</option>
+                                    <option value="menulis-cerpen">📝 Menulis Cerpen</option>
+                                    <option value="menulis-puisi">📖 Menulis Puisi</option>
+                                    <option value="menulis-novel">📚 Menulis Novel</option>
+                                    <option value="teknik-menulis">✍️ Teknik Menulis</option>
+                                    <option value="editorial">🔍 Editorial</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="adminMentoringLevel" class="form-label">Level Peserta</label>
+                                <select id="adminMentoringLevel" class="form-input form-select">
+                                    <option value="pemula">🌱 Pemula</option>
+                                    <option value="menengah">📈 Menengah</option>
+                                    <option value="lanjutan">🚀 Lanjutan</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Harga & Kuota -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="adminMentoringPrice" class="form-label">Harga (Rp)</label>
+                                <input type="number" id="adminMentoringPrice" placeholder="0 untuk gratis" value="0" min="0" class="form-input" />
+                                <p class="text-xs text-slate-400 mt-1">Isi 0 untuk kelas gratis.</p>
+                            </div>
+                            <div>
+                                <label for="adminMentoringMaxParticipants" class="form-label">Maksimal Peserta</label>
+                                <input type="number" id="adminMentoringMaxParticipants" placeholder="10" value="10" min="1" max="100" class="form-input" />
+                                <p class="text-xs text-slate-400 mt-1">Maksimal 100 peserta.</p>
+                            </div>
+                        </div>
+
+                        <!-- Jadwal -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="adminMentoringStartDate" class="form-label">Tanggal Mulai</label>
+                                <input type="date" id="adminMentoringStartDate" class="form-input" />
+                            </div>
+                            <div>
+                                <label for="adminMentoringSchedule" class="form-label">Jadwal Rutin</label>
+                                <input type="text" id="adminMentoringSchedule" placeholder="Contoh: Setiap Senin 19:00 WIB" class="form-input" />
+                            </div>
+                        </div>
+
+                        <!-- Link Meeting -->
+                        <div>
+                            <label for="adminMentoringMeetingLink" class="form-label">Link Meeting (Zoom/Google Meet)</label>
+                            <input type="url" id="adminMentoringMeetingLink" placeholder="https://zoom.us/j/..." class="form-input" />
+                            <p class="text-xs text-slate-400 mt-1">Link akan diberikan ke peserta setelah pendaftaran disetujui.</p>
+                        </div>
+
+                        <!-- Nama Mentor -->
+                        <div>
+                            <label for="adminMentoringMentorName" class="form-label">Nama Mentor <span class="text-red-500">*</span></label>
+                            <input type="text" id="adminMentoringMentorName" placeholder="Contoh: Abd. Rahman Danial" required class="form-input" />
+                            <p class="text-xs text-slate-400 mt-1">Masukkan nama mentor dari tim internal YATTA.</p>
+                        </div>
+
+                        <!-- ========================================== -->
+                        <!-- 🔥 ADMIN ONLY: JENIS KELAS -->
+                        <!-- ========================================== -->
+                        <div class="border-t border-slate-200 pt-4 mt-2">
+                            <p class="text-xs font-semibold text-emerald-600 mb-3">🛡️ Khusus Admin: Jenis Kelas</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="adminMentoringIsOnboarding" class="form-label">Kelas Onboarding</label>
+                                    <select id="adminMentoringIsOnboarding" class="form-input form-select">
+                                        <option value="false">❌ Bukan Onboarding</option>
+                                        <option value="true">✅ Onboarding (Wajib)</option>
+                                    </select>
+                                    <p class="text-xs text-slate-400 mt-1">Hanya 1 kelas onboarding yang aktif.</p>
+                                </div>
+                                <div>
+                                    <label for="adminMentoringIsMandatory" class="form-label">Kelas Wajib</label>
+                                    <select id="adminMentoringIsMandatory" class="form-input form-select">
+                                        <option value="false">📚 Reguler (Opsional)</option>
+                                        <option value="true">📖 Wajib (Admin)</option>
+                                    </select>
+                                    <p class="text-xs text-slate-400 mt-1">Kelas wajib untuk naik level.</p>
+                                </div>
+                            </div>
+                            <div class="mt-3 text-xs text-amber-600 bg-amber-50 p-3 rounded-xl">
+                                <p><strong>⚠️ Catatan:</strong></p>
+                                <ul class="list-disc pl-4 space-y-0.5">
+                                    <li>Kelas onboarding wajib adalah 1 kelas dengan <strong>is_onboarding = true</strong></li>
+                                    <li>Kelas mentoring admin wajib adalah 2 kelas dengan <strong>is_mandatory = true</strong> dan <strong>is_onboarding = false</strong></li>
+                                    <li>Kelas reguler memiliki <strong>is_onboarding = false</strong> dan <strong>is_mandatory = false</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" id="adminMentoringSubmitBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fa-regular fa-paper-plane mr-1"></i> Buat Kelas Mentoring
+                        </button>
+
+                        <div id="adminMentoringMessage" class="text-sm text-center hidden"></div>
+                    </form>
+
+                    <!-- Success State -->
+                    <div id="adminMentoringSuccess" class="hidden text-center py-8">
+                        <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fa-solid fa-check text-emerald-600 text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-black text-slate-800">✅ Kelas Berhasil Dibuat!</h3>
+                        <p class="text-sm text-slate-500 mt-2">Kelas mentoring berhasil dibuat dan akan muncul di halaman mentoring.</p>
+                        <button onclick="resetAdminMentoringForm()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                            <i class="fa-solid fa-plus mr-1"></i> Buat Kelas Lagi
+                        </button>
                     </div>
                 </div>
             </div>
@@ -799,19 +986,16 @@
             <form id="editOnboardingForm" class="space-y-4">
                 <input type="hidden" id="editOnboardingId" value="" />
 
-                <!-- Judul -->
                 <div>
                     <label for="editOnboardingTitle" class="form-label">Judul <span class="text-red-500">*</span></label>
                     <input type="text" id="editOnboardingTitle" placeholder="Judul onboarding" required class="form-input" />
                 </div>
 
-                <!-- Deskripsi -->
                 <div>
                     <label for="editOnboardingDesc" class="form-label">Deskripsi <span class="text-red-500">*</span></label>
                     <textarea id="editOnboardingDesc" rows="3" placeholder="Deskripsi kelas" required class="form-input resize-none"></textarea>
                 </div>
 
-                <!-- Level & Kuota -->
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label for="editOnboardingLevel" class="form-label">Level</label>
@@ -827,7 +1011,6 @@
                     </div>
                 </div>
 
-                <!-- Jadwal & Link -->
                 <div>
                     <label for="editOnboardingSchedule" class="form-label">Jadwal</label>
                     <input type="text" id="editOnboardingSchedule" placeholder="Contoh: Setiap Sabtu, 19:00 WIB" class="form-input" />
@@ -838,13 +1021,11 @@
                     <input type="url" id="editOnboardingLink" placeholder="https://zoom.us/j/..." class="form-input" />
                 </div>
 
-                <!-- 🔥 NAMA MENTOR (INPUT TEKS MANUAL) DI EDIT -->
                 <div>
                     <label for="editOnboardingMentor" class="form-label">Nama Mentor <span class="text-red-500">*</span></label>
                     <input type="text" id="editOnboardingMentor" placeholder="Nama mentor..." class="form-input" />
                 </div>
 
-                <!-- Status -->
                 <div>
                     <label for="editOnboardingStatus" class="form-label">Status</label>
                     <select id="editOnboardingStatus" class="form-input bg-white">
@@ -963,7 +1144,6 @@
         let allCampaigns = [];
         let allBooks = [];
 
-        // 🔥 VARIABLE UNTUK HAPUS KELAS
         let deleteClassTargetId = null;
 
         // ============================================
@@ -2346,6 +2526,7 @@
                 'campaigns': { id: 'tabCampaigns', content: 'adminCampaigns' },
                 'books': { id: 'tabBooks', content: 'adminBooks' },
                 'onboarding': { id: 'tabOnboarding', content: 'adminOnboarding' },
+                'create-mentoring': { id: 'tabCreateMentoring', content: 'adminCreateMentoring' },
                 'levelRequests': { id: 'tabLevelRequests', content: 'adminLevelRequests' }
             };
 
@@ -2524,7 +2705,6 @@
                 }
 
                 container.innerHTML = onboardings.map(o => {
-                    // 🔥 HITUNG DATA TERKAIT
                     const reviewCount = o.total_reviews || 0;
                     const participantCount = o.current_participants || 0;
 
@@ -2609,7 +2789,6 @@
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Membuat...';
 
             try {
-                // 🔥 CEK APAKAH SUDAH ADA ONBOARDING
                 const { count: existingOnboarding } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('*', { count: 'exact', head: true })
@@ -2689,25 +2868,21 @@
         // ============================================
         async function deleteOnboardingWithCascade(sessionId) {
             try {
-                // 1. Hapus review
                 await _supabase
                     .from('yata_onboarding_reviews')
                     .delete()
                     .eq('session_id', sessionId);
 
-                // 2. Hapus peserta
                 await _supabase
                     .from('yata_mentoring_participants')
                     .delete()
                     .eq('session_id', sessionId);
 
-                // 3. Hapus materi
                 await _supabase
                     .from('yata_mentoring_materials')
                     .delete()
                     .eq('session_id', sessionId);
 
-                // 4. Hapus kelas
                 const { error } = await _supabase
                     .from('yata_mentoring_sessions')
                     .delete()
@@ -2730,7 +2905,6 @@
         async function openDeleteClassModal(sessionId, sessionTitle) {
             deleteClassTargetId = sessionId;
 
-            // 🔥 HITUNG DATA TERKAIT
             try {
                 const { count: participantCount } = await _supabase
                     .from('yata_mentoring_participants')
@@ -2906,7 +3080,191 @@
         });
 
         // ============================================
-        // 🔥 34. LOAD PENGAJUAN NAIK LEVEL
+        // 34. ADMIN: BUAT KELAS MENTORING
+        // ============================================
+        document.getElementById('adminMentoringTitle').addEventListener('input', function() {
+            const slug = this.value
+                .toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-|-$/g, '');
+            document.getElementById('adminMentoringSlug').value = slug;
+            checkAdminMentoringSlug(slug);
+        });
+
+        let adminMentoringSlugTimeout = null;
+        async function checkAdminMentoringSlug(slug) {
+            const el = document.getElementById('adminMentoringSlugAvailability');
+            const slugInput = document.getElementById('adminMentoringSlug');
+
+            if (slug.length < 3) {
+                el.classList.add('hidden');
+                slugInput.classList.remove('error');
+                return;
+            }
+
+            if (!/^[a-z0-9-]+$/.test(slug)) {
+                el.classList.remove('hidden');
+                el.innerHTML = '❌ Hanya huruf kecil, angka, dan tanda hubung (-)';
+                el.className = 'text-xs text-red-500 mt-1';
+                return;
+            }
+
+            el.classList.remove('hidden');
+            el.innerHTML = '🔍 Mengecek ketersediaan...';
+            el.className = 'text-xs text-slate-400 mt-1';
+
+            clearTimeout(adminMentoringSlugTimeout);
+            adminMentoringSlugTimeout = setTimeout(async () => {
+                try {
+                    const { data, error } = await _supabase
+                        .from('yata_mentoring_sessions')
+                        .select('slug')
+                        .eq('slug', slug)
+                        .maybeSingle();
+
+                    if (error) throw error;
+
+                    if (data) {
+                        el.innerHTML = '❌ Slug sudah digunakan. Silakan gunakan slug lain.';
+                        el.className = 'text-xs text-red-500 mt-1';
+                        slugInput.classList.add('error');
+                    } else {
+                        el.innerHTML = '✅ Slug tersedia!';
+                        el.className = 'text-xs text-emerald-600 mt-1';
+                        slugInput.classList.remove('error');
+                    }
+                } catch (err) {
+                    console.error('Check slug error:', err);
+                }
+            }, 500);
+        }
+
+        document.getElementById('adminMentoringDescription').addEventListener('input', function() {
+            document.getElementById('adminMentoringDescCharCount').textContent = this.value.length;
+        });
+
+        document.getElementById('adminCreateMentoringForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const title = document.getElementById('adminMentoringTitle').value.trim();
+            const slug = document.getElementById('adminMentoringSlug').value.trim().toLowerCase();
+            const description = document.getElementById('adminMentoringDescription').value.trim();
+            const category = document.getElementById('adminMentoringCategory').value;
+            const level = document.getElementById('adminMentoringLevel').value;
+            const price = parseInt(document.getElementById('adminMentoringPrice').value) || 0;
+            const maxParticipants = parseInt(document.getElementById('adminMentoringMaxParticipants').value) || 10;
+            const startDate = document.getElementById('adminMentoringStartDate').value || null;
+            const schedule = document.getElementById('adminMentoringSchedule').value.trim() || null;
+            const meetingLink = document.getElementById('adminMentoringMeetingLink').value.trim() || null;
+            const mentorName = document.getElementById('adminMentoringMentorName').value.trim();
+
+            const isOnboarding = document.getElementById('adminMentoringIsOnboarding').value === 'true';
+            const isMandatory = document.getElementById('adminMentoringIsMandatory').value === 'true';
+
+            let hasError = false;
+            document.querySelectorAll('#adminCreateMentoringForm .error-message').forEach(el => el.classList.remove('show'));
+            document.querySelectorAll('#adminCreateMentoringForm .form-input').forEach(el => el.classList.remove('error'));
+
+            if (!title || title.length < 5) {
+                document.getElementById('adminMentoringTitleError').textContent = 'Judul wajib diisi (minimal 5 karakter).';
+                document.getElementById('adminMentoringTitleError').classList.add('show');
+                document.getElementById('adminMentoringTitle').classList.add('error');
+                hasError = true;
+            }
+
+            if (!slug || slug.length < 3 || !/^[a-z0-9-]+$/.test(slug)) {
+                document.getElementById('adminMentoringSlugError').classList.add('show');
+                document.getElementById('adminMentoringSlug').classList.add('error');
+                hasError = true;
+            }
+
+            if (!description || description.length < 20) {
+                document.getElementById('adminMentoringDescError').classList.add('show');
+                document.getElementById('adminMentoringDescription').classList.add('error');
+                hasError = true;
+            }
+
+            if (!mentorName) {
+                alert('Nama mentor wajib diisi.');
+                hasError = true;
+            }
+
+            if (isOnboarding) {
+                const { count: existingOnboarding } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('is_onboarding', true);
+
+                if ((existingOnboarding || 0) > 0) {
+                    alert('❌ Hanya 1 kelas onboarding yang diperbolehkan. Hapus kelas onboarding lama terlebih dahulu.');
+                    hasError = true;
+                }
+            }
+
+            if (hasError) return;
+
+            const submitBtn = document.getElementById('adminMentoringSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Membuat...';
+            document.getElementById('adminMentoringMessage').className = 'text-sm text-center hidden';
+
+            try {
+                const session = await checkAdmin();
+                if (!session) return;
+
+                const { data, error } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .insert([{
+                        mentor_id: session.user.id,
+                        mentor_name: mentorName,
+                        title: title,
+                        slug: slug,
+                        description: description,
+                        category: category,
+                        level: level,
+                        price: price,
+                        max_participants: maxParticipants,
+                        start_date: startDate,
+                        schedule: schedule,
+                        meeting_link: meetingLink,
+                        is_onboarding: isOnboarding,
+                        is_mandatory: isMandatory,
+                        created_by: 'admin',
+                        status: 'published'
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                document.getElementById('adminCreateMentoringForm').classList.add('hidden');
+                document.getElementById('adminMentoringSuccess').classList.remove('hidden');
+                document.getElementById('adminMentoringMessage').textContent = '✅ Kelas mentoring berhasil dibuat!';
+                document.getElementById('adminMentoringMessage').className = 'text-sm text-center text-emerald-600 block';
+
+            } catch (err) {
+                console.error('Create mentoring error:', err);
+                document.getElementById('adminMentoringMessage').textContent = '❌ Gagal membuat kelas: ' + err.message;
+                document.getElementById('adminMentoringMessage').className = 'text-sm text-center text-red-600 block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Buat Kelas Mentoring';
+            }
+        });
+
+        function resetAdminMentoringForm() {
+            document.getElementById('adminCreateMentoringForm').reset();
+            document.getElementById('adminCreateMentoringForm').classList.remove('hidden');
+            document.getElementById('adminMentoringSuccess').classList.add('hidden');
+            document.getElementById('adminMentoringMessage').className = 'text-sm text-center hidden';
+            document.getElementById('adminMentoringPrice').value = '0';
+            document.getElementById('adminMentoringMaxParticipants').value = '10';
+        }
+
+        // ============================================
+        // 35. LOAD PENGAJUAN NAIK LEVEL
         // ============================================
         async function loadLevelRequests() {
             const container = document.getElementById('levelRequestList');
@@ -3108,7 +3466,7 @@
         }
 
         // ============================================
-        // 🔥 35. APPROVE NAIK LEVEL
+        // 36. APPROVE NAIK LEVEL
         // ============================================
         async function approveLevelUp(userId, userName) {
             console.log('🔥 approveLevelUp dipanggil!', { userId, userName });
@@ -3222,7 +3580,7 @@
         }
 
         // ============================================
-        // 🔥 36. REJECT NAIK LEVEL
+        // 37. REJECT NAIK LEVEL
         // ============================================
         async function rejectLevelUp(userId, userName) {
             console.log('🔥 rejectLevelUp dipanggil!', { userId, userName });
@@ -3316,7 +3674,7 @@
         }
 
         // ============================================
-        // 🔥 37. UPDATE PENDING COUNT
+        // 38. UPDATE PENDING COUNT
         // ============================================
         function updatePendingCount() {
             const container = document.getElementById('levelRequestList');
@@ -3339,7 +3697,7 @@
         }
 
         // ============================================
-        // 🔥 38. VERIFIKASI KARYA
+        // 39. VERIFIKASI KARYA
         // ============================================
         async function openVerifyWriting(profileId, writingId) {
             try {
@@ -3461,7 +3819,7 @@
         }
 
         // ============================================
-        // 39. AUTO REFRESH LEVEL REQUESTS
+        // 40. AUTO REFRESH LEVEL REQUESTS
         // ============================================
         function autoRefreshLevelRequests() {
             setInterval(() => {
@@ -3474,7 +3832,7 @@
         }
 
         // ============================================
-        // 40. LOGOUT
+        // 41. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -3492,7 +3850,7 @@
         }
 
         // ============================================
-        // 41. EVENT LISTENERS
+        // 42. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadAdminData();
