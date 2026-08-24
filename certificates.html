@@ -570,7 +570,7 @@
                             <!-- Deskripsi -->
                             <div class="cert-description">
                                 Telah menyelesaikan program
-                                <div class="cert-program" id="certProgram">Onboarding YATTA #1 Sosialisasi YATTA Platform Literasi</div>
+                                <div class="cert-program" id="certProgram">Onboarding YATTA</div>
                             </div>
 
                             <!-- Tanggal -->
@@ -695,6 +695,7 @@
 
                 console.log('🟢 [loadCertificates] User ID:', session.user.id);
 
+                // 🔥 AMBIL SERTIFIKAT - HANYA 1 PER USER UNTUK TIPE ONBOARDING
                 const { data: certificates, error } = await _supabase
                     .from('yata_certificates')
                     .select('*')
@@ -708,7 +709,27 @@
 
                 console.log('📜 [loadCertificates] Sertifikat ditemukan:', certificates?.length || 0, 'items');
 
-                allCertificates = certificates || [];
+                // 🔥 FILTER: HANYA 1 SERTIFIKAT ONBOARDING (YANG TERBARU)
+                // Jika ada multiple onboarding certificate, ambil yang terbaru
+                let filteredCertificates = certificates || [];
+                
+                // Cari sertifikat onboarding
+                const onboardingCerts = filteredCertificates.filter(c => c.certificate_type === 'onboarding');
+                if (onboardingCerts.length > 1) {
+                    // Ambil yang terbaru (issued_at terbaru)
+                    onboardingCerts.sort((a, b) => new Date(b.issued_at) - new Date(a.issued_at));
+                    const latestOnboarding = onboardingCerts[0];
+                    
+                    // Hapus yang lama
+                    const oldOnboardingIds = onboardingCerts.slice(1).map(c => c.id);
+                    filteredCertificates = filteredCertificates.filter(c => 
+                        !oldOnboardingIds.includes(c.id)
+                    );
+                    
+                    console.log('🧹 Sertifikat onboarding lama dihapus dari tampilan:', oldOnboardingIds.length);
+                }
+
+                allCertificates = filteredCertificates;
 
                 loading.classList.add('hidden');
                 container.classList.remove('hidden');
@@ -759,10 +780,14 @@
             const initial = fullName.charAt(0).toUpperCase();
 
             container.innerHTML = allCertificates.map(c => {
+                // 🔥 PASTIKAN HANYA 1 ONBOARDING PER USER
+                const displayType = c.certificate_type === 'onboarding' ? 'onboarding' : c.certificate_type;
+                const typeLabel = typeLabels[displayType] || c.certificate_type || 'Sertifikat';
+                
                 return `
                     <div class="certificate-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm relative" onclick="openCertificateModal('${c.id}')">
                         <div class="flex items-start gap-4">
-                            <div class="w-14 h-14 rounded-xl ${typeColors[c.certificate_type] || 'bg-emerald-100'} flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
+                            <div class="w-14 h-14 rounded-xl ${typeColors[displayType] || 'bg-emerald-100'} flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
                                 ${avatarUrl 
                                     ? `<img src="${avatarUrl}" class="w-full h-full object-cover" />` 
                                     : `<span class="font-bold text-emerald-700">${initial}</span>`
@@ -770,7 +795,7 @@
                             </div>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <h4 class="font-bold text-slate-800 text-sm">${c.certificate_type ? (typeLabels[c.certificate_type] || c.certificate_type) : 'Sertifikat'}</h4>
+                                    <h4 class="font-bold text-slate-800 text-sm">${typeLabel}</h4>
                                     <span class="cert-badge ${c.is_claimed ? 'cert-badge-claimed' : 'cert-badge-pending'}">
                                         ${c.is_claimed ? '✅ Diklaim' : '⏳ Belum Diklaim'}
                                     </span>
@@ -810,8 +835,8 @@
 
             selectedCertificate = cert;
 
-            document.getElementById('certName').textContent = currentUser?.user_metadata?.full_name || 'Member';
-            document.getElementById('certProgram').textContent = 'Onboarding YATTA #1 Sosialisasi YATTA Platform Literasi';
+            document.getElementById('certName').textContent = currentUser?.user_metadata?.full_name || currentUser?.email || 'Member';
+            document.getElementById('certProgram').textContent = 'Onboarding YATTA';
             document.getElementById('certDate').textContent = `Diberikan pada ${new Date(cert.issued_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`;
             document.getElementById('certNumber').textContent = `No. ${cert.certificate_number || 'YATTA-2026-0001'}`;
 
@@ -844,7 +869,7 @@
         }
 
         // ============================================
-        // 🔥 QR CODE GENERATOR - URL SUDAH BENAR!
+        // 🔥 QR CODE GENERATOR
         // ============================================
         function generateQRForCertificate(certificateNumber, userId) {
             const container = document.getElementById('qrCodeContainer');
@@ -852,7 +877,6 @@
 
             container.innerHTML = '';
 
-            // ✅ URL YANG BENAR
             const verificationUrl = `https://yata-gold.vercel.app/verify.html?cert=${certificateNumber}&user=${userId}`;
             
             console.log('🔍 QR Code URL:', verificationUrl);
@@ -996,9 +1020,6 @@ Jika tidak muncul dalam 5 menit, periksa folder SPAM atau hubungi admin YATTA.`;
             }
         }
 
-        // ============================================
-        // ✅ SHOW CERT MESSAGE - DIPERBAIKI!
-        // ============================================
         function showCertMessage(text, type) {
             const msg = document.getElementById('certMessage');
             if (!msg) return;

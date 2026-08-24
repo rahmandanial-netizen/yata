@@ -168,6 +168,14 @@
             padding-top: 16px;
             margin-top: 16px;
         }
+        .level-requirement-met {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+        .level-requirement-unmet {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
     </style>
 </head>
 <body>
@@ -343,7 +351,41 @@
         let hasMoreData = true;
         let isLoading = false;
 
+        // ============================================
+        // FUNGSI TIME AGO
+        // ============================================
+        function timeAgo(date) {
+            const now = new Date();
+            const past = new Date(date);
+            const diff = Math.floor((now - past) / 1000);
+            if (diff < 10) return 'baru saja';
+            if (diff < 60) return Math.floor(diff) + ' detik lalu';
+            if (diff < 3600) {
+                const minutes = Math.floor(diff / 60);
+                return minutes + ' menit lalu';
+            }
+            if (diff < 86400) {
+                const hours = Math.floor(diff / 3600);
+                return hours + ' jam lalu';
+            }
+            if (diff < 604800) {
+                const days = Math.floor(diff / 86400);
+                return days + ' hari lalu';
+            }
+            if (diff < 2592000) {
+                const weeks = Math.floor(diff / 604800);
+                return weeks + ' minggu lalu';
+            }
+            return past.toLocaleDateString('id-ID', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric' 
+            });
+        }
+
+        // ============================================
         // CEK AKSES PROYEK BUKU
+        // ============================================
         async function checkProjectAccess(e) {
             if (e) e.preventDefault();
             try {
@@ -367,7 +409,9 @@
             }
         }
 
+        // ============================================
         // CEK LOGIN
+        // ============================================
         async function checkAuth(redirectIfNoSession = true) {
             try {
                 const { data: { session } } = await _supabase.auth.getSession();
@@ -383,6 +427,164 @@
             } catch (err) {
                 console.error('Auth check error:', err);
                 return null;
+            }
+        }
+
+        // ============================================
+        // 🔥 CEK SYARAT NAIK LEVEL (1 ONBOARDING + 2 MENTORING ADMIN + 5 KARYA)
+        // ============================================
+        async function checkLevelUpRequirements(userId) {
+            try {
+                // 1. CEK ONBOARDING (1x)
+                const { count: onboardingCount, error: onError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', userId)
+                    .eq('attended', true)
+                    .eq('session:session_id(is_onboarding)', true);
+
+                if (onError) throw onError;
+
+                // 2. CEK MENTORING ADMIN WAJIB (2x)
+                const { count: mandatoryMentoringCount, error: manError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', userId)
+                    .eq('attended', true)
+                    .eq('session:session_id(is_onboarding)', false)
+                    .eq('session:session_id(is_mandatory)', true);
+
+                if (manError) throw manError;
+
+                // 3. CEK KARYA (5x)
+                const { count: writingsCount, error: wError } = await _supabase
+                    .from('yata_writings')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('author_id', userId)
+                    .eq('status', 'published');
+
+                if (wError) throw wError;
+
+                const canLevelUp = (
+                    (onboardingCount || 0) >= 1 &&
+                    (mandatoryMentoringCount || 0) >= 2 &&
+                    (writingsCount || 0) >= 5
+                );
+
+                return {
+                    canLevelUp: canLevelUp,
+                    onboardingCount: onboardingCount || 0,
+                    mandatoryMentoringCount: mandatoryMentoringCount || 0,
+                    writingsCount: writingsCount || 0,
+                    message: canLevelUp ? 
+                        '✅ Semua syarat terpenuhi! Ajukan naik level sekarang.' : 
+                        `📋 ${onboardingCount || 0}/1 Onboarding • ${mandatoryMentoringCount || 0}/2 Mentoring Admin • ${writingsCount || 0}/5 Karya`
+                };
+
+            } catch (err) {
+                console.error('❌ Check level requirements error:', err);
+                return {
+                    canLevelUp: false,
+                    onboardingCount: 0,
+                    mandatoryMentoringCount: 0,
+                    writingsCount: 0,
+                    message: '❌ Gagal mengecek syarat: ' + err.message
+                };
+            }
+        }
+
+        // ============================================
+        // KIRIM NOTIFIKASI
+        // ============================================
+        async function sendNotification(userId, title, content, type = 'info') {
+            try {
+                const { data: notifData, error } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: title,
+                        content: content,
+                        type: type
+                    }])
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('❌ Insert notif error:', error);
+                    return false;
+                }
+
+                if (notifData && userId) {
+                    const { error: linkError } = await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+
+                    if (linkError) {
+                        console.error('❌ Link notif error:', linkError);
+                        return false;
+                    }
+                }
+
+                console.log(`✅ Notifikasi ke user ${userId}: ${title}`);
+                return true;
+
+            } catch (err) {
+                console.error('❌ Send notification error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // KIRIM NOTIFIKASI DENGAN TOMBOL AKSI
+        // ============================================
+        async function sendNotificationWithAction(userId, title, content, type = 'success', actionLabel = null, actionUrl = null) {
+            try {
+                let notifData = {
+                    title: title,
+                    content: content,
+                    type: type
+                };
+
+                if (actionLabel && actionUrl) {
+                    notifData.action_label = actionLabel;
+                    notifData.action_url = actionUrl;
+                }
+
+                const { data: notifDataResult, error } = await _supabase
+                    .from('yata_notifications')
+                    .insert([notifData])
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('❌ Insert notif error:', error);
+                    return false;
+                }
+
+                if (notifDataResult && userId) {
+                    const { error: linkError } = await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifDataResult.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+
+                    if (linkError) {
+                        console.error('❌ Link notif error:', linkError);
+                        return false;
+                    }
+                }
+
+                console.log(`✅ Notifikasi dengan aksi ke user ${userId}: ${title}`);
+                return true;
+
+            } catch (err) {
+                console.error('❌ Send notification with action error:', err);
+                return false;
             }
         }
 
@@ -506,7 +708,9 @@
             }
         }
 
+        // ============================================
         // RENDER NOTIFICATIONS
+        // ============================================
         function renderNotifications() {
             const container = document.getElementById('notifList');
 
@@ -568,14 +772,18 @@
             `).join('');
         }
 
+        // ============================================
         // UPDATE COUNT
+        // ============================================
         function updateCount() {
             const total = allNotifications.length;
             const unread = allNotifications.filter(n => !n.is_read).length;
             document.getElementById('notifCount').textContent = `${total} notifikasi • ${unread} belum dibaca`;
         }
 
+        // ============================================
         // FILTER
+        // ============================================
         function filterNotifications(filter) {
             currentFilter = filter;
             document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -589,7 +797,9 @@
             renderNotifications();
         }
 
+        // ============================================
         // OPEN NOTIFICATION DETAIL
+        // ============================================
         async function openNotifDetail(notificationId) {
             try {
                 const session = await checkAuth();
@@ -641,28 +851,67 @@
                     statusEl.className = 'text-xs font-semibold text-yellow-600';
                 }
 
-                // TENTUKAN TOMBOL AKSI
+                // ============================================
+                // 🔥 TENTUKAN TOMBOL AKSI BERDASARKAN NOTIFIKASI
+                // ============================================
                 const actionContainer = document.getElementById('actionContainer');
                 const actionMessage = document.getElementById('actionMessage');
                 actionMessage.className = 'text-xs text-center mt-2 hidden';
 
                 const title = notif.title || '';
                 const content = notif.content || '';
+                const actionLabel = notif.action_label || null;
+                const actionUrl = notif.action_url || null;
 
-                if (title.includes('Ajukan Naik Level') || content.includes('naik level')) {
+                // Cek apakah ini notifikasi naik level
+                const isLevelUpNotif = title.includes('Ajukan Naik Level') || 
+                                       content.includes('naik level') ||
+                                       title.includes('Syarat Naik Level');
+
+                // Cek apakah ini notifikasi sertifikat
+                const isCertificateNotif = title.includes('Sertifikat') || 
+                                           content.includes('sertifikat') ||
+                                           title.includes('Sertifikat Onboarding');
+
+                if (actionLabel && actionUrl) {
+                    // 🔥 NOTIFIKASI DENGAN TOMBOL AKSI DARI DATABASE
                     actionContainer.innerHTML = `
-                        <button id="actionBtn" class="action-btn" onclick="submitLevelUpRequest()">
-                            ⭐ Ajukan Naik Level
+                        <button id="actionBtn" class="action-btn" onclick="window.location.href='${actionUrl}'">
+                            ${actionLabel}
                         </button>
                     `;
-                } else if (title.includes('Sertifikat') || content.includes('sertifikat')) {
+                } else if (isLevelUpNotif) {
+                    // 🔥 NOTIFIKASI AJUKAN NAIK LEVEL
+                    // Cek apakah user sudah memenuhi syarat
+                    const requirements = await checkLevelUpRequirements(session.user.id);
+                    
+                    if (requirements.canLevelUp) {
+                        actionContainer.innerHTML = `
+                            <button id="actionBtn" class="action-btn" onclick="submitLevelUpRequest()">
+                                ⭐ Ajukan Naik Level
+                            </button>
+                            <p class="text-xs text-slate-400 mt-1">✅ Semua syarat terpenuhi!</p>
+                        `;
+                    } else {
+                        actionContainer.innerHTML = `
+                            <button id="actionBtn" class="action-btn" disabled style="background:#94a3b8;cursor:not-allowed;">
+                                🔒 Syarat Belum Terpenuhi
+                            </button>
+                            <p class="text-xs text-amber-600 mt-1">${requirements.message}</p>
+                        `;
+                    }
+                } else if (isCertificateNotif) {
+                    // 🔥 NOTIFIKASI SERTIFIKAT
                     actionContainer.innerHTML = `
-                        <button id="actionBtn" class="action-btn" onclick="goToCertificates()">
+                        <button id="actionBtn" class="action-btn" onclick="window.location.href='certificates.html'">
                             📜 Lihat Sertifikat
                         </button>
                     `;
                 } else {
-                    actionContainer.innerHTML = '';
+                    // 🔥 NOTIFIKASI BIASA (TANPA AKSI)
+                    actionContainer.innerHTML = `
+                        <p class="text-xs text-slate-400 text-center">💡 Tidak ada aksi untuk notifikasi ini.</p>
+                    `;
                 }
 
                 document.getElementById('notifModal').classList.remove('hidden');
@@ -689,7 +938,9 @@
             if (e.target === this) closeNotifModal();
         });
 
+        // ============================================
         // MARK AS READ
+        // ============================================
         async function markAsRead(notificationId) {
             try {
                 const session = await checkAuth();
@@ -728,7 +979,9 @@
             }
         }
 
+        // ============================================
         // MARK ALL READ
+        // ============================================
         async function markAllRead() {
             try {
                 const session = await checkAuth();
@@ -767,12 +1020,16 @@
             }
         }
 
+        // ============================================
         // UPDATE BADGE
+        // ============================================
         function updateBadgeInDashboard() {
             localStorage.setItem('yata_notif_updated', Date.now().toString());
         }
 
+        // ============================================
         // CHECK OPEN NOTIFICATION FROM URL
+        // ============================================
         function checkOpenNotification() {
             const params = new URLSearchParams(window.location.search);
             const openId = params.get('open');
@@ -786,7 +1043,7 @@
         }
 
         // ============================================
-        // 🔥 AJUKAN NAIK LEVEL - DIPERBAIKI!
+        // 🔥 AJUKAN NAIK LEVEL - DARI NOTIFIKASI
         // ============================================
         async function submitLevelUpRequest() {
             const messageEl = document.getElementById('actionMessage');
@@ -800,35 +1057,20 @@
                     return;
                 }
 
-                // ✅ HITUNG KARYA
-                const { data: writings, error: writingsError } = await _supabase
-                    .from('yata_writings')
-                    .select('id')
-                    .eq('author_id', session.user.id)
-                    .eq('status', 'published');
-
-                // ✅ HITUNG MENTORING - PAKAI attended = true
-                const { data: mentoring, error: mentoringError } = await _supabase
-                    .from('yata_mentoring_participants')
-                    .select('id')
-                    .eq('user_id', session.user.id)
-                    .eq('attended', true);  // ← DIPERBAIKI!
-
-                const totalWritings = writings?.length || 0;
-                const totalMentoring = mentoring?.length || 0;
-
-                console.log('📊 Data level up:', { totalWritings, totalMentoring });
-
-                // Cek syarat
-                if (totalWritings < 5 || totalMentoring < 3) {
-                    messageEl.textContent = `⚠️ Syarat belum terpenuhi. Butuh 5 karya (${totalWritings}/5) & 3 mentoring (${totalMentoring}/3).`;
+                // 🔥 CEK SYARAT DENGAN FUNGSI BARU
+                const requirements = await checkLevelUpRequirements(session.user.id);
+                
+                if (!requirements.canLevelUp) {
+                    messageEl.textContent = `⚠️ Syarat belum terpenuhi. ${requirements.message}`;
                     messageEl.className = 'text-xs text-center mt-2 text-amber-600 block';
                     return;
                 }
 
                 const btn = document.getElementById('actionBtn');
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+                }
 
                 // Kirim notifikasi ke admin
                 const { data: admins, error: adminError } = await _supabase
@@ -841,7 +1083,7 @@
                 }
 
                 if (admins && admins.length > 0) {
-                    const notifContent = `📢 Member mengajukan naik level ke "Penulis".\n\n📊 Data:\n- Karya: ${totalWritings}/5\n- Mentoring: ${totalMentoring}/3\n- User: ${session.user.email}`;
+                    const notifContent = `📢 Member mengajukan naik level ke "Penulis".\n\n📊 Data:\n- Level saat ini: Tamu\n- Target: Penulis\n- Onboarding: ${requirements.onboardingCount}/1\n- Mentoring Admin: ${requirements.mandatoryMentoringCount}/2\n- Karya: ${requirements.writingsCount}/5\n- User: ${session.user.email}`;
 
                     const { data: notifData, error: notifError } = await _supabase
                         .from('yata_notifications')
@@ -870,9 +1112,23 @@
                     }
                 }
 
+                await _supabase
+                    .from('yata_profiles')
+                    .update({ level_status: 'pending' })
+                    .eq('id', session.user.id);
+
                 messageEl.textContent = '✅ Pengajuan naik level telah dikirim ke admin!';
                 messageEl.className = 'text-xs text-center mt-2 text-emerald-600 block';
-                btn.innerHTML = '✅ Terkirim!';
+                if (btn) {
+                    btn.innerHTML = '✅ Terkirim!';
+                }
+
+                await sendNotification(
+                    session.user.id,
+                    '⭐ Pengajuan Naik Level Dikirim!',
+                    `Pengajuan naik level ke "Penulis" telah dikirim ke admin. Mohon tunggu verifikasi.`,
+                    'campaign'
+                );
 
                 setTimeout(() => {
                     closeNotifModal();
@@ -883,7 +1139,7 @@
                 console.error('Submit level up error:', err);
                 messageEl.textContent = '❌ Gagal mengajukan: ' + err.message;
                 messageEl.className = 'text-xs text-center mt-2 text-red-600 block';
-            } finally {
+                
                 const btn = document.getElementById('actionBtn');
                 if (btn) {
                     btn.disabled = false;
@@ -900,7 +1156,9 @@
             window.location.href = 'certificates.html';
         }
 
+        // ============================================
         // LOGOUT
+        // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
                 try {
@@ -910,7 +1168,9 @@
             }
         }
 
+        // ============================================
         // EVENT LISTENERS
+        // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadNotifications(true);
 

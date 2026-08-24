@@ -217,6 +217,472 @@
         }
 
         // ============================================
+        // KIRIM NOTIFIKASI - HANYA KE 1 USER!
+        // ============================================
+        async function sendNotification(userId, title, content, type = 'info') {
+            try {
+                const { data: notifData, error } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: title,
+                        content: content,
+                        type: type
+                    }])
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('❌ Insert notif error:', error);
+                    return false;
+                }
+
+                if (notifData && userId) {
+                    const { error: linkError } = await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+
+                    if (linkError) {
+                        console.error('❌ Link notif error:', linkError);
+                        return false;
+                    }
+                }
+
+                console.log(`✅ Notifikasi ke user ${userId}: ${title}`);
+                return true;
+
+            } catch (err) {
+                console.error('❌ Send notification error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // 🔥 KIRIM NOTIFIKASI DENGAN TOMBOL AKSI
+        // ============================================
+        async function sendNotificationWithAction(userId, title, content, type = 'success', actionLabel = null, actionUrl = null) {
+            try {
+                let notifData = {
+                    title: title,
+                    content: content,
+                    type: type
+                };
+
+                if (actionLabel && actionUrl) {
+                    notifData.action_label = actionLabel;
+                    notifData.action_url = actionUrl;
+                }
+
+                const { data: notifDataResult, error } = await _supabase
+                    .from('yata_notifications')
+                    .insert([notifData])
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('❌ Insert notif error:', error);
+                    return false;
+                }
+
+                if (notifDataResult && userId) {
+                    const { error: linkError } = await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifDataResult.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+
+                    if (linkError) {
+                        console.error('❌ Link notif error:', linkError);
+                        return false;
+                    }
+                }
+
+                console.log(`✅ Notifikasi dengan aksi ke user ${userId}: ${title}`);
+                return true;
+
+            } catch (err) {
+                console.error('❌ Send notification with action error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // 🔥 BUAT SERTIFIKAT OTOMATIS
+        // ============================================
+        async function createCertificate(userId) {
+            try {
+                console.log('🔍 [createCertificate] Dipanggil untuk user:', userId);
+                
+                // ✅ CEK APAKAH SERTIFIKAT SUDAH ADA
+                const { data: existingCert, error: certError } = await _supabase
+                    .from('yata_certificates')
+                    .select('id, certificate_number')
+                    .eq('user_id', userId)
+                    .eq('certificate_type', 'onboarding')
+                    .maybeSingle();
+
+                if (certError) {
+                    console.error('❌ [createCertificate] Error cek sertifikat:', certError);
+                    return false;
+                }
+
+                if (existingCert) {
+                    console.log('✅ [createCertificate] Sertifikat sudah ada:', existingCert.certificate_number);
+                    return true;
+                }
+
+                // ✅ AMBIL DATA USER
+                const { data: profile, error: profileError } = await _supabase
+                    .from('yata_profiles')
+                    .select('full_name, email')
+                    .eq('id', userId)
+                    .single();
+
+                if (profileError) {
+                    console.error('❌ [createCertificate] Error ambil profil:', profileError);
+                    return false;
+                }
+
+                // ✅ GENERATE NOMOR SERTIFIKAT
+                const now = new Date();
+                const dateStr = now.getFullYear() + 
+                    String(now.getMonth() + 1).padStart(2, '0') + 
+                    String(now.getDate()).padStart(2, '0');
+                const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+                const certNumber = `YATTA-ONBOARD-${dateStr}-${random}`;
+
+                console.log('📜 [createCertificate] Membuat sertifikat:', certNumber);
+
+                // ✅ INSERT SERTIFIKAT
+                const { data: newCert, error: insertError } = await _supabase
+                    .from('yata_certificates')
+                    .insert([{
+                        user_id: userId,
+                        certificate_type: 'onboarding',
+                        certificate_number: certNumber,
+                        is_claimed: true,
+                        claimed_at: new Date().toISOString(),
+                        signatory_name: 'Abd. Rahman Danial',
+                        signatory_title: 'Founder & CEO YATTA',
+                        issued_at: new Date().toISOString(),
+                        created_at: new Date().toISOString()
+                    }])
+                    .select()
+                    .single();
+
+                if (insertError) {
+                    console.error('❌ [createCertificate] Error insert:', insertError);
+                    return false;
+                }
+
+                console.log(`✅ [createCertificate] Sertifikat BERHASIL dibuat: ${certNumber}`);
+                return true;
+
+            } catch (err) {
+                console.error('❌ [createCertificate] Error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // 🔥 CEK REVIEW & BUAT SERTIFIKAT
+        // ============================================
+        async function checkReviewAndCertificate(userId) {
+            try {
+                console.log('🔍 [checkReviewAndCertificate] Dipanggil untuk user:', userId);
+                
+                // ✅ AMBIL SEMUA KELAS ONBOARDING
+                const { data: onboardingSessions, error: sessionError } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('id, title')
+                    .eq('is_onboarding', true)
+                    .eq('status', 'published')
+                    .order('created_at', { ascending: true });
+
+                if (sessionError) {
+                    console.error('❌ [checkReviewAndCertificate] Error ambil sesi:', sessionError);
+                    return false;
+                }
+
+                if (!onboardingSessions || onboardingSessions.length === 0) {
+                    console.log('ℹ️ [checkReviewAndCertificate] Tidak ada kelas onboarding');
+                    return false;
+                }
+
+                console.log(`📚 [checkReviewAndCertificate] ${onboardingSessions.length} kelas onboarding ditemukan`);
+
+                const sessionIds = onboardingSessions.map(s => s.id);
+
+                // ✅ CEK REVIEW USER UNTUK SEMUA KELAS
+                const { data: reviews, error: reviewError } = await _supabase
+                    .from('yata_onboarding_reviews')
+                    .select('session_id')
+                    .eq('user_id', userId)
+                    .in('session_id', sessionIds);
+
+                if (reviewError) {
+                    console.error('❌ [checkReviewAndCertificate] Error ambil review:', reviewError);
+                    return false;
+                }
+
+                const reviewedSessions = reviews.map(r => r.session_id);
+                const allReviewed = sessionIds.every(id => reviewedSessions.includes(id));
+
+                console.log(`📝 [checkReviewAndCertificate] Review: ${reviewedSessions.length}/${sessionIds.length} kelas`);
+
+                if (!allReviewed) {
+                    console.log(`⏳ [checkReviewAndCertificate] Belum semua kelas di-review`);
+                    return false;
+                }
+
+                console.log('✅ [checkReviewAndCertificate] Semua kelas sudah di-review!');
+
+                // ✅ CEK APAKAH SERTIFIKAT SUDAH ADA
+                const { data: existingCert, error: certError } = await _supabase
+                    .from('yata_certificates')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .eq('certificate_type', 'onboarding')
+                    .maybeSingle();
+
+                if (certError) {
+                    console.error('❌ [checkReviewAndCertificate] Error cek sertifikat:', certError);
+                    return false;
+                }
+
+                if (existingCert) {
+                    console.log('✅ [checkReviewAndCertificate] Sertifikat sudah ada');
+                    return true;
+                }
+
+                // ✅ BUAT SERTIFIKAT
+                const result = await createCertificate(userId);
+                
+                if (result) {
+                    console.log('🎉 [checkReviewAndCertificate] Sertifikat berhasil dibuat!');
+                    await sendCompletionNotifications(userId);
+                    return true;
+                } else {
+                    console.log('❌ [checkReviewAndCertificate] Gagal membuat sertifikat');
+                    return false;
+                }
+
+            } catch (err) {
+                console.error('❌ [checkReviewAndCertificate] Error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // 🔥 KIRIM NOTIFIKASI SELESAI ONBOARDING
+        // ============================================
+        async function sendCompletionNotifications(userId) {
+            try {
+                console.log('📬 [sendCompletionNotifications] Mengirim notifikasi ke:', userId);
+                
+                const { data: profile, error: profileError } = await _supabase
+                    .from('yata_profiles')
+                    .select('full_name, member_level')
+                    .eq('id', userId)
+                    .single();
+                
+                if (profileError) {
+                    console.error('❌ Profile error:', profileError);
+                    return;
+                }
+
+                const userName = profile?.full_name || 'Member';
+                const currentLevel = profile?.member_level || 'Tamu';
+
+                // HITUNG SYARAT NAIK LEVEL
+                const { count: onboardingCount } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', userId)
+                    .eq('attended', true)
+                    .eq('session:session_id(is_onboarding)', true);
+
+                const { count: mandatoryMentoringCount } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', userId)
+                    .eq('attended', true)
+                    .eq('session:session_id(is_onboarding)', false)
+                    .eq('session:session_id(is_mandatory)', true);
+
+                const { count: writingsCount } = await _supabase
+                    .from('yata_writings')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('author_id', userId)
+                    .eq('status', 'published');
+
+                const canLevelUp = (
+                    (onboardingCount || 0) >= 1 &&
+                    (mandatoryMentoringCount || 0) >= 2 &&
+                    (writingsCount || 0) >= 5
+                );
+
+                // ============================================
+                // 📨 NOTIFIKASI 1: SELAMAT ONBOARDING
+                // ============================================
+                const notif1Title = `🎉 Selamat ${userName}! Anda Telah Menyelesaikan Onboarding!`;
+                const notif1Content = `Anda telah menyelesaikan kelas onboarding YATTA! 🎉
+        
+📚 Anda sekarang resmi menjadi bagian dari ekosistem YATTA.
+
+📌 Klik tombol di bawah untuk melihat sertifikat Anda.`;
+
+                await sendNotificationWithAction(
+                    userId,
+                    notif1Title,
+                    notif1Content,
+                    'success',
+                    '📜 Lihat Sertifikat',
+                    '/certificates.html'
+                );
+
+                // ============================================
+                // 📨 NOTIFIKASI 2: SERTIFIKAT TERSEDIA
+                // ============================================
+                const notif2Title = `📜 Sertifikat Onboarding Anda Tersedia!`;
+                const notif2Content = `Sertifikat onboarding Anda sudah tersedia di menu Sertifikat.
+
+🏛️ Ditandatangani oleh:
+Abd. Rahman Danial
+Founder & CEO YATTA
+
+📌 Klik tombol di bawah untuk melihat sertifikat Anda.`;
+
+                await sendNotificationWithAction(
+                    userId,
+                    notif2Title,
+                    notif2Content,
+                    'success',
+                    '📜 Lihat Sertifikat',
+                    '/certificates.html'
+                );
+
+                // ============================================
+                // 🔥 NOTIFIKASI 3: NAIK LEVEL (HANYA JIKA SYARAT TERPENUHI!)
+                // ============================================
+                if (canLevelUp) {
+                    const nextLevel = currentLevel === 'Tamu' ? 'Penulis' : 
+                                     currentLevel === 'Penulis' ? 'Penulis Profesional' : 
+                                     'Mentor';
+
+                    const notif3Title = `⭐ Ajukan Naik Level ke "${nextLevel}" Sekarang!`;
+                    const notif3Content = `Anda sudah memenuhi semua syarat untuk naik level!
+
+📋 Level Anda saat ini: ${currentLevel}
+🎯 Target level: ${nextLevel}
+
+📊 Data Anda:
+✅ ${onboardingCount || 0}/1 Onboarding
+✅ ${mandatoryMentoringCount || 0}/2 Mentoring Admin
+✅ ${writingsCount || 0}/5 Karya
+
+📌 Klik tombol di bawah untuk mengajukan naik level.`;
+
+                    await sendNotificationWithAction(
+                        userId,
+                        notif3Title,
+                        notif3Content,
+                        'campaign',
+                        '⭐ Ajukan Naik Level',
+                        '/profile.html'
+                    );
+
+                    console.log(`✅ Notifikasi naik level terkirim ke ${userId}`);
+                } else {
+                    // 🔥 NOTIFIKASI ALTERNATIF: SYARAT BELUM TERPENUHI
+                    const notif3Title = `📝 Yuk, Kejar Syarat Naik Level!`;
+                    const notif3Content = `Anda sudah menyelesaikan onboarding. Sekarang saatnya menulis!
+
+📋 Syarat naik level dari "${currentLevel}":
+✅ 1 Onboarding (${onboardingCount || 0}/1)
+✅ 2 Mentoring Admin (${mandatoryMentoringCount || 0}/2)
+✅ 5 Karya (${writingsCount || 0}/5)
+
+📌 Terus berkarya dan jangan menyerah! 🚀`;
+
+                    await sendNotificationWithAction(
+                        userId,
+                        notif3Title,
+                        notif3Content,
+                        'info',
+                        '✍️ Mulai Menulis',
+                        '/write.html'
+                    );
+
+                    console.log(`✅ Notifikasi progress terkirim ke ${userId}`);
+                }
+
+                console.log(`✅ Semua notifikasi completion terkirim ke user ${userId}`);
+
+            } catch (err) {
+                console.error('❌ [sendCompletionNotifications] Error:', err);
+            }
+        }
+
+        // ============================================
+        // NOTIFIKASI HADIR
+        // ============================================
+        async function sendAttendancePresentNotification(userId, sessionTitle, sessionId) {
+            try {
+                const { data: allParticipants, error: countError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('attended, session_id')
+                    .eq('user_id', userId);
+
+                if (countError) throw countError;
+
+                const attendedCount = allParticipants?.filter(p => p.attended === true).length || 0;
+
+                const { data: onboardingSessions, error: sessionError } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('id')
+                    .eq('is_onboarding', true)
+                    .eq('status', 'published');
+
+                if (sessionError) throw sessionError;
+
+                const totalSessions = onboardingSessions?.length || 3;
+
+                const notifTitle = `✅ Selesai: ${sessionTitle}`;
+                const notifContent = `Anda telah menyelesaikan kelas "${sessionTitle}".\n\n📊 Progress Anda: ${attendedCount}/${totalSessions}\n\n📝 Berikan ulasan untuk kelas ini agar kami bisa terus meningkatkan kualitas materi.\n\n🔗 Klik tombol "Ulasan" di menu Mentoring Saya.`;
+
+                await sendNotification(userId, notifTitle, notifContent, attendedCount >= totalSessions ? 'success' : 'info');
+
+                console.log(`✅ Notifikasi hadir terkirim ke user ${userId}`);
+
+            } catch (err) {
+                console.error('Send present notification error:', err);
+            }
+        }
+
+        // ============================================
+        // NOTIFIKASI ABSEN
+        // ============================================
+        async function sendAttendanceAbsentNotification(userId, sessionTitle) {
+            try {
+                const notifTitle = `⚠️ Absen: ${sessionTitle}`;
+                const notifContent = `Anda tidak mengikuti kelas "${sessionTitle}" hari ini.\n\n📌 Anda bisa mengikuti kelas ini di pekan berikutnya.\n\n💡 Jangan lupa cek jadwal ulang di menu Mentoring Saya.`;
+
+                await sendNotification(userId, notifTitle, notifContent, 'warning');
+
+                console.log(`⚠️ Notifikasi absen terkirim ke user ${userId}`);
+
+            } catch (err) {
+                console.error('Send absent notification error:', err);
+            }
+        }
+
+        // ============================================
         // LOAD SESSIONS
         // ============================================
         async function loadSessions() {
@@ -452,139 +918,7 @@
         }
 
         // ============================================
-        // KIRIM NOTIFIKASI - HANYA KE 1 USER!
-        // ============================================
-        async function sendNotification(userId, title, content, type = 'info') {
-            try {
-                const { data: notifData, error } = await _supabase
-                    .from('yata_notifications')
-                    .insert([{
-                        title: title,
-                        content: content,
-                        type: type
-                    }])
-                    .select()
-                    .single();
-
-                if (error) {
-                    console.error('❌ Insert notif error:', error);
-                    return false;
-                }
-
-                if (notifData && userId) {
-                    const { error: linkError } = await _supabase
-                        .from('yata_user_notifications')
-                        .insert([{
-                            notification_id: notifData.id,
-                            user_id: userId,
-                            is_read: false
-                        }]);
-
-                    if (linkError) {
-                        console.error('❌ Link notif error:', linkError);
-                        return false;
-                    }
-                }
-
-                console.log(`✅ Notifikasi ke user ${userId}: ${title}`);
-                return true;
-
-            } catch (err) {
-                console.error('❌ Send notification error:', err);
-                return false;
-            }
-        }
-
-        // ============================================
-        // NOTIFIKASI HADIR
-        // ============================================
-        async function sendAttendancePresentNotification(userId, sessionTitle, sessionId) {
-            try {
-                const { data: allParticipants, error: countError } = await _supabase
-                    .from('yata_mentoring_participants')
-                    .select('attended, session_id')
-                    .eq('user_id', userId);
-
-                if (countError) throw countError;
-
-                const attendedCount = allParticipants?.filter(p => p.attended === true).length || 0;
-
-                const { data: onboardingSessions, error: sessionError } = await _supabase
-                    .from('yata_mentoring_sessions')
-                    .select('id')
-                    .eq('is_onboarding', true)
-                    .eq('status', 'published');
-
-                if (sessionError) throw sessionError;
-
-                const totalSessions = onboardingSessions?.length || 3;
-
-                const notifTitle = `✅ Selesai: ${sessionTitle}`;
-                const notifContent = `Anda telah menyelesaikan kelas "${sessionTitle}".\n\n📊 Progress Anda: ${attendedCount}/${totalSessions}\n\n📝 Berikan ulasan untuk kelas ini agar kami bisa terus meningkatkan kualitas materi.\n\n🔗 Klik tombol "Ulasan" di menu Mentoring Saya.`;
-
-                await sendNotification(userId, notifTitle, notifContent, attendedCount >= totalSessions ? 'success' : 'info');
-
-                console.log(`✅ Notifikasi hadir terkirim ke user ${userId}`);
-
-            } catch (err) {
-                console.error('Send present notification error:', err);
-            }
-        }
-
-        // ============================================
-        // NOTIFIKASI ABSEN
-        // ============================================
-        async function sendAttendanceAbsentNotification(userId, sessionTitle) {
-            try {
-                const notifTitle = `⚠️ Absen: ${sessionTitle}`;
-                const notifContent = `Anda tidak mengikuti kelas "${sessionTitle}" hari ini.\n\n📌 Anda bisa mengikuti kelas ini di pekan berikutnya.\n\n💡 Jangan lupa cek jadwal ulang di menu Mentoring Saya.`;
-
-                await sendNotification(userId, notifTitle, notifContent, 'warning');
-
-                console.log(`⚠️ Notifikasi absen terkirim ke user ${userId}`);
-
-            } catch (err) {
-                console.error('Send absent notification error:', err);
-            }
-        }
-
-        // ============================================
-        // CEK & UPDATE STATUS SESI
-        // ============================================
-        async function checkAndUpdateSessionStatus(sessionId) {
-            try {
-                const { data: participants, error } = await _supabase
-                    .from('yata_mentoring_participants')
-                    .select('attended')
-                    .eq('session_id', sessionId);
-
-                if (error) throw error;
-
-                const total = participants.length;
-                const hadir = participants.filter(p => p.attended === true).length;
-
-                if (total > 0 && hadir >= total) {
-                    const { error: updateError } = await _supabase
-                        .from('yata_mentoring_sessions')
-                        .update({ 
-                            status: 'completed',
-                            completed_at: new Date().toISOString()
-                        })
-                        .eq('id', sessionId);
-
-                    if (updateError) {
-                        console.error('Update session status error:', updateError);
-                    } else {
-                        console.log(`✅ Sesi ${sessionId} sudah selesai (${hadir}/${total})`);
-                    }
-                }
-            } catch (err) {
-                console.error('Check session status error:', err);
-            }
-        }
-
-        // ============================================
-        // MARK ATTENDANCE
+        // MARK ATTENDANCE - DENGAN NOTIFIKASI + SERTIFIKAT
         // ============================================
         async function markAttendance(participantId, status) {
             try {
@@ -627,11 +961,30 @@
                         console.log(`✅ Peserta ${participantId} status diupdate ke completed`);
                     }
 
-                    await checkAndUpdateSessionStatus(sessionId);
-                }
-
-                if (isPresent) {
+                    // ============================================
+                    // 🔥 KIRIM NOTIFIKASI HADIR + CEK SERTIFIKAT
+                    // ============================================
                     await sendAttendancePresentNotification(userId, sessionTitle, sessionId);
+
+                    // 🔥 CEK APAKAH SEMUA ONBOARDING SELESAI
+                    // Jika semua onboarding sudah attended = true, maka notifikasi sertifikat akan muncul
+                    // Ini sudah ditangani di sendCompletionNotifications
+                    
+                    // Cek apakah semua onboarding sudah selesai
+                    const { data: allOnboarding, error: allError } = await _supabase
+                        .from('yata_mentoring_participants')
+                        .select('attended, session:session_id(is_onboarding)')
+                        .eq('user_id', userId)
+                        .eq('session.session_id.is_onboarding', true);
+
+                    if (!allError && allOnboarding) {
+                        const allCompleted = allOnboarding.every(p => p.attended === true);
+                        if (allCompleted) {
+                            console.log('🎉 Semua onboarding selesai! Mengirim notifikasi sertifikat...');
+                            await sendCompletionNotifications(userId);
+                        }
+                    }
+
                 } else {
                     await sendAttendanceAbsentNotification(userId, sessionTitle);
                 }
@@ -676,6 +1029,31 @@
                         .eq('id', p.id);
 
                     await sendAttendancePresentNotification(p.user_id, 'Kelas Onboarding', currentSessionId);
+                }
+
+                // 🔥 CEK SEMUA USER YANG TELAH MENYELESAIKAN SEMUA ONBOARDING
+                const { data: allParticipants, error: allError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('user_id, attended, session:session_id(is_onboarding)')
+                    .eq('session.session_id.is_onboarding', true);
+
+                if (!allError && allParticipants) {
+                    // Kelompokkan berdasarkan user_id
+                    const userMap = {};
+                    allParticipants.forEach(p => {
+                        if (!userMap[p.user_id]) {
+                            userMap[p.user_id] = [];
+                        }
+                        userMap[p.user_id].push(p.attended);
+                    });
+
+                    for (const [userId, attendedList] of Object.entries(userMap)) {
+                        const allCompleted = attendedList.every(a => a === true);
+                        if (allCompleted) {
+                            console.log(`🎉 User ${userId} selesai semua onboarding!`);
+                            await sendCompletionNotifications(userId);
+                        }
+                    }
                 }
 
                 await _supabase

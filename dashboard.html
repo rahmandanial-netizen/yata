@@ -385,6 +385,14 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+        .level-requirement-met {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+        .level-requirement-unmet {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
     </style>
 </head>
 <body>
@@ -647,7 +655,7 @@
                             <div class="w-full bg-white/20 rounded-full h-1.5 mt-1">
                                 <div id="levelProgressBar" class="bg-yellow-400 h-1.5 rounded-full" style="width: 0%;"></div>
                             </div>
-                            <p id="levelNextInfo" class="text-xs text-white/60 mt-1">Tulis 5 karya untuk naik ke level Penulis</p>
+                            <p id="levelNextInfo" class="text-xs text-white/60 mt-1">Selesaikan 1 Onboarding + 2 Mentoring Admin + 5 Karya</p>
                         </div>
 
                         <!-- 🔥 TOMBOL AJUKAN NAIK LEVEL -->
@@ -768,8 +776,9 @@
                         <span class="ml-auto text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-semibold">Syarat:</span>
                     </div>
                     <div class="mt-1 pl-12 text-xs text-slate-600 space-y-0.5">
+                        <div>✅ 1x Onboarding</div>
+                        <div>✅ 2x Mentoring Admin</div>
                         <div>✅ 5+ karya dipublikasikan</div>
-                        <div>✅ 3+ kali mengikuti mentoring</div>
                     </div>
                     <div class="mt-2 pl-12">
                         <p class="text-xs font-semibold text-emerald-700">🎁 Benefit Tambahan:</p>
@@ -1020,7 +1029,8 @@
                 nextLevel: 'penulis', 
                 nextRequirements: { 
                     writings: 5, 
-                    mentoring: 3 
+                    mandatoryMentoring: 2,
+                    onboarding: 1
                 } 
             },
             penulis: { 
@@ -1030,7 +1040,7 @@
                 ktaClass: 'kta-penulis', 
                 idPrefix: 'Yatta-P', 
                 minWritings: 5, 
-                minMentoring: 3, 
+                minMentoring: 0, 
                 minBooks: 0, 
                 minSpeakerInternal: 0, 
                 minSpeakerExternal: 0, 
@@ -1262,9 +1272,9 @@
         }
 
         // ============================================
-        // 3. GET LEVEL PROGRESS
+        // 🔥 GET LEVEL PROGRESS (1 ONBOARDING + 2 MENTORING ADMIN + 5 KARYA)
         // ============================================
-        function getLevelProgress(levelKey, writings, mentoring, books, speakerInternal, speakerExternal) {
+        function getLevelProgress(levelKey, writings, onboardingCount, mandatoryMentoringCount) {
             const level = LEVELS[levelKey];
             
             if (!level || !level.nextLevel) {
@@ -1290,35 +1300,28 @@
             let total = 0;
             let details = [];
 
+            // Onboarding (1)
+            if (req.onboarding) {
+                total += req.onboarding;
+                const val = Math.min(onboardingCount || 0, req.onboarding);
+                achieved += val;
+                details.push(`${val}/${req.onboarding} Onboarding`);
+            }
+
+            // Mentoring Admin (2)
+            if (req.mandatoryMentoring) {
+                total += req.mandatoryMentoring;
+                const val = Math.min(mandatoryMentoringCount || 0, req.mandatoryMentoring);
+                achieved += val;
+                details.push(`${val}/${req.mandatoryMentoring} Mentoring Admin`);
+            }
+
+            // Karya (5)
             if (req.writings) {
                 total += req.writings;
                 const val = Math.min(writings || 0, req.writings);
                 achieved += val;
-                details.push(`${val}/${req.writings} karya`);
-            }
-            if (req.mentoring) {
-                total += req.mentoring;
-                const val = Math.min(mentoring || 0, req.mentoring);
-                achieved += val;
-                details.push(`${val}/${req.mentoring} mentoring`);
-            }
-            if (req.books) {
-                total += req.books;
-                const val = Math.min(books || 0, req.books);
-                achieved += val;
-                details.push(`${val}/${req.books} buku (ISBN/QRCBN)`);
-            }
-            if (req.speakerInternal) {
-                total += req.speakerInternal;
-                const val = Math.min(speakerInternal || 0, req.speakerInternal);
-                achieved += val;
-                details.push(`${val}/${req.speakerInternal} speaker internal`);
-            }
-            if (req.speakerExternal) {
-                total += req.speakerExternal;
-                const val = Math.min(speakerExternal || 0, req.speakerExternal);
-                achieved += val;
-                details.push(`${val}/${req.speakerExternal} speaker eksternal`);
+                details.push(`${val}/${req.writings} Karya`);
             }
 
             const progress = total > 0 ? Math.round((achieved / total) * 100) : 0;
@@ -1333,7 +1336,70 @@
         }
 
         // ============================================
-        // 🔥 4. LOAD USER DATA - DIPERBAIKI!
+        // 🔥 CEK SYARAT NAIK LEVEL (1 ONBOARDING + 2 MENTORING ADMIN + 5 KARYA)
+        // ============================================
+        async function checkLevelUpRequirements(userId) {
+            try {
+                // 1. CEK ONBOARDING (1x)
+                const { count: onboardingCount, error: onError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', userId)
+                    .eq('attended', true)
+                    .eq('session:session_id(is_onboarding)', true);
+
+                if (onError) throw onError;
+
+                // 2. CEK MENTORING ADMIN WAJIB (2x)
+                const { count: mandatoryMentoringCount, error: manError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', userId)
+                    .eq('attended', true)
+                    .eq('session:session_id(is_onboarding)', false)
+                    .eq('session:session_id(is_mandatory)', true);
+
+                if (manError) throw manError;
+
+                // 3. CEK KARYA (5x)
+                const { count: writingsCount, error: wError } = await _supabase
+                    .from('yata_writings')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('author_id', userId)
+                    .eq('status', 'published');
+
+                if (wError) throw wError;
+
+                const canLevelUp = (
+                    (onboardingCount || 0) >= 1 &&
+                    (mandatoryMentoringCount || 0) >= 2 &&
+                    (writingsCount || 0) >= 5
+                );
+
+                return {
+                    canLevelUp: canLevelUp,
+                    onboardingCount: onboardingCount || 0,
+                    mandatoryMentoringCount: mandatoryMentoringCount || 0,
+                    writingsCount: writingsCount || 0,
+                    message: canLevelUp ? 
+                        '✅ Semua syarat terpenuhi! Ajukan naik level sekarang.' : 
+                        `📋 ${onboardingCount || 0}/1 Onboarding • ${mandatoryMentoringCount || 0}/2 Mentoring Admin • ${writingsCount || 0}/5 Karya`
+                };
+
+            } catch (err) {
+                console.error('❌ Check level requirements error:', err);
+                return {
+                    canLevelUp: false,
+                    onboardingCount: 0,
+                    mandatoryMentoringCount: 0,
+                    writingsCount: 0,
+                    message: '❌ Gagal mengecek syarat: ' + err.message
+                };
+            }
+        }
+
+        // ============================================
+        // 4. LOAD USER DATA - DIPERBAIKI!
         // ============================================
         async function loadUserData() {
             try {
@@ -1358,6 +1424,7 @@
                     rejection_reason: profile.rejection_reason
                 });
 
+                // Ambil karya
                 const { data: writings, error: writingsError } = await _supabase
                     .from('yata_writings')
                     .select('id, status, views, likes')
@@ -1367,16 +1434,27 @@
                     console.error('Writings error:', writingsError);
                 }
 
+                // Ambil partisipasi onboarding & mentoring
                 const { data: mentoringData, error: mentoringError } = await _supabase
                     .from('yata_mentoring_participants')
-                    .select('id')
-                    .eq('user_id', session.user.id)
-                    .eq('attended', true);
+                    .select('id, session_id, attended, session:session_id(is_onboarding, is_mandatory)')
+                    .eq('user_id', session.user.id);
 
                 if (mentoringError) {
                     console.error('Mentoring error:', mentoringError);
                 }
 
+                // Hitung onboarding (attended = true)
+                const onboardingCount = mentoringData?.filter(m => 
+                    m.attended === true && m.session?.is_onboarding === true
+                ).length || 0;
+
+                // Hitung mentoring admin wajib (attended = true)
+                const mandatoryMentoringCount = mentoringData?.filter(m => 
+                    m.attended === true && m.session?.is_onboarding === false && m.session?.is_mandatory === true
+                ).length || 0;
+
+                // Hitung buku
                 const { data: booksData, error: booksError } = await _supabase
                     .from('yata_book_projects')
                     .select('id')
@@ -1392,7 +1470,6 @@
                 const totalDrafts = writings ? writings.filter(w => w.status === 'draft').length : 0;
                 const totalViews = writings ? writings.reduce((sum, w) => sum + (w.views || 0), 0) : 0;
                 const totalLikes = writings ? writings.reduce((sum, w) => sum + (w.likes || 0), 0) : 0;
-                const totalMentoring = mentoringData?.length || 0;
                 const totalBooks = booksData?.length || 0;
 
                 const displayLevel = profile.member_level || 'Tamu';
@@ -1405,13 +1482,12 @@
                 const levelKey = levelMap[displayLevel] || 'tamu';
                 const level = LEVELS[levelKey];
 
+                // 🔥 PROGRESS DENGAN SYARAT BARU
                 const progress = getLevelProgress(
-                    levelKey, 
-                    totalPublished, 
-                    totalMentoring, 
-                    totalBooks, 
-                    0,
-                    0
+                    levelKey,
+                    totalPublished,
+                    onboardingCount,
+                    mandatoryMentoringCount
                 );
 
                 const displayIcon = LEVEL_ICONS[displayLevel] || '🌱';
@@ -1444,7 +1520,7 @@
                 document.getElementById('levelNextInfo').textContent = progress.text;
 
                 // ============================================
-                // 🔥 STATUS PENGAJUAN NAIK LEVEL - DIPERBAIKI!
+                // 🔥 STATUS PENGAJUAN NAIK LEVEL
                 // ============================================
                 const btnLevelUp = document.getElementById('btnLevelUp');
                 const statusEl = document.getElementById('levelUpStatus');
@@ -1487,7 +1563,6 @@
                         btnLevelUp.innerHTML = '✅ Sudah Disetujui';
                     }
                 } else if (profile.level_status === 'rejected') {
-                    // 🔥 PENGAJUAN DITOLAK - TOMBOL AKTIF KEMBALI
                     if (statusEl) {
                         const reason = profile.rejection_reason || 'Silakan coba lagi nanti.';
                         statusEl.textContent = `❌ Pengajuan ditolak. ${reason}`;
@@ -1498,13 +1573,27 @@
                         btnLevelUp.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
                     }
                 } else {
-                    // Tidak ada status - reset
-                    if (statusEl) {
-                        statusEl.className = 'text-xs text-white/50 mt-1 text-center hidden';
-                    }
-                    if (btnLevelUp) {
-                        btnLevelUp.disabled = false;
-                        btnLevelUp.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
+                    // 🔥 CEK SYARAT UNTUK MENENTUKAN TOMBOL
+                    const requirements = await checkLevelUpRequirements(session.user.id);
+                    
+                    if (requirements.canLevelUp) {
+                        if (btnLevelUp) {
+                            btnLevelUp.disabled = false;
+                            btnLevelUp.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
+                        }
+                        if (statusEl) {
+                            statusEl.className = 'text-xs text-white/50 mt-1 text-center hidden';
+                        }
+                    } else {
+                        if (btnLevelUp) {
+                            btnLevelUp.disabled = true;
+                            btnLevelUp.innerHTML = '🔒 Syarat Belum Terpenuhi';
+                            btnLevelUp.className = 'w-full bg-slate-300 text-slate-500 font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2 cursor-not-allowed';
+                        }
+                        if (statusEl) {
+                            statusEl.textContent = requirements.message;
+                            statusEl.className = 'text-xs text-yellow-300 mt-1 text-center block';
+                        }
                     }
                 }
 
@@ -2317,7 +2406,7 @@
         }
 
         // ============================================
-        // 🔥 15. AJUKAN NAIK LEVEL - DARI DASHBOARD
+        // 🔥 15. AJUKAN NAIK LEVEL - DENGAN SYARAT BARU
         // ============================================
         async function submitLevelUpRequest() {
             const btn = document.getElementById('btnLevelUp');
@@ -2357,61 +2446,11 @@
                     return;
                 }
 
-                const { data: writings, error: writingsError } = await _supabase
-                    .from('yata_writings')
-                    .select('id')
-                    .eq('author_id', session.user.id)
-                    .eq('status', 'published');
-
-                const { data: mentoring, error: mentoringError } = await _supabase
-                    .from('yata_mentoring_participants')
-                    .select('id')
-                    .eq('user_id', session.user.id)
-                    .eq('attended', true);
-
-                const totalWritings = writings?.length || 0;
-                const totalMentoring = mentoring?.length || 0;
-
-                const levelMap = {
-                    'Tamu': { next: 'Penulis', reqWritings: 5, reqMentoring: 3, reqBooks: 0 },
-                    'Penulis': { next: 'Penulis Profesional', reqWritings: 20, reqMentoring: 5, reqBooks: 1 },
-                    'Penulis Profesional': { next: 'Mentor', reqWritings: 50, reqMentoring: 5, reqBooks: 3 },
-                    'Mentor': null
-                };
-
-                const levelRules = levelMap[profile.member_level];
-                if (!levelRules) {
-                    statusEl.textContent = '🏆 Anda sudah di level tertinggi (Mentor)!';
-                    statusEl.className = 'text-xs text-emerald-300 mt-1 text-center block';
-                    return;
-                }
-
-                let requirementsMet = true;
-                let requirementsText = [];
-
-                if (totalWritings < levelRules.reqWritings) {
-                    requirementsMet = false;
-                    requirementsText.push(`${totalWritings}/${levelRules.reqWritings} karya`);
-                }
-                if (totalMentoring < levelRules.reqMentoring) {
-                    requirementsMet = false;
-                    requirementsText.push(`${totalMentoring}/${levelRules.reqMentoring} mentoring`);
-                }
-                if (levelRules.reqBooks > 0) {
-                    const { data: books } = await _supabase
-                        .from('yata_book_projects')
-                        .select('id')
-                        .eq('author_id', session.user.id)
-                        .eq('status', 'published');
-                    const totalBooks = books?.length || 0;
-                    if (totalBooks < levelRules.reqBooks) {
-                        requirementsMet = false;
-                        requirementsText.push(`${totalBooks}/${levelRules.reqBooks} buku`);
-                    }
-                }
-
-                if (!requirementsMet) {
-                    statusEl.textContent = `⚠️ Syarat belum terpenuhi. Butuh: ${requirementsText.join(', ')}.`;
+                // 🔥 CEK SYARAT DENGAN FUNGSI BARU
+                const requirements = await checkLevelUpRequirements(session.user.id);
+                
+                if (!requirements.canLevelUp) {
+                    statusEl.textContent = `⚠️ Syarat belum terpenuhi. ${requirements.message}`;
                     statusEl.className = 'text-xs text-yellow-300 mt-1 text-center block';
                     return;
                 }
@@ -2419,13 +2458,14 @@
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
 
+                // Kirim notifikasi ke admin
                 const { data: admins, error: adminError } = await _supabase
                     .from('yata_profiles')
                     .select('id')
                     .eq('role', 'admin');
 
                 if (admins && admins.length > 0) {
-                    const notifContent = `📢 Member mengajukan naik level ke "${levelRules.next}".\n\n📊 Data:\n- Level saat ini: ${profile.member_level}\n- Target: ${levelRules.next}\n- Karya: ${totalWritings}/${levelRules.reqWritings}\n- Mentoring: ${totalMentoring}/${levelRules.reqMentoring}\n- User: ${session.user.email}`;
+                    const notifContent = `📢 Member mengajukan naik level ke "Penulis".\n\n📊 Data:\n- Level saat ini: ${profile.member_level}\n- Target: Penulis\n- Onboarding: ${requirements.onboardingCount}/1\n- Mentoring Admin: ${requirements.mandatoryMentoringCount}/2\n- Karya: ${requirements.writingsCount}/5\n- User: ${session.user.email}`;
 
                     const { data: notifData, error: notifError } = await _supabase
                         .from('yata_notifications')
@@ -2461,7 +2501,7 @@
                 await sendNotification(
                     session.user.id,
                     '⭐ Pengajuan Naik Level Dikirim!',
-                    `Pengajuan naik level ke "${levelRules.next}" telah dikirim ke admin. Mohon tunggu verifikasi.`,
+                    `Pengajuan naik level ke "Penulis" telah dikirim ke admin. Mohon tunggu verifikasi.`,
                     'campaign'
                 );
 

@@ -187,6 +187,48 @@
             font-size: 12px;
             color: #94a3b8;
         }
+        .access-locked {
+            background: #FEF3C7;
+            border: 1px solid #FCD34D;
+            color: #92400E;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+        }
+        .access-unlocked {
+            background: #D1FAE5;
+            border: 1px solid #34D399;
+            color: #065F46;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+        }
+        .access-onboarding {
+            background: #DBEAFE;
+            border: 1px solid #60A5FA;
+            color: #1E40AF;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+        }
+        .onboarding-badge {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            display: inline-block;
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+        .mandatory-badge {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            display: inline-block;
+            background: #FCE7F3;
+            color: #9D174D;
+        }
     </style>
 </head>
 <body>
@@ -288,7 +330,8 @@
                                 <span id="sessionStatus" class="status-badge status-published">✅ Published</span>
                                 <span id="sessionLevel" class="level-badge level-pemula">🌱 Pemula</span>
                                 <span id="sessionCategory" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-600">Umum</span>
-                                <span id="onboardingBadge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-700 hidden">🎓 Onboarding</span>
+                                <span id="onboardingBadge" class="onboarding-badge hidden">🎓 Onboarding</span>
+                                <span id="mandatoryBadge" class="mandatory-badge hidden">📖 Wajib</span>
                             </div>
                             <h1 id="sessionTitle" class="text-2xl md:text-3xl font-black text-slate-800">Judul Kelas</h1>
                             
@@ -313,6 +356,9 @@
                                 <span><i class="fa-regular fa-clock mr-1"></i> <span id="schedule">-</span></span>
                                 <span id="priceDisplay" class="font-bold text-emerald-600">🆓 Gratis</span>
                             </div>
+
+                            <!-- 🔥 ACCESS STATUS MESSAGE -->
+                            <div id="accessMessageContainer" class="mt-3"></div>
                         </div>
                         <div class="flex flex-col items-end gap-2 flex-shrink-0" id="actionButtons">
                             <button id="registerBtn" onclick="openRegisterModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
@@ -372,6 +418,10 @@
                                     <a id="meetingLink" href="#" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-semibold text-sm break-all">
                                         <i class="fa-regular fa-link mr-1"></i> Buka Link
                                     </a>
+                                </div>
+                                <div id="classTypeInfo" class="pt-2 border-t border-slate-100">
+                                    <p class="text-xs text-slate-400">Jenis Kelas</p>
+                                    <p id="classTypeLabel" class="font-semibold text-sm">📚 Mentoring Reguler</p>
                                 </div>
                             </div>
                         </div>
@@ -466,31 +516,11 @@
             <div class="text-center mb-6">
                 <span class="popup-icon">🔴</span>
                 <h3 class="text-xl font-black text-slate-800">Kuota Kelas Penuh!</h3>
-                <p class="text-sm text-slate-500 mt-1">Maaf, kelas ini sudah mencapai batas maksimal peserta untuk pekan ini.</p>
+                <p class="text-sm text-slate-500 mt-1">Maaf, kelas ini sudah mencapai batas maksimal peserta.</p>
             </div>
 
             <div id="currentSessionInfo" class="session-info mb-4">
                 <!-- Akan diisi JavaScript -->
-            </div>
-
-            <div id="nextSessionInfo" class="next-session-box mb-4 hidden">
-                <!-- Akan diisi JavaScript -->
-            </div>
-
-            <div id="nextSessionAction" class="hidden">
-                <button id="btnGoToNextSession" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition text-sm">
-                    <i class="fa-regular fa-calendar-plus mr-1"></i> Daftar di Pekan Berikutnya
-                </button>
-            </div>
-
-            <div id="noNextSessionMessage" class="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-4 hidden">
-                <p class="text-sm text-slate-500 text-center">
-                    <i class="fa-regular fa-clock mr-1"></i>
-                    Belum ada kelas onboarding di pekan berikutnya yang tersedia.
-                </p>
-                <p class="text-xs text-slate-400 text-center mt-1">
-                    Silakan cek kembali di minggu berikutnya.
-                </p>
             </div>
 
             <button onclick="closeQuotaFullPopup()" class="w-full mt-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
@@ -509,22 +539,11 @@
             <div class="text-center mb-6">
                 <span class="text-amber-500 text-4xl block mb-2">🔒</span>
                 <h3 class="text-xl font-black text-slate-800">Kelas Terkunci</h3>
-                <p class="text-sm text-slate-500 mt-1">Anda harus menyelesaikan kelas sebelumnya terlebih dahulu.</p>
+                <p class="text-sm text-slate-500 mt-1">Anda harus menyelesaikan onboarding terlebih dahulu.</p>
             </div>
 
             <div id="lockedMessage" class="bg-amber-50 rounded-xl p-4 border border-amber-200 mb-4">
                 <!-- Akan diisi JavaScript -->
-            </div>
-
-            <div id="lockedPreviousSession" class="bg-emerald-50 rounded-xl p-4 border border-emerald-200 mb-4 hidden">
-                <div class="flex items-center gap-2">
-                    <span class="text-emerald-600 text-lg">📖</span>
-                    <p class="text-sm font-semibold text-emerald-800">Kelas Sebelumnya:</p>
-                </div>
-                <p id="lockedPrevTitle" class="text-sm text-slate-600 mt-1"></p>
-                <button id="lockedGoToPrevBtn" class="mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-sm transition">
-                    <i class="fa-regular fa-arrow-right mr-1"></i> Lanjutkan ke Kelas Sebelumnya
-                </button>
             </div>
 
             <button onclick="closeLockedPopup()" class="w-full mt-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
@@ -631,101 +650,24 @@
         // ============================================
         async function checkProjectAccess(e) {
             if (e) e.preventDefault();
-            
             try {
                 const { data: { session } } = await _supabase.auth.getSession();
-                if (!session) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-
+                if (!session) { window.location.href = 'login.html'; return; }
                 const { data: profile, error } = await _supabase
                     .from('yata_profiles')
                     .select('member_level')
                     .eq('id', session.user.id)
                     .single();
-
-                if (error) {
-                    console.error('Error checking level:', error);
-                    window.location.href = 'projects.html';
-                    return;
-                }
-
+                if (error) { window.location.href = 'projects.html'; return; }
                 const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
                 if (allowedLevels.includes(profile.member_level)) {
                     window.location.href = 'projects.html';
                 } else {
-                    showProjectAccessDenied(profile.member_level || 'Tamu');
+                    showError('⚠️ Fitur Proyek Buku hanya untuk Member level Penulis ke atas!', 'Akses Ditolak');
                 }
             } catch (err) {
                 console.error('Error checking access:', err);
                 window.location.href = 'projects.html';
-            }
-        }
-
-        function showProjectAccessDenied(currentLevel) {
-            let modal = document.getElementById('projectAccessModal');
-            if (modal) modal.remove();
-
-            const modalHtml = `
-                <div id="projectAccessModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
-                        <button onclick="closeProjectAccessModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                        <div class="text-center mb-4">
-                            <span class="text-amber-500 text-4xl block mb-2">🔒</span>
-                            <h3 class="text-xl font-black text-slate-800">Akses Dibatasi</h3>
-                            <p class="text-sm text-slate-500 mt-1">Fitur Proyek Buku hanya untuk member level tertentu.</p>
-                        </div>
-                        <div class="bg-amber-50 rounded-xl p-4 border border-amber-200 mb-4">
-                            <p class="text-sm text-slate-600">Level Anda saat ini: <strong class="text-amber-700">${currentLevel || 'Tamu'}</strong></p>
-                        </div>
-                        <p class="text-sm text-slate-600 mb-3">Anda perlu mencapai level:</p>
-                        <ul class="space-y-2 text-sm mb-4">
-                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
-                                <span class="text-xl">✍️</span>
-                                <div>
-                                    <strong>Penulis</strong>
-                                    <p class="text-xs text-slate-500">5+ karya dipublikasikan • 3+ kali mentoring</p>
-                                </div>
-                            </li>
-                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
-                                <span class="text-xl">📚</span>
-                                <div>
-                                    <strong>Penulis Profesional</strong>
-                                    <p class="text-xs text-slate-500">20+ karya • 1+ buku diterbitkan</p>
-                                </div>
-                            </li>
-                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
-                                <span class="text-xl">🌟</span>
-                                <div>
-                                    <strong>Mentor</strong>
-                                    <p class="text-xs text-slate-500">50+ karya • 3+ buku diterbitkan</p>
-                                </div>
-                            </li>
-                        </ul>
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <button onclick="closeProjectAccessModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
-                                Tutup
-                            </button>
-                            <button onclick="closeProjectAccessModal(); window.location.href='dashboard.html'" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
-                                <i class="fa-regular fa-circle-question mr-1"></i> Lihat Syarat Level
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeProjectAccessModal() {
-            const modal = document.getElementById('projectAccessModal');
-            if (modal) {
-                modal.remove();
-                document.body.style.overflow = 'auto';
             }
         }
 
@@ -754,7 +696,7 @@
         }
 
         // ============================================
-        // 3. KIRIM NOTIFIKASI - HANYA KE 1 USER!
+        // 3. KIRIM NOTIFIKASI
         // ============================================
         async function sendNotification(userId, title, content, type = 'success') {
             try {
@@ -798,249 +740,399 @@
         }
 
         // ============================================
-        // 🔥 BUAT SERTIFIKAT OTOMATIS
+        // 🔥 CEK AKSES KELAS (ONBOARDING TERBUKA, REGULER TERKUNCI)
         // ============================================
-        async function createCertificate(userId) {
+        async function checkClassAccess(sessionId, userId) {
             try {
-                // Cek apakah sertifikat sudah ada
-                const { data: existingCert, error: certError } = await _supabase
-                    .from('yata_certificates')
-                    .select('id')
-                    .eq('user_id', userId)
-                    .eq('certificate_type', 'onboarding')
-                    .maybeSingle();
-
-                if (certError) throw certError;
-
-                if (existingCert) {
-                    console.log('✅ Sertifikat sudah ada untuk user ini');
-                    return;
-                }
-
-                // Ambil data user
-                const { data: profile, error: profileError } = await _supabase
-                    .from('yata_profiles')
-                    .select('full_name, email')
-                    .eq('id', userId)
-                    .single();
-
-                if (profileError) throw profileError;
-
-                // Generate nomor sertifikat
-                const now = new Date();
-                const dateStr = now.getFullYear() + 
-                    String(now.getMonth() + 1).padStart(2, '0') + 
-                    String(now.getDate()).padStart(2, '0');
-                const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-                const certNumber = `YATTA-ONBOARD-${dateStr}-${random}`;
-
-                const signatureUrl = 'https://fowkcubpplwpljfjjcfy.supabase.co/storage/v1/object/public/certificates/signature.png';
-
-                // ✅ INSERT SERTIFIKAT
-                const { error: insertError } = await _supabase
-                    .from('yata_certificates')
-                    .insert([{
-                        user_id: userId,
-                        certificate_type: 'onboarding',
-                        certificate_number: certNumber,
-                        is_claimed: true,
-                        claimed_at: new Date().toISOString(),
-                        signatory_name: 'Abd. Rahman Danial',
-                        signatory_title: 'Founder & CEO YATTA',
-                        signature_url: signatureUrl,
-                        issued_at: new Date().toISOString(),
-                        created_at: new Date().toISOString()
-                    }]);
-
-                if (insertError) throw insertError;
-
-                console.log(`✅ Sertifikat dibuat untuk user ${userId}: ${certNumber}`);
-
-            } catch (err) {
-                console.error('Create certificate error:', err);
-            }
-        }
-
-        // ============================================
-        // 🔥 CEK ULASAN & BUAT SERTIFIKAT JIKA SEMUA SELESAI
-        // ============================================
-        async function checkReviewAndCertificate(userId) {
-            try {
-                // Ambil semua kelas onboarding
-                const { data: onboardingSessions, error: sessionError } = await _supabase
+                // 1. Ambil data kelas
+                const { data: session, error } = await _supabase
                     .from('yata_mentoring_sessions')
-                    .select('id')
-                    .eq('is_onboarding', true)
-                    .eq('status', 'published')
-                    .order('created_at', { ascending: true });
-
-                if (sessionError) throw sessionError;
-
-                if (!onboardingSessions || onboardingSessions.length === 0) {
-                    console.log('ℹ️ Tidak ada kelas onboarding');
-                    return;
-                }
-
-                const sessionIds = onboardingSessions.map(s => s.id);
-
-                // Cek review user untuk semua kelas
-                const { data: reviews, error: reviewError } = await _supabase
-                    .from('yata_onboarding_reviews')
-                    .select('session_id')
-                    .eq('user_id', userId)
-                    .in('session_id', sessionIds);
-
-                if (reviewError) throw reviewError;
-
-                const reviewedSessions = reviews.map(r => r.session_id);
-                const allReviewed = sessionIds.every(id => reviewedSessions.includes(id));
-
-                if (!allReviewed) {
-                    console.log(`⏳ Belum semua kelas di-review (${reviewedSessions.length}/${sessionIds.length})`);
-                    return;
-                }
-
-                console.log('✅ Semua kelas sudah di-review!');
-
-                // ✅ CEK APAKAH SERTIFIKAT SUDAH ADA
-                const { data: existingCert, error: certError } = await _supabase
-                    .from('yata_certificates')
-                    .select('id')
-                    .eq('user_id', userId)
-                    .eq('certificate_type', 'onboarding')
-                    .maybeSingle();
-
-                if (certError) throw certError;
-
-                if (existingCert) {
-                    console.log('✅ Sertifikat sudah ada');
-                    return;
-                }
-
-                // ✅ BUAT SERTIFIKAT
-                await createCertificate(userId);
-                await sendCompletionNotifications(userId);
-
-            } catch (err) {
-                console.error('Check review and certificate error:', err);
-            }
-        }
-
-        // ============================================
-        // 🔥 3 NOTIFIKASI SAAT SELESAI 3/3 - HANYA KE USER TERSEBUT
-        // ============================================
-        async function sendCompletionNotifications(userId) {
-            try {
-                const notif1Title = `🎉 Selamat! Anda Telah Menyelesaikan Onboarding!`;
-                const notif1Content = `Anda telah menyelesaikan semua 3 kelas onboarding YATTA! 🎉
-        
-📚 Anda sekarang resmi menjadi bagian dari ekosistem YATTA.
-
-🚀 Langkah selanjutnya: Naik level ke "Penulis" untuk mulai menulis dan menerbitkan karya!`;
-
-                await sendNotification(userId, notif1Title, notif1Content, 'success');
-
-                const notif2Title = `📜 Sertifikat Onboarding Anda Tersedia!`;
-                const notif2Content = `Sertifikat onboarding Anda sudah tersedia di menu Sertifikat.
-
-🏛️ Ditandatangani oleh:
-Abd. Rahman Danial
-Founder & CEO YATTA
-
-📌 Klik menu Sertifikat untuk melihat dan mengunduh.`;
-
-                await sendNotification(userId, notif2Title, notif2Content, 'success');
-
-                const notif3Title = `⭐ Ajukan Naik Level ke "Penulis" Sekarang!`;
-                const notif3Content = `Anda sudah menyelesaikan semua kelas onboarding.
-
-📋 Syarat naik level ke "Penulis":
-✅ 5+ karya dipublikasikan
-✅ 3+ kali mengikuti mentoring
-
-📌 Klik menu Profil untuk melihat detail level dan ajukan naik level.`;
-
-                await sendNotification(userId, notif3Title, notif3Content, 'campaign');
-
-                console.log(`✅ 3 notifikasi completion terkirim ke user ${userId}`);
-
-            } catch (err) {
-                console.error('Send completion notifications error:', err);
-            }
-        }
-
-        // ============================================
-        // UPDATE RATING KELAS
-        // ============================================
-        async function updateSessionRating(sessionId) {
-            try {
-                const { data: reviews, error } = await _supabase
-                    .from('yata_onboarding_reviews')
-                    .select('material_understanding, platform_satisfaction')
-                    .eq('session_id', sessionId);
+                    .select('is_onboarding, is_mandatory, title')
+                    .eq('id', sessionId)
+                    .single();
 
                 if (error) throw error;
 
-                if (reviews && reviews.length > 0) {
-                    let total = 0;
-                    reviews.forEach(r => {
-                        const avgRating = (r.material_understanding + r.platform_satisfaction) / 2;
-                        total += avgRating;
-                    });
-                    const avg = total / reviews.length;
-
-                    await _supabase
-                        .from('yata_mentoring_sessions')
-                        .update({ 
-                            avg_rating: parseFloat(avg.toFixed(2)),
-                            total_reviews: reviews.length
-                        })
-                        .eq('id', sessionId);
-
-                    console.log(`✅ Rating diperbarui: ${avg.toFixed(2)} (${reviews.length} ulasan)`);
+                // 2. KALAU INI KELAS ONBOARDING → TERBUKA (TANPA SYARAT)
+                if (session.is_onboarding === true) {
+                    return {
+                        allowed: true,
+                        message: '✅ Kelas onboarding terbuka untuk semua member.',
+                        isOnboarding: true,
+                        isMandatory: session.is_mandatory || false
+                    };
                 }
-            } catch (err) {
-                console.error('Update rating error:', err);
-            }
-        }
 
-        // ============================================
-        // UPDATE KUOTA OTOMATIS
-        // ============================================
-        async function updateQuota(sessionId) {
-            try {
-                const { count, error: countError } = await _supabase
+                // 3. KALAU BUKAN ONBOARDING → CEK APAKAH SUDAH ONBOARDING
+                const { count: onboardingCount, error: countError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*', { count: 'exact', head: true })
-                    .eq('session_id', sessionId)
-                    .eq('status', 'approved');
+                    .eq('user_id', userId)
+                    .eq('attended', true)
+                    .eq('session:session_id(is_onboarding)', true);
 
-                if (countError) {
-                    console.error('❌ Count error:', countError);
-                    return false;
+                if (countError) throw countError;
+
+                if (onboardingCount === 0) {
+                    return {
+                        allowed: false,
+                        message: '🔒 Anda harus menyelesaikan ONBOARDING terlebih dahulu sebelum mengikuti kelas ini.',
+                        isOnboarding: false,
+                        isMandatory: session.is_mandatory || false,
+                        requiresOnboarding: true
+                    };
                 }
 
-                const { error: updateError } = await _supabase
-                    .from('yata_mentoring_sessions')
-                    .update({ current_participants: count || 0 })
-                    .eq('id', sessionId);
-
-                if (updateError) {
-                    console.error('❌ Update kuota error:', updateError);
-                    return false;
-                }
-
-                console.log('✅ Kuota berhasil diupdate ke:', count || 0);
-                return true;
+                // 4. SUDAH ONBOARDING → BEBAS AKSES SEMUA KELAS!
+                return {
+                    allowed: true,
+                    message: '✅ Anda sudah onboarding, bebas ikut kelas ini.',
+                    isOnboarding: false,
+                    isMandatory: session.is_mandatory || false
+                };
 
             } catch (err) {
-                console.error('❌ Update kuota error:', err);
-                return false;
+                console.error('❌ Check class access error:', err);
+                return {
+                    allowed: false,
+                    message: 'Gagal mengecek akses kelas: ' + err.message,
+                    isOnboarding: false,
+                    isMandatory: false
+                };
             }
         }
 
         // ============================================
-        // RENDER RATING
+        // 4. LOAD SESSION DETAIL
+        // ============================================
+        async function loadSessionDetail() {
+            sessionId = getSessionId();
+            if (!sessionId) {
+                showError('ID kelas tidak ditemukan.', 'Error');
+                window.location.href = 'mentoring.html';
+                return;
+            }
+
+            try {
+                await checkAuth();
+
+                const { data: session, error } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('*')
+                    .eq('id', sessionId)
+                    .single();
+
+                if (error) {
+                    console.error('Load session error:', error);
+                    if (error.code === 'PGRST116') {
+                        showError('Kelas tidak ditemukan.', 'Error');
+                    } else {
+                        showError('Gagal memuat kelas: ' + error.message, 'Error');
+                    }
+                    window.location.href = 'mentoring.html';
+                    return;
+                }
+
+                if (session.status !== 'published' && session.status !== 'ongoing') {
+                    showError('Kelas ini belum tersedia untuk publik.', 'Info');
+                    window.location.href = 'mentoring.html';
+                    return;
+                }
+
+                sessionData = session;
+
+                // Set mentor name
+                const mentorName = session.mentor_name || 'Mentor YATTA';
+                session.mentor = {
+                    full_name: mentorName,
+                    username: 'mentor',
+                    member_level: session.is_onboarding ? 'Admin' : 'Mentor',
+                    avatar_url: null
+                };
+
+                // Cek partisipasi user
+                if (currentUser) {
+                    const { data: participant } = await _supabase
+                        .from('yata_mentoring_participants')
+                        .select('status, attended')
+                        .eq('session_id', sessionId)
+                        .eq('user_id', currentUser.id)
+                        .maybeSingle();
+
+                    if (participant) {
+                        participantStatus = participant.status;
+                        if (participant.attended === true) {
+                            participantStatus = 'completed';
+                        }
+                    }
+
+                    const { data: review } = await _supabase
+                        .from('yata_onboarding_reviews')
+                        .select('id')
+                        .eq('user_id', currentUser.id)
+                        .eq('session_id', sessionId)
+                        .maybeSingle();
+
+                    reviewStatus = review ? 'reviewed' : 'not_reviewed';
+                }
+
+                // Ambil materi
+                const { data: materials, error: materialError } = await _supabase
+                    .from('yata_mentoring_materials')
+                    .select('*')
+                    .eq('session_id', sessionId)
+                    .order('created_at', { ascending: true });
+
+                if (!materialError) {
+                    session.materials = materials || [];
+                }
+
+                // Ambil ulasan
+                const { data: reviews, error: reviewError } = await _supabase
+                    .from('yata_onboarding_reviews')
+                    .select('*, profile:user_id(full_name)')
+                    .eq('session_id', sessionId)
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                if (!reviewError) {
+                    session.reviews = reviews || [];
+                }
+
+                renderSession(session);
+
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('contentContainer').classList.remove('hidden');
+
+            } catch (err) {
+                console.error('Load session detail error:', err);
+                showError('Terjadi kesalahan saat memuat kelas.', 'Error');
+                window.location.href = 'mentoring.html';
+            }
+        }
+
+        // ============================================
+        // 5. RENDER SESSION
+        // ============================================
+        function renderSession(session) {
+            const statusLabels = {
+                draft: '📝 Draft',
+                published: '✅ Published',
+                ongoing: '🔄 Sedang Berlangsung',
+                completed: '✅ Selesai',
+                cancelled: '❌ Dibatalkan'
+            };
+            const statusClasses = {
+                draft: 'status-draft',
+                published: 'status-published',
+                ongoing: 'status-ongoing',
+                completed: 'status-completed',
+                cancelled: 'status-cancelled'
+            };
+
+            const levelLabels = {
+                pemula: '🌱 Pemula',
+                menengah: '📈 Menengah',
+                lanjutan: '🚀 Lanjutan'
+            };
+            const levelClasses = {
+                pemula: 'level-pemula',
+                menengah: 'level-menengah',
+                lanjutan: 'level-lanjutan'
+            };
+
+            // Status
+            document.getElementById('sessionStatus').textContent = statusLabels[session.status] || '📝 Draft';
+            document.getElementById('sessionStatus').className = `status-badge ${statusClasses[session.status] || 'status-draft'}`;
+            document.getElementById('sessionLevel').textContent = levelLabels[session.level] || '🌱 Pemula';
+            document.getElementById('sessionLevel').className = `level-badge ${levelClasses[session.level] || 'level-pemula'}`;
+            document.getElementById('sessionCategory').textContent = session.category || 'Umum';
+            document.getElementById('sessionTitle').textContent = session.title;
+            document.getElementById('sessionDescription').textContent = session.description || 'Tidak ada deskripsi.';
+
+            // Rating
+            renderRating(session);
+
+            // Badge
+            const onboardingBadge = document.getElementById('onboardingBadge');
+            const mandatoryBadge = document.getElementById('mandatoryBadge');
+            
+            if (session.is_onboarding) {
+                onboardingBadge.classList.remove('hidden');
+                onboardingBadge.textContent = '🎓 Onboarding';
+            } else {
+                onboardingBadge.classList.add('hidden');
+            }
+            
+            if (session.is_mandatory && !session.is_onboarding) {
+                mandatoryBadge.classList.remove('hidden');
+                mandatoryBadge.textContent = '📖 Wajib';
+            } else {
+                mandatoryBadge.classList.add('hidden');
+            }
+
+            // Mentor
+            const mentor = session.mentor || {};
+            const avatarEl = document.getElementById('mentorAvatar');
+            avatarEl.textContent = (mentor.full_name || 'M').charAt(0).toUpperCase();
+            avatarEl.className = 'w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm overflow-hidden';
+            document.getElementById('mentorName').textContent = mentor.full_name || 'Mentor YATTA';
+            document.getElementById('mentorLevel').textContent = session.is_onboarding ? 'Admin YATTA' : 'Mentor YATTA';
+
+            // Info kelas
+            document.getElementById('participantCount').textContent = session.current_participants || 0;
+            document.getElementById('maxParticipants').textContent = session.max_participants || '∞';
+            document.getElementById('startDate').textContent = session.start_date ? new Date(session.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'TBA';
+            document.getElementById('schedule').textContent = session.schedule || 'TBA';
+
+            const isFree = session.price === 0;
+            document.getElementById('priceDisplay').textContent = isFree ? '🆓 Gratis' : '💰 Rp' + (session.price || 0).toLocaleString();
+            document.getElementById('priceDisplay').className = `font-bold ${isFree ? 'text-emerald-600' : 'text-purple-600'}`;
+
+            // Info sidebar
+            document.getElementById('infoLevel').textContent = levelLabels[session.level] || '🌱 Pemula';
+            document.getElementById('infoPrice').textContent = isFree ? '🆓 Gratis' : '💰 Rp' + (session.price || 0).toLocaleString();
+            document.getElementById('infoPrice').className = `font-semibold ${isFree ? 'text-emerald-600' : 'text-purple-600'}`;
+            document.getElementById('infoQuota').textContent = `${session.current_participants || 0} / ${session.max_participants || '∞'}`;
+            document.getElementById('infoSchedule').textContent = session.schedule || 'TBA';
+
+            // Jenis kelas
+            const classTypeLabel = document.getElementById('classTypeLabel');
+            if (session.is_onboarding) {
+                classTypeLabel.textContent = '🎓 Onboarding (Wajib)';
+                classTypeLabel.className = 'font-semibold text-sm text-blue-600';
+            } else if (session.is_mandatory) {
+                classTypeLabel.textContent = '📖 Mentoring Admin (Wajib)';
+                classTypeLabel.className = 'font-semibold text-sm text-purple-600';
+            } else {
+                classTypeLabel.textContent = '📚 Mentoring Reguler (Opsional)';
+                classTypeLabel.className = 'font-semibold text-sm text-emerald-600';
+            }
+
+            // Meeting link
+            const meetingContainer = document.getElementById('meetingLinkContainer');
+            if ((participantStatus === 'approved' || participantStatus === 'completed') && session.meeting_link) {
+                meetingContainer.classList.remove('hidden');
+                document.getElementById('meetingLink').href = session.meeting_link;
+                document.getElementById('meetingLink').textContent = session.meeting_link;
+            } else {
+                meetingContainer.classList.add('hidden');
+            }
+
+            // 🔥 TOMBOL REGISTER & ACCESS STATUS
+            updateRegisterButton(session);
+
+            // Materi
+            renderMaterials(session.materials || []);
+            
+            // Reviews
+            renderReviews(session.reviews || []);
+        }
+
+        // ============================================
+        // 6. UPDATE REGISTER BUTTON
+        // ============================================
+        async function updateRegisterButton(session) {
+            const registerBtn = document.getElementById('registerBtn');
+            const statusText = document.getElementById('registrationStatus');
+            const accessContainer = document.getElementById('accessMessageContainer');
+
+            let access = { allowed: true, message: '', isOnboarding: false };
+
+            if (currentUser) {
+                access = await checkClassAccess(sessionId, currentUser.id);
+            }
+
+            // Tampilkan access message
+            if (accessContainer) {
+                let msgClass = 'access-unlocked';
+                let icon = '✅';
+                if (!access.allowed) {
+                    msgClass = 'access-locked';
+                    icon = '🔒';
+                } else if (access.isOnboarding) {
+                    msgClass = 'access-onboarding';
+                    icon = '🎓';
+                }
+                accessContainer.innerHTML = `
+                    <div class="${msgClass} flex items-center gap-2">
+                        <span>${icon}</span>
+                        <span>${access.message}</span>
+                    </div>
+                `;
+            }
+
+            // Reset
+            registerBtn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
+            registerBtn.disabled = false;
+            statusText.classList.add('hidden');
+
+            if (!currentUser) {
+                registerBtn.textContent = '🔒 Login untuk Daftar';
+                registerBtn.onclick = () => {
+                    document.getElementById('loginPopupModal').classList.remove('hidden');
+                    document.body.style.overflow = 'hidden';
+                };
+                return;
+            }
+
+            if (!access.allowed) {
+                registerBtn.textContent = '🔒 Terkunci';
+                registerBtn.disabled = true;
+                registerBtn.className = 'bg-slate-300 text-slate-500 font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
+                statusText.textContent = '⚠️ ' + access.message;
+                statusText.classList.remove('hidden');
+                return;
+            }
+
+            // Cek kuota
+            if (session.max_participants > 0 && session.current_participants >= session.max_participants) {
+                registerBtn.textContent = '🔴 Kuota Penuh';
+                registerBtn.disabled = true;
+                registerBtn.className = 'bg-slate-100 text-slate-400 font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
+                statusText.textContent = '⚠️ Maaf, kuota peserta sudah penuh.';
+                statusText.classList.remove('hidden');
+                return;
+            }
+
+            // Cek status partisipasi
+            if (participantStatus === 'pending') {
+                registerBtn.textContent = '⏳ Menunggu Konfirmasi';
+                registerBtn.disabled = true;
+                registerBtn.className = 'bg-yellow-500 text-white font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
+                statusText.textContent = '⏳ Pendaftaran Anda sedang diproses.';
+                statusText.classList.remove('hidden');
+                return;
+            }
+
+            if (participantStatus === 'approved' || participantStatus === 'completed') {
+                registerBtn.textContent = '✅ Terdaftar';
+                registerBtn.disabled = true;
+                registerBtn.className = 'bg-emerald-100 text-emerald-700 font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
+                statusText.textContent = '✅ Anda sudah terdaftar di kelas ini.';
+                statusText.classList.remove('hidden');
+                return;
+            }
+
+            if (participantStatus === 'rejected') {
+                registerBtn.textContent = '❌ Ditolak';
+                registerBtn.disabled = true;
+                registerBtn.className = 'bg-red-100 text-red-600 font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
+                statusText.textContent = '❌ Pendaftaran Anda ditolak.';
+                statusText.classList.remove('hidden');
+                return;
+            }
+
+            // Default: bisa daftar
+            registerBtn.textContent = '📝 Daftar Sekarang';
+            registerBtn.disabled = false;
+            registerBtn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition';
+            registerBtn.onclick = openRegisterModal;
+            statusText.classList.add('hidden');
+        }
+
+        // ============================================
+        // 7. RENDER RATING
         // ============================================
         function renderRating(session) {
             const avgRating = session.avg_rating || 0;
@@ -1075,290 +1167,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 🔥 LOAD SESSION DETAIL - DENGAN MENTOR_NAME
-        // ============================================
-        async function loadSessionDetail() {
-            sessionId = getSessionId();
-            if (!sessionId) {
-                showError('ID kelas tidak ditemukan.', 'Error');
-                window.location.href = 'mentoring.html';
-                return;
-            }
-
-            try {
-                await checkAuth();
-
-                const { data: session, error } = await _supabase
-                    .from('yata_mentoring_sessions')
-                    .select('*')
-                    .eq('id', sessionId)
-                    .single();
-
-                if (error) {
-                    console.error('Load session error:', error);
-                    if (error.code === 'PGRST116') {
-                        showError('Kelas tidak ditemukan.', 'Error');
-                    } else {
-                        showError('Gagal memuat kelas: ' + error.message, 'Error');
-                    }
-                    window.location.href = 'mentoring.html';
-                    return;
-                }
-
-                if (session.status !== 'published') {
-                    showError('Kelas ini belum tersedia untuk publik.', 'Info');
-                    window.location.href = 'mentoring.html';
-                    return;
-                }
-
-                sessionData = session;
-
-                // 🔥 TIDAK PERLU QUERY KE yata_profiles - PAKAI mentor_name LANGSUNG
-                // Buat objek mentor dari mentor_name
-                const mentorName = session.mentor_name || 'Mentor YATTA';
-                session.mentor = {
-                    full_name: mentorName,
-                    username: 'mentor',
-                    member_level: 'Mentor',
-                    avatar_url: null
-                };
-
-                if (currentUser) {
-                    const { data: participant } = await _supabase
-                        .from('yata_mentoring_participants')
-                        .select('status')
-                        .eq('session_id', sessionId)
-                        .eq('user_id', currentUser.id)
-                        .maybeSingle();
-
-                    if (participant) {
-                        participantStatus = participant.status;
-                    }
-
-                    const { data: review } = await _supabase
-                        .from('yata_onboarding_reviews')
-                        .select('id')
-                        .eq('user_id', currentUser.id)
-                        .eq('session_id', sessionId)
-                        .maybeSingle();
-
-                    reviewStatus = review ? 'reviewed' : 'not_reviewed';
-
-                    const { data: certificate } = await _supabase
-                        .from('yata_certificates')
-                        .select('id, is_claimed')
-                        .eq('user_id', currentUser.id)
-                        .eq('session_id', sessionId)
-                        .maybeSingle();
-
-                    if (certificate) {
-                        reviewStatus = certificate.is_claimed ? 'claimed' : 'reviewed';
-                    }
-                }
-
-                const { data: materials, error: materialError } = await _supabase
-                    .from('yata_mentoring_materials')
-                    .select('*')
-                    .eq('session_id', sessionId)
-                    .order('created_at', { ascending: true });
-
-                if (!materialError) {
-                    session.materials = materials || [];
-                }
-
-                const { data: reviews, error: reviewError } = await _supabase
-                    .from('yata_mentoring_reviews')
-                    .select('*, profile:user_id(full_name)')
-                    .eq('session_id', sessionId)
-                    .order('created_at', { ascending: false })
-                    .limit(5);
-
-                if (!reviewError) {
-                    session.reviews = reviews || [];
-                }
-
-                renderSession(session);
-
-                const urlParams = new URLSearchParams(window.location.search);
-                const reviewParam = urlParams.get('review');
-
-                if (reviewParam === 'open' && currentUser) {
-                    setTimeout(() => {
-                        if (participantStatus === 'completed' || participantStatus === 'approved') {
-                            checkUserCompletion(sessionId, currentUser.id).then(isComplete => {
-                                if (isComplete) {
-                                    openReviewModal(sessionId);
-                                }
-                            });
-                        }
-                    }, 1000);
-                }
-
-                document.getElementById('loadingState').classList.add('hidden');
-                document.getElementById('contentContainer').classList.remove('hidden');
-
-            } catch (err) {
-                console.error('Load session detail error:', err);
-                showError('Terjadi kesalahan saat memuat kelas.', 'Error');
-                window.location.href = 'mentoring.html';
-            }
-        }
-
-        // ============================================
-        // CEK APAKAH USER SUDAH COMPLETE
-        // ============================================
-        async function checkUserCompletion(sessionId, userId) {
-            try {
-                const { data: participant, error } = await _supabase
-                    .from('yata_mentoring_participants')
-                    .select('attended, status')
-                    .eq('session_id', sessionId)
-                    .eq('user_id', userId)
-                    .maybeSingle();
-
-                if (error) throw error;
-
-                return participant && (participant.attended === true || participant.status === 'completed');
-            } catch (err) {
-                console.error('Check user completion error:', err);
-                return false;
-            }
-        }
-
-        // ============================================
-        // RENDER SESSION - DENGAN MENTOR_NAME
-        // ============================================
-        function renderSession(session) {
-            const statusLabels = {
-                draft: '📝 Draft',
-                published: '✅ Published',
-                ongoing: '🔄 Sedang Berlangsung',
-                completed: '✅ Selesai',
-                cancelled: '❌ Dibatalkan'
-            };
-            const statusClasses = {
-                draft: 'status-draft',
-                published: 'status-published',
-                ongoing: 'status-ongoing',
-                completed: 'status-completed',
-                cancelled: 'status-cancelled'
-            };
-
-            const levelLabels = {
-                pemula: '🌱 Pemula',
-                menengah: '📈 Menengah',
-                lanjutan: '🚀 Lanjutan'
-            };
-            const levelClasses = {
-                pemula: 'level-pemula',
-                menengah: 'level-menengah',
-                lanjutan: 'level-lanjutan'
-            };
-
-            document.getElementById('sessionStatus').textContent = statusLabels[session.status] || '📝 Draft';
-            document.getElementById('sessionStatus').className = `status-badge ${statusClasses[session.status] || 'status-draft'}`;
-            document.getElementById('sessionLevel').textContent = levelLabels[session.level] || '🌱 Pemula';
-            document.getElementById('sessionLevel').className = `level-badge ${levelClasses[session.level] || 'level-pemula'}`;
-            document.getElementById('sessionCategory').textContent = session.category || 'Umum';
-            document.getElementById('sessionTitle').textContent = session.title;
-            document.getElementById('sessionDescription').textContent = session.description || 'Tidak ada deskripsi.';
-
-            renderRating(session);
-
-            const onboardingBadge = document.getElementById('onboardingBadge');
-            if (session.is_onboarding) {
-                onboardingBadge.classList.remove('hidden');
-                onboardingBadge.textContent = '🎓 Onboarding Wajib';
-            } else {
-                onboardingBadge.classList.add('hidden');
-            }
-
-            // 🔥 TAMPILKAN MENTOR DARI mentor_name
-            const mentor = session.mentor || {};
-            const avatarEl = document.getElementById('mentorAvatar');
-            // Tampilkan inisial nama mentor
-            avatarEl.textContent = (mentor.full_name || 'M').charAt(0).toUpperCase();
-            avatarEl.className = 'w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm overflow-hidden';
-            document.getElementById('mentorName').textContent = mentor.full_name || 'Mentor YATTA';
-            document.getElementById('mentorLevel').textContent = 'Mentor YATTA';
-
-            document.getElementById('participantCount').textContent = session.current_participants || 0;
-            document.getElementById('maxParticipants').textContent = session.max_participants || '∞';
-            document.getElementById('startDate').textContent = session.start_date ? new Date(session.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'TBA';
-            document.getElementById('schedule').textContent = session.schedule || 'TBA';
-
-            const isFree = session.price === 0;
-            document.getElementById('priceDisplay').textContent = isFree ? '🆓 Gratis' : '💰 Rp' + (session.price || 0).toLocaleString();
-            document.getElementById('priceDisplay').className = `font-bold ${isFree ? 'text-emerald-600' : 'text-purple-600'}`;
-
-            document.getElementById('infoLevel').textContent = levelLabels[session.level] || '🌱 Pemula';
-            document.getElementById('infoPrice').textContent = isFree ? '🆓 Gratis' : '💰 Rp' + (session.price || 0).toLocaleString();
-            document.getElementById('infoPrice').className = `font-semibold ${isFree ? 'text-emerald-600' : 'text-purple-600'}`;
-            document.getElementById('infoQuota').textContent = `${session.current_participants || 0} / ${session.max_participants || '∞'}`;
-            document.getElementById('infoSchedule').textContent = session.schedule || 'TBA';
-
-            const meetingContainer = document.getElementById('meetingLinkContainer');
-            if (participantStatus === 'approved' && session.meeting_link) {
-                meetingContainer.classList.remove('hidden');
-                document.getElementById('meetingLink').href = session.meeting_link;
-                document.getElementById('meetingLink').textContent = session.meeting_link;
-            } else {
-                meetingContainer.classList.add('hidden');
-            }
-
-            const actionContainer = document.getElementById('actionButtons');
-            const registerBtn = document.getElementById('registerBtn');
-            const statusText = document.getElementById('registrationStatus');
-            actionContainer.innerHTML = '';
-            actionContainer.appendChild(registerBtn);
-            actionContainer.appendChild(statusText);
-
-            if (!currentUser) {
-                registerBtn.textContent = '🔒 Login untuk Daftar';
-                registerBtn.onclick = () => {
-                    document.getElementById('loginPopupModal').classList.remove('hidden');
-                    document.body.style.overflow = 'hidden';
-                };
-                registerBtn.disabled = false;
-                statusText.classList.add('hidden');
-            } else if (participantStatus === 'pending') {
-                registerBtn.textContent = '⏳ Menunggu Konfirmasi';
-                registerBtn.disabled = true;
-                registerBtn.className = 'bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
-                statusText.textContent = '⏳ Pendaftaran Anda sedang diproses.';
-                statusText.classList.remove('hidden');
-            } else if (participantStatus === 'approved') {
-                registerBtn.textContent = '✅ Terdaftar';
-                registerBtn.disabled = true;
-                registerBtn.className = 'bg-emerald-100 text-emerald-700 font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
-                statusText.textContent = '✅ Anda sudah terdaftar di kelas ini.';
-                statusText.classList.remove('hidden');
-            } else if (participantStatus === 'rejected') {
-                registerBtn.textContent = '❌ Ditolak';
-                registerBtn.disabled = true;
-                registerBtn.className = 'bg-red-100 text-red-600 font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
-                statusText.textContent = '❌ Pendaftaran Anda ditolak.';
-                statusText.classList.remove('hidden');
-            } else if (session.current_participants >= session.max_participants && session.max_participants > 0) {
-                registerBtn.textContent = '🔴 Kuota Penuh';
-                registerBtn.disabled = true;
-                registerBtn.className = 'bg-slate-100 text-slate-400 font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
-                statusText.textContent = '⚠️ Maaf, kuota peserta sudah penuh.';
-                statusText.classList.remove('hidden');
-            } else {
-                registerBtn.textContent = '📝 Daftar Sekarang';
-                registerBtn.disabled = false;
-                registerBtn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition';
-                registerBtn.onclick = openRegisterModal;
-                statusText.classList.add('hidden');
-            }
-
-            renderMaterials(session.materials || []);
-            renderReviews(session.reviews || []);
-        }
-
-        // ============================================
-        // RENDER MATERIALS
+        // 8. RENDER MATERIALS
         // ============================================
         function renderMaterials(materials) {
             const container = document.getElementById('materialList');
@@ -1403,7 +1212,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // RENDER REVIEWS
+        // 9. RENDER REVIEWS
         // ============================================
         function renderReviews(reviews) {
             const container = document.getElementById('reviewList');
@@ -1422,7 +1231,8 @@ Founder & CEO YATTA
             }
 
             container.innerHTML = reviews.map(r => {
-                const stars = '⭐'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+                const avgRating = (r.material_understanding + r.platform_satisfaction) / 2;
+                const stars = '⭐'.repeat(Math.round(avgRating)) + '☆'.repeat(5 - Math.round(avgRating));
                 const name = r.profile?.full_name || 'Member';
                 return `
                     <div class="review-card p-3 rounded-xl border border-slate-100">
@@ -1438,111 +1248,18 @@ Founder & CEO YATTA
                             </div>
                             <span class="text-sm">${stars}</span>
                         </div>
-                        <p class="text-sm text-slate-600 mt-1">${r.comment}</p>
+                        <p class="text-sm text-slate-600 mt-1">${r.feedback || 'Tidak ada feedback.'}</p>
+                        <div class="flex items-center gap-3 mt-1 text-[10px] text-slate-400">
+                            <span>📖 Materi: ${r.material_understanding}/5</span>
+                            <span>💻 Platform: ${r.platform_satisfaction}/5</span>
+                        </div>
                     </div>
                 `;
             }).join('');
         }
 
         // ============================================
-        // CEK AKSES ONBOARDING
-        // ============================================
-        async function checkOnboardingAccess(sessionId, userId) {
-            try {
-                const { data: session, error } = await _supabase
-                    .from('yata_mentoring_sessions')
-                    .select('is_onboarding, title, slug')
-                    .eq('id', sessionId)
-                    .single();
-
-                if (error) throw error;
-
-                if (!session.is_onboarding) {
-                    return { allowed: true, message: '', previousSession: null };
-                }
-
-                const { data: onboardingSessions, error: onError } = await _supabase
-                    .from('yata_mentoring_sessions')
-                    .select('id, slug, title')
-                    .eq('is_onboarding', true)
-                    .eq('status', 'published')
-                    .order('created_at', { ascending: true });
-
-                if (onError) throw onError;
-
-                if (!onboardingSessions || onboardingSessions.length === 0) {
-                    return { allowed: true, message: '', previousSession: null };
-                }
-
-                const currentIndex = onboardingSessions.findIndex(s => s.id === sessionId);
-                
-                if (currentIndex === -1) {
-                    return { allowed: true, message: '', previousSession: null };
-                }
-
-                if (currentIndex === 0) {
-                    return { allowed: true, message: '', previousSession: null };
-                }
-
-                const previousSession = onboardingSessions[currentIndex - 1];
-
-                const { data: participant, error: pError } = await _supabase
-                    .from('yata_mentoring_participants')
-                    .select('attended, attendance_status, status')
-                    .eq('session_id', previousSession.id)
-                    .eq('user_id', userId)
-                    .maybeSingle();
-
-                if (pError) throw pError;
-
-                if (!participant || participant.attended !== true) {
-                    return {
-                        allowed: false,
-                        message: `🔒 Anda harus menyelesaikan "${previousSession.title}" terlebih dahulu sebelum mengikuti kelas ini.`,
-                        previousSession: previousSession
-                    };
-                }
-
-                return { allowed: true, message: '', previousSession: null };
-
-            } catch (err) {
-                console.error('Check onboarding access error:', err);
-                return { allowed: true, message: '', previousSession: null };
-            }
-        }
-
-        // ============================================
-        // POPUP KELAS TERKUNCI
-        // ============================================
-        function showLockedPopup(message, previousSession) {
-            document.getElementById('lockedMessage').textContent = message;
-            
-            if (previousSession) {
-                document.getElementById('lockedPreviousSession').classList.remove('hidden');
-                document.getElementById('lockedPrevTitle').textContent = previousSession.title;
-                document.getElementById('lockedGoToPrevBtn').onclick = function() {
-                    window.location.href = `mentoring-detail.html?id=${previousSession.id}`;
-                };
-            } else {
-                document.getElementById('lockedPreviousSession').classList.add('hidden');
-            }
-
-            document.getElementById('lockedModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-
-            const registerModal = document.getElementById('registerModal');
-            if (registerModal) {
-                registerModal.classList.add('hidden');
-            }
-        }
-
-        function closeLockedPopup() {
-            document.getElementById('lockedModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
-
-        // ============================================
-        // OPEN REGISTER MODAL
+        // 10. OPEN REGISTER MODAL
         // ============================================
         async function openRegisterModal() {
             if (!currentUser) {
@@ -1551,51 +1268,47 @@ Founder & CEO YATTA
                 return;
             }
 
-            const access = await checkOnboardingAccess(sessionId, currentUser.id);
+            // 🔥 CEK AKSES DULU!
+            const access = await checkClassAccess(sessionId, currentUser.id);
             
             if (!access.allowed) {
-                showLockedPopup(access.message, access.previousSession);
+                document.getElementById('lockedMessage').textContent = access.message;
+                document.getElementById('lockedModal').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                return;
+            }
+
+            // Cek kuota
+            if (sessionData.max_participants > 0 && sessionData.current_participants >= sessionData.max_participants) {
+                await showQuotaFullPopup(sessionData);
                 return;
             }
 
             try {
-                const { data: session, error } = await _supabase
-                    .from('yata_mentoring_sessions')
-                    .select('current_participants, max_participants, title, schedule, is_onboarding, start_date')
-                    .eq('id', sessionId)
+                const { data: profile } = await _supabase
+                    .from('yata_profiles')
+                    .select('full_name, email, member_level, member_id')
+                    .eq('id', currentUser.id)
                     .single();
 
-                if (error) throw error;
+                document.getElementById('registerSessionId').value = sessionId;
+                document.getElementById('registerSubtitle').textContent = `Bergabung sebagai peserta "${sessionData?.title || 'Kelas'}"`;
+                
+                document.getElementById('registerName').value = profile?.full_name || '';
+                document.getElementById('registerEmail').value = profile?.email || currentUser.email || '';
+                document.getElementById('registerLevel').value = profile?.member_level || 'Tamu';
+                document.getElementById('registerMemberId').value = profile?.member_id || formatMemberId();
+                document.getElementById('registerPhone').value = '';
+                document.getElementById('registerReason').value = '';
+                document.getElementById('registerMessage').className = 'text-sm text-center hidden';
 
-                if (session.max_participants > 0 && session.current_participants >= session.max_participants) {
-                    await showQuotaFullPopup(session);
-                    return;
-                }
+                document.getElementById('registerModal').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+
             } catch (err) {
-                console.error('Check quota error:', err);
-                showRegisterMessage('Gagal mengecek kuota. Silakan coba lagi.', 'error');
-                return;
+                console.error('Open register modal error:', err);
+                showError('Gagal memuat data profil.', 'Error');
             }
-
-            const { data: profile } = await _supabase
-                .from('yata_profiles')
-                .select('full_name, email, member_level, member_id')
-                .eq('id', currentUser.id)
-                .single();
-
-            document.getElementById('registerSessionId').value = sessionId;
-            document.getElementById('registerSubtitle').textContent = `Bergabung sebagai peserta "${sessionData?.title || 'Kelas'}"`;
-            
-            document.getElementById('registerName').value = profile?.full_name || '';
-            document.getElementById('registerEmail').value = profile?.email || currentUser.email || '';
-            document.getElementById('registerLevel').value = profile?.member_level || 'Tamu';
-            document.getElementById('registerMemberId').value = profile?.member_id || formatMemberId();
-            document.getElementById('registerPhone').value = '';
-            document.getElementById('registerReason').value = '';
-            document.getElementById('registerMessage').className = 'text-sm text-center hidden';
-
-            document.getElementById('registerModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
         }
 
         function closeRegisterModal() {
@@ -1609,15 +1322,18 @@ Founder & CEO YATTA
             document.body.style.overflow = 'auto';
         }
 
+        function closeLockedPopup() {
+            document.getElementById('lockedModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
         // ============================================
-        // POPUP KUOTA PENUH
+        // 11. POPUP KUOTA PENUH
         // ============================================
         async function showQuotaFullPopup(currentSession) {
-            const nextSession = await findNextWeekSession(currentSession);
-
             const currentInfo = document.getElementById('currentSessionInfo');
             currentInfo.innerHTML = `
-                <p class="label">Kelas Saat Ini</p>
+                <p class="label">Kelas</p>
                 <p class="value">${currentSession.title}</p>
                 <p class="text-sm text-slate-600 mt-1">
                     <span class="font-semibold">Peserta:</span> ${currentSession.current_participants}/${currentSession.max_participants} (Penuh!)
@@ -1625,38 +1341,7 @@ Founder & CEO YATTA
                 ${currentSession.schedule ? `<p class="text-sm text-slate-600"><span class="font-semibold">Jadwal:</span> ${currentSession.schedule}</p>` : ''}
             `;
 
-            const nextInfo = document.getElementById('nextSessionInfo');
-            const nextAction = document.getElementById('nextSessionAction');
-            const noNextMsg = document.getElementById('noNextSessionMessage');
-
-            if (nextSession) {
-                nextInfo.classList.remove('hidden');
-                nextInfo.innerHTML = `
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="text-emerald-600 text-lg">📅</span>
-                        <p class="title">Kelas Pekan Berikutnya Tersedia!</p>
-                    </div>
-                    <p class="text-sm text-slate-600">
-                        <strong>Kelas:</strong> ${nextSession.title}
-                    </p>
-                    ${nextSession.schedule ? `<p class="text-sm text-slate-600"><strong>Jadwal:</strong> ${nextSession.schedule}</p>` : ''}
-                    <p class="text-sm text-slate-600">
-                        <strong>Kuota:</strong> ${nextSession.current_participants || 0}/${nextSession.max_participants || '∞'} peserta
-                    </p>
-                `;
-                nextAction.classList.remove('hidden');
-                document.getElementById('btnGoToNextSession').onclick = function() {
-                    window.location.href = `mentoring-detail.html?id=${nextSession.id}`;
-                };
-                noNextMsg.classList.add('hidden');
-            } else {
-                nextInfo.classList.add('hidden');
-                nextAction.classList.add('hidden');
-                noNextMsg.classList.remove('hidden');
-            }
-
-            const modal = document.getElementById('quotaFullModal');
-            modal.classList.remove('hidden');
+            document.getElementById('quotaFullModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
 
             const registerModal = document.getElementById('registerModal');
@@ -1665,62 +1350,13 @@ Founder & CEO YATTA
             }
         }
 
-        // ============================================
-        // CARI KELAS PEKAN BERIKUTNYA
-        // ============================================
-        async function findNextWeekSession(currentSession) {
-            try {
-                const { data: sessions, error } = await _supabase
-                    .from('yata_mentoring_sessions')
-                    .select('*')
-                    .eq('is_onboarding', true)
-                    .eq('status', 'published')
-                    .order('created_at', { ascending: true });
-
-                if (error) throw error;
-
-                const currentIndex = sessions.findIndex(s => s.id === currentSession.id);
-                
-                for (let i = currentIndex + 1; i < sessions.length; i++) {
-                    const s = sessions[i];
-                    const isFull = s.max_participants > 0 && s.current_participants >= s.max_participants;
-                    
-                    if (!isFull) {
-                        return s;
-                    }
-                }
-
-                for (let i = 0; i < sessions.length; i++) {
-                    if (i === currentIndex) continue;
-                    const s = sessions[i];
-                    const isFull = s.max_participants > 0 && s.current_participants >= s.max_participants;
-                    
-                    if (!isFull) {
-                        return s;
-                    }
-                }
-
-                return null;
-
-            } catch (err) {
-                console.error('Find next week session error:', err);
-                return null;
-            }
-        }
-
-        // ============================================
-        // TUTUP POPUP KUOTA PENUH
-        // ============================================
         function closeQuotaFullPopup() {
-            const modal = document.getElementById('quotaFullModal');
-            if (modal) {
-                modal.classList.add('hidden');
-                document.body.style.overflow = 'auto';
-            }
+            document.getElementById('quotaFullModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
         }
 
         // ============================================
-        // SUBMIT REGISTER - DENGAN NOTIFIKASI PER USER
+        // 12. SUBMIT REGISTER
         // ============================================
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1755,9 +1391,10 @@ Founder & CEO YATTA
                     return;
                 }
 
+                // Cek kuota lagi
                 const { data: currentSession, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
-                    .select('current_participants, max_participants, title, meeting_link')
+                    .select('current_participants, max_participants, title, meeting_link, is_onboarding')
                     .eq('id', sessionId)
                     .single();
 
@@ -1769,6 +1406,7 @@ Founder & CEO YATTA
                     return;
                 }
 
+                // Cek apakah sudah terdaftar
                 const { data: existing, error: checkError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('id')
@@ -1781,6 +1419,7 @@ Founder & CEO YATTA
                     return;
                 }
 
+                // Daftar
                 const { error: insertError } = await _supabase
                     .from('yata_mentoring_participants')
                     .insert([{
@@ -1796,10 +1435,15 @@ Founder & CEO YATTA
                     return;
                 }
 
+                // Update kuota
                 await updateQuota(sessionId);
 
-                // 🔥 NOTIFIKASI KE USER YANG MENDAFTAR (HANYA 1 USER)
-                const notifTitle = `🎉 Pendaftaran Berhasil!`;
+                // Kirim notifikasi ke user
+                const isOnboarding = currentSession.is_onboarding || false;
+                const notifTitle = isOnboarding ? 
+                    '🎓 Pendaftaran Onboarding Berhasil!' : 
+                    '📝 Pendaftaran Kelas Berhasil!';
+                
                 const notifContent = `Anda berhasil mendaftar di kelas "${currentSession.title}".
                 
 📋 Data Pendaftaran:
@@ -1809,18 +1453,18 @@ Founder & CEO YATTA
 - ID Anggota: ${memberId}
 - WhatsApp: ${phone}
 
-${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeting_link}` : '💡 Link meeting akan diinfokan kemudian oleh mentor.'}
+${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_link}` : '💡 Link meeting akan diinfokan kemudian.'}
 
 📌 Tips: Simpan link ini untuk akses cepat ke kelas.`;
 
                 await sendNotification(
-                    session.user.id,  // ← HANYA UNTUK USER INI!
+                    session.user.id,
                     notifTitle,
                     notifContent,
                     'success'
                 );
 
-                showRegisterMessage('✅ Pendaftaran berhasil! Kuota terupdate otomatis.', 'success');
+                showRegisterMessage('✅ Pendaftaran berhasil!', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
 
                 setTimeout(() => {
@@ -1848,9 +1492,37 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // ULASAN ONBOARDING + UPDATE RATING + SERTIFIKAT
+        // 13. UPDATE QUOTA
         // ============================================
+        async function updateQuota(sessionId) {
+            try {
+                const { count, error: countError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('session_id', sessionId)
+                    .eq('status', 'approved');
 
+                if (countError) throw countError;
+
+                const { error: updateError } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .update({ current_participants: count || 0 })
+                    .eq('id', sessionId);
+
+                if (updateError) throw updateError;
+
+                console.log('✅ Kuota berhasil diupdate ke:', count || 0);
+                return true;
+
+            } catch (err) {
+                console.error('❌ Update kuota error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // 14. RATING FUNCTIONS FOR REVIEW
+        // ============================================
         let materialRatingValue = 0;
         let platformRatingValue = 0;
         let currentReviewSessionId = null;
@@ -1916,7 +1588,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // 🔥 SUBMIT REVIEW + UPDATE RATING + CEK SERTIFIKAT
+        // 15. SUBMIT REVIEW
         // ============================================
         document.getElementById('reviewForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1955,11 +1627,8 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
                 showReviewMessage('✅ Ulasan berhasil dikirim!', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
 
-                // ✅ UPDATE RATING KELAS
+                // Update rating kelas
                 await updateSessionRating(sessionId);
-
-                // ✅ CEK DAN BUAT SERTIFIKAT OTOMATIS!
-                await checkReviewAndCertificate(session.user.id);
 
                 setTimeout(() => {
                     closeReviewModal();
@@ -1986,7 +1655,42 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // LOGOUT
+        // 16. UPDATE SESSION RATING
+        // ============================================
+        async function updateSessionRating(sessionId) {
+            try {
+                const { data: reviews, error } = await _supabase
+                    .from('yata_onboarding_reviews')
+                    .select('material_understanding, platform_satisfaction')
+                    .eq('session_id', sessionId);
+
+                if (error) throw error;
+
+                if (reviews && reviews.length > 0) {
+                    let total = 0;
+                    reviews.forEach(r => {
+                        const avgRating = (r.material_understanding + r.platform_satisfaction) / 2;
+                        total += avgRating;
+                    });
+                    const avg = total / reviews.length;
+
+                    await _supabase
+                        .from('yata_mentoring_sessions')
+                        .update({ 
+                            avg_rating: parseFloat(avg.toFixed(2)),
+                            total_reviews: reviews.length
+                        })
+                        .eq('id', sessionId);
+
+                    console.log(`✅ Rating diperbarui: ${avg.toFixed(2)} (${reviews.length} ulasan)`);
+                }
+            } catch (err) {
+                console.error('Update rating error:', err);
+            }
+        }
+
+        // ============================================
+        // 17. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -2004,7 +1708,7 @@ ${currentSession.meeting_link ? `🔗 Link Grup/Meeting:\n${currentSession.meeti
         }
 
         // ============================================
-        // EVENT LISTENERS
+        // 18. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadSessionDetail();
