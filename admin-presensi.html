@@ -312,7 +312,7 @@
         }
 
         // ============================================
-        // 🔥 BUAT SERTIFIKAT OTOMATIS
+        // 🔥 BUAT SERTIFIKAT OTOMATIS (FIX)
         // ============================================
         async function createCertificate(userId) {
             try {
@@ -348,6 +348,8 @@
                     return false;
                 }
 
+                console.log('👤 Profile ditemukan:', profile.full_name);
+
                 // ✅ GENERATE NOMOR SERTIFIKAT
                 const now = new Date();
                 const dateStr = now.getFullYear() + 
@@ -377,10 +379,12 @@
 
                 if (insertError) {
                     console.error('❌ [createCertificate] Error insert:', insertError);
+                    console.error('❌ Error details:', insertError.message);
                     return false;
                 }
 
                 console.log(`✅ [createCertificate] Sertifikat BERHASIL dibuat: ${certNumber}`);
+                console.log('📜 Data sertifikat:', newCert);
                 return true;
 
             } catch (err) {
@@ -390,47 +394,49 @@
         }
 
         // ============================================
-        // 🔥 KIRIM NOTIFIKASI SELESAI ONBOARDING (TANPA SYARAT REVIEW)
+        // 🔥 KIRIM NOTIFIKASI SELESAI ONBOARDING (FIX)
         // ============================================
         async function sendCompletionNotifications(userId) {
             try {
-                console.log('📬 [sendCompletionNotifications] Mengirim notifikasi ke:', userId);
+                console.log('📬 [sendCompletionNotifications] START untuk user:', userId);
                 
+                // 1. Ambil data user
                 const { data: profile, error: profileError } = await _supabase
                     .from('yata_profiles')
-                    .select('full_name, member_level')
+                    .select('full_name, member_level, email')
                     .eq('id', userId)
                     .single();
                 
                 if (profileError) {
                     console.error('❌ Profile error:', profileError);
-                    return;
+                    return false;
                 }
 
                 const userName = profile?.full_name || 'Member';
+                console.log('👤 User:', userName);
 
                 // ============================================
                 // 📨 NOTIFIKASI 1: SELAMAT ONBOARDING
                 // ============================================
-                const notif1Title = `🎉 Selamat ${userName}! Anda Telah Menyelesaikan Onboarding!`;
-                const notif1Content = `Anda telah menyelesaikan semua kelas onboarding YATTA! 🎉
+                console.log('📨 Mengirim notifikasi 1: Selamat Onboarding...');
+                const notif1Result = await sendNotificationWithAction(
+                    userId,
+                    `🎉 Selamat ${userName}! Anda Telah Menyelesaikan Onboarding!`,
+                    `Anda telah menyelesaikan semua kelas onboarding YATTA! 🎉
         
 📚 Anda sekarang resmi menjadi bagian dari ekosistem YATTA.
 
-📌 Klik tombol di bawah untuk melihat sertifikat Anda.`;
-
-                await sendNotificationWithAction(
-                    userId,
-                    notif1Title,
-                    notif1Content,
+📌 Klik tombol di bawah untuk melihat sertifikat Anda.`,
                     'success',
                     '📜 Lihat Sertifikat',
                     '/certificates.html'
                 );
+                console.log('📨 Notif 1 hasil:', notif1Result ? 'BERHASIL' : 'GAGAL');
 
                 // ============================================
-                // 🔥 BUAT SERTIFIKAT OTOMATIS (TANPA REVIEW!)
+                // 🔥 BUAT SERTIFIKAT OTOMATIS
                 // ============================================
+                console.log('📜 Membuat sertifikat untuk user:', userId);
                 const certResult = await createCertificate(userId);
                 console.log('📜 Hasil sertifikat:', certResult ? 'BERHASIL' : 'GAGAL');
 
@@ -438,53 +444,57 @@
                     // ============================================
                     // 📨 NOTIFIKASI 2: SERTIFIKAT TERSEDIA
                     // ============================================
-                    const notif2Title = `📜 Sertifikat Onboarding Anda Tersedia!`;
-                    const notif2Content = `Sertifikat onboarding Anda sudah tersedia di menu Sertifikat.
+                    console.log('📨 Mengirim notifikasi 2: Sertifikat Tersedia...');
+                    const notif2Result = await sendNotificationWithAction(
+                        userId,
+                        `📜 Sertifikat Onboarding Anda Tersedia!`,
+                        `Sertifikat onboarding Anda sudah tersedia di menu Sertifikat.
 
 🏛️ Ditandatangani oleh:
 Abd. Rahman Danial
 Founder & CEO YATTA
 
-📌 Klik tombol di bawah untuk melihat sertifikat Anda.`;
-
-                    await sendNotificationWithAction(
-                        userId,
-                        notif2Title,
-                        notif2Content,
+📌 Klik tombol di bawah untuk melihat sertifikat Anda.`,
                         'success',
                         '📜 Lihat Sertifikat',
                         '/certificates.html'
                     );
+                    console.log('📨 Notif 2 hasil:', notif2Result ? 'BERHASIL' : 'GAGAL');
 
                     // ============================================
                     // 📨 NOTIFIKASI 3: AJUKAN NAIK LEVEL
                     // ============================================
+                    console.log('📨 Mengirim notifikasi 3: Ajukan Naik Level...');
                     const nextLevel = profile?.member_level === 'Tamu' ? 'Penulis' : 
                                      profile?.member_level === 'Penulis' ? 'Penulis Profesional' : 
                                      'Mentor';
 
-                    const notif3Title = `⭐ Ajukan Naik Level ke "${nextLevel}" Sekarang!`;
-                    const notif3Content = `Anda sudah menyelesaikan onboarding! Sekarang saatnya naik level!
+                    const notif3Result = await sendNotificationWithAction(
+                        userId,
+                        `⭐ Ajukan Naik Level ke "${nextLevel}" Sekarang!`,
+                        `Anda sudah menyelesaikan onboarding! Sekarang saatnya naik level!
 
 📋 Level Anda saat ini: ${profile?.member_level || 'Tamu'}
 🎯 Target level: ${nextLevel}
 
-📌 Klik tombol di bawah untuk mengajukan naik level.`;
-
-                    await sendNotificationWithAction(
-                        userId,
-                        notif3Title,
-                        notif3Content,
+📌 Klik tombol di bawah untuk mengajukan naik level.`,
                         'campaign',
                         '⭐ Ajukan Naik Level',
                         '/profile.html'
                     );
+                    console.log('📨 Notif 3 hasil:', notif3Result ? 'BERHASIL' : 'GAGAL');
+                    
+                    console.log('✅ Semua notifikasi completion terkirim ke user', userId);
+                    return true;
+                } else {
+                    console.error('❌ Gagal membuat sertifikat, notifikasi sertifikat tidak dikirim');
+                    // Tetap kirim notifikasi 1 meskipun sertifikat gagal
+                    return false;
                 }
-
-                console.log(`✅ Semua notifikasi completion terkirim ke user ${userId}`);
 
             } catch (err) {
                 console.error('❌ [sendCompletionNotifications] Error:', err);
+                return false;
             }
         }
 
@@ -824,7 +834,6 @@ Founder & CEO YATTA
                     await sendAttendancePresentNotification(userId, sessionTitle, sessionId);
 
                     // 🔥 CEK APAKAH SEMUA ONBOARDING SELESAI
-                    // Jika semua onboarding sudah attended = true, kirim notifikasi sertifikat
                     const { data: allOnboarding, error: allError } = await _supabase
                         .from('yata_mentoring_participants')
                         .select('attended, session:session_id(is_onboarding)')
@@ -832,12 +841,19 @@ Founder & CEO YATTA
                         .eq('session.session_id.is_onboarding', true);
 
                     if (!allError && allOnboarding) {
-                        const allCompleted = allOnboarding.every(p => p.attended === true);
+                        const completedCount = allOnboarding.filter(p => p.attended === true).length;
+                        const totalCount = allOnboarding.length;
+                        const allCompleted = completedCount === totalCount && totalCount > 0;
+                        
+                        console.log(`📊 Onboarding progress: ${completedCount}/${totalCount}`);
+                        console.log(`📊 All completed: ${allCompleted}`);
+                        
                         if (allCompleted) {
                             console.log('🎉 Semua onboarding selesai! Mengirim notifikasi sertifikat...');
                             
-                            // 🔥 LANGSUNG KIRIM NOTIFIKASI SELESAI + BUAT SERTIFIKAT (TANPA REVIEW!)
-                            await sendCompletionNotifications(userId);
+                            // 🔥 LANGSUNG KIRIM NOTIFIKASI SELESAI + BUAT SERTIFIKAT
+                            const result = await sendCompletionNotifications(userId);
+                            console.log('📨 Hasil sendCompletionNotifications:', result ? 'BERHASIL' : 'GAGAL');
                         }
                     }
 
