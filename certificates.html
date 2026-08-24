@@ -695,7 +695,7 @@
 
                 console.log('🟢 [loadCertificates] User ID:', session.user.id);
 
-                // 🔥 AMBIL SERTIFIKAT - HANYA 1 PER USER UNTUK TIPE ONBOARDING
+                // 🔥 AMBIL SERTIFIKAT
                 const { data: certificates, error } = await _supabase
                     .from('yata_certificates')
                     .select('*')
@@ -710,7 +710,6 @@
                 console.log('📜 [loadCertificates] Sertifikat ditemukan:', certificates?.length || 0, 'items');
 
                 // 🔥 FILTER: HANYA 1 SERTIFIKAT ONBOARDING (YANG TERBARU)
-                // Jika ada multiple onboarding certificate, ambil yang terbaru
                 let filteredCertificates = certificates || [];
                 
                 // Cari sertifikat onboarding
@@ -780,7 +779,6 @@
             const initial = fullName.charAt(0).toUpperCase();
 
             container.innerHTML = allCertificates.map(c => {
-                // 🔥 PASTIKAN HANYA 1 ONBOARDING PER USER
                 const displayType = c.certificate_type === 'onboarding' ? 'onboarding' : c.certificate_type;
                 const typeLabel = typeLabels[displayType] || c.certificate_type || 'Sertifikat';
                 
