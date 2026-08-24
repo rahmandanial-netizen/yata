@@ -144,30 +144,51 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
+        
+        /* ========================================== */
+        /* 🔥 TOMBOL AKSI - BARU */
+        /* ========================================== */
         .action-btn {
             background: #065F46;
             color: white;
             border: none;
             border-radius: 12px;
-            padding: 10px 20px;
-            font-size: 13px;
+            padding: 12px 20px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
             width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         .action-btn:hover {
             background: #0D9488;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(6, 95, 70, 0.25);
         }
         .action-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
+        }
+        .action-btn .icon {
+            font-size: 18px;
         }
         .action-section {
             border-top: 1px solid #e2e8f0;
             padding-top: 16px;
             margin-top: 16px;
         }
+        .action-info {
+            font-size: 12px;
+            color: #94a3b8;
+            text-align: center;
+            padding: 8px 0;
+        }
+        
         .level-requirement-met {
             background: #D1FAE5;
             color: #065F46;
@@ -320,7 +341,7 @@
                 Isi notifikasi akan ditampilkan di sini.
             </div>
 
-            <!-- SECTION AKSI -->
+            <!-- 🔥 SECTION AKSI - DIPERBAIKI -->
             <div id="actionSection" class="action-section">
                 <div id="actionContainer">
                     <!-- Akan diisi JavaScript -->
@@ -431,11 +452,10 @@
         }
 
         // ============================================
-        // 🔥 CEK SYARAT NAIK LEVEL (1 ONBOARDING + 2 MENTORING ADMIN + 5 KARYA)
+        // 🔥 CEK SYARAT NAIK LEVEL
         // ============================================
         async function checkLevelUpRequirements(userId) {
             try {
-                // 1. CEK ONBOARDING (1x)
                 const { count: onboardingCount, error: onError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*', { count: 'exact', head: true })
@@ -445,7 +465,6 @@
 
                 if (onError) throw onError;
 
-                // 2. CEK MENTORING ADMIN WAJIB (2x)
                 const { count: mandatoryMentoringCount, error: manError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*', { count: 'exact', head: true })
@@ -456,7 +475,6 @@
 
                 if (manError) throw manError;
 
-                // 3. CEK KARYA (5x)
                 const { count: writingsCount, error: wError } = await _supabase
                     .from('yata_writings')
                     .select('*', { count: 'exact', head: true })
@@ -533,57 +551,6 @@
 
             } catch (err) {
                 console.error('❌ Send notification error:', err);
-                return false;
-            }
-        }
-
-        // ============================================
-        // KIRIM NOTIFIKASI DENGAN TOMBOL AKSI
-        // ============================================
-        async function sendNotificationWithAction(userId, title, content, type = 'success', actionLabel = null, actionUrl = null) {
-            try {
-                let notifData = {
-                    title: title,
-                    content: content,
-                    type: type
-                };
-
-                if (actionLabel && actionUrl) {
-                    notifData.action_label = actionLabel;
-                    notifData.action_url = actionUrl;
-                }
-
-                const { data: notifDataResult, error } = await _supabase
-                    .from('yata_notifications')
-                    .insert([notifData])
-                    .select()
-                    .single();
-
-                if (error) {
-                    console.error('❌ Insert notif error:', error);
-                    return false;
-                }
-
-                if (notifDataResult && userId) {
-                    const { error: linkError } = await _supabase
-                        .from('yata_user_notifications')
-                        .insert([{
-                            notification_id: notifDataResult.id,
-                            user_id: userId,
-                            is_read: false
-                        }]);
-
-                    if (linkError) {
-                        console.error('❌ Link notif error:', linkError);
-                        return false;
-                    }
-                }
-
-                console.log(`✅ Notifikasi dengan aksi ke user ${userId}: ${title}`);
-                return true;
-
-            } catch (err) {
-                console.error('❌ Send notification with action error:', err);
                 return false;
             }
         }
@@ -766,6 +733,7 @@
                                 <span><i class="fa-regular fa-clock mr-1"></i> ${timeAgo(n.created_at)}</span>
                                 ${n.is_read ? '<span class="text-emerald-600">✓ Sudah dibaca</span>' : '<span class="text-slate-400">Belum dibaca</span>'}
                             </div>
+                            ${n.action_label ? `<span class="inline-block mt-1 text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">🔘 ${n.action_label}</span>` : ''}
                         </div>
                     </div>
                 </div>
@@ -798,7 +766,7 @@
         }
 
         // ============================================
-        // OPEN NOTIFICATION DETAIL
+        // 🔥 OPEN NOTIFICATION DETAIL - DENGAN TOMBOL AKSI
         // ============================================
         async function openNotifDetail(notificationId) {
             try {
@@ -871,46 +839,48 @@
                 // Cek apakah ini notifikasi sertifikat
                 const isCertificateNotif = title.includes('Sertifikat') || 
                                            content.includes('sertifikat') ||
-                                           title.includes('Sertifikat Onboarding');
+                                           title.includes('Sertifikat Onboarding') ||
+                                           title.includes('Sertifikat "');
 
+                // 🔥 PRIORITAS: Gunakan action_label dan action_url dari database
                 if (actionLabel && actionUrl) {
-                    // 🔥 NOTIFIKASI DENGAN TOMBOL AKSI DARI DATABASE
                     actionContainer.innerHTML = `
-                        <button id="actionBtn" class="action-btn" onclick="window.location.href='${actionUrl}'">
-                            ${actionLabel}
+                        <button class="action-btn" onclick="window.location.href='${actionUrl}'">
+                            <span class="icon">📌</span> ${actionLabel}
                         </button>
+                        <p class="action-info">💡 Klik tombol di atas untuk melanjutkan.</p>
                     `;
                 } else if (isLevelUpNotif) {
                     // 🔥 NOTIFIKASI AJUKAN NAIK LEVEL
-                    // Cek apakah user sudah memenuhi syarat
                     const requirements = await checkLevelUpRequirements(session.user.id);
                     
                     if (requirements.canLevelUp) {
                         actionContainer.innerHTML = `
-                            <button id="actionBtn" class="action-btn" onclick="submitLevelUpRequest()">
-                                ⭐ Ajukan Naik Level
+                            <button class="action-btn" onclick="submitLevelUpRequest()">
+                                <span class="icon">⭐</span> Ajukan Naik Level
                             </button>
-                            <p class="text-xs text-slate-400 mt-1">✅ Semua syarat terpenuhi!</p>
+                            <p class="action-info">✅ Semua syarat terpenuhi!</p>
                         `;
                     } else {
                         actionContainer.innerHTML = `
-                            <button id="actionBtn" class="action-btn" disabled style="background:#94a3b8;cursor:not-allowed;">
-                                🔒 Syarat Belum Terpenuhi
+                            <button class="action-btn" disabled style="background:#94a3b8;cursor:not-allowed;">
+                                <span class="icon">🔒</span> Syarat Belum Terpenuhi
                             </button>
-                            <p class="text-xs text-amber-600 mt-1">${requirements.message}</p>
+                            <p class="action-info" style="color:#d97706;">${requirements.message}</p>
                         `;
                     }
                 } else if (isCertificateNotif) {
                     // 🔥 NOTIFIKASI SERTIFIKAT
                     actionContainer.innerHTML = `
-                        <button id="actionBtn" class="action-btn" onclick="window.location.href='certificates.html'">
-                            📜 Lihat Sertifikat
+                        <button class="action-btn" onclick="window.location.href='certificates.html'">
+                            <span class="icon">📜</span> Lihat Sertifikat
                         </button>
+                        <p class="action-info">💡 Sertifikat Anda sudah tersedia di menu Sertifikat.</p>
                     `;
                 } else {
                     // 🔥 NOTIFIKASI BIASA (TANPA AKSI)
                     actionContainer.innerHTML = `
-                        <p class="text-xs text-slate-400 text-center">💡 Tidak ada aksi untuk notifikasi ini.</p>
+                        <p class="action-info">💡 Tidak ada aksi untuk notifikasi ini.</p>
                     `;
                 }
 
@@ -1057,7 +1027,6 @@
                     return;
                 }
 
-                // 🔥 CEK SYARAT DENGAN FUNGSI BARU
                 const requirements = await checkLevelUpRequirements(session.user.id);
                 
                 if (!requirements.canLevelUp) {
@@ -1146,14 +1115,6 @@
                     btn.innerHTML = '⭐ Ajukan Naik Level';
                 }
             }
-        }
-
-        // ============================================
-        // LIHAT SERTIFIKAT
-        // ============================================
-        function goToCertificates() {
-            closeNotifModal();
-            window.location.href = 'certificates.html';
         }
 
         // ============================================

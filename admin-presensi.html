@@ -314,19 +314,17 @@
         // ============================================
         // 🔥 BUAT SERTIFIKAT (SUPPORT SEMUA TIPE)
         // ============================================
-        async function createCertificate(userId, certificateType = 'onboarding', sessionTitle = null) {
+        async function createCertificate(userId, certificateType = 'onboarding', certificateName = null) {
             try {
-                console.log('🔍 [createCertificate] Dipanggil untuk user:', userId, 'type:', certificateType);
+                console.log('🔍 [createCertificate] Dipanggil untuk user:', userId, 'type:', certificateType, 'name:', certificateName);
                 
                 // 🔥 CEK APAKAH SERTIFIKAT SUDAH ADA
-                const certIdentifier = sessionTitle ? `${certificateType}_${sessionTitle}` : certificateType;
-                
                 const { data: existingCert, error: certError } = await _supabase
                     .from('yata_certificates')
                     .select('id, certificate_number')
                     .eq('user_id', userId)
                     .eq('certificate_type', certificateType)
-                    .eq('certificate_name', sessionTitle || certificateType)
+                    .eq('certificate_name', certificateName || certificateType)
                     .maybeSingle();
 
                 if (certError) {
@@ -374,7 +372,7 @@
                     .insert([{
                         user_id: userId,
                         certificate_type: certificateType,
-                        certificate_name: sessionTitle || certificateType,
+                        certificate_name: certificateName || certificateType,
                         certificate_number: certNumber,
                         is_claimed: true,
                         claimed_at: new Date().toISOString(),
@@ -472,31 +470,37 @@
 
                 // Tentukan tipe sertifikat
                 let certificateType = 'onboarding';
+                let certificateName = session.title;
                 if (session.is_onboarding) {
                     certificateType = 'onboarding';
                 } else if (session.is_mandatory) {
                     certificateType = 'mandatory_mentoring';
                 }
 
-                const certResult = await createCertificate(userId, certificateType, session.title);
+                const certResult = await createCertificate(userId, certificateType, certificateName);
                 console.log('📜 Hasil sertifikat:', certResult ? 'BERHASIL' : 'GAGAL');
 
                 if (certResult) {
-                    // 📨 NOTIFIKASI SERTIFIKAT
-                    await sendNotificationWithAction(
-                        userId,
-                        `📜 Sertifikat "${session.title}" Tersedia!`,
-                        `Sertifikat untuk kelas "${session.title}" sudah tersedia di menu Sertifikat.
+                    // 📨 NOTIFIKASI SERTIFIKAT DENGAN TOMBOL AKSI
+                    const notifTitle = `📜 Sertifikat "${session.title}" Tersedia!`;
+                    const notifContent = `Selamat! Anda telah menyelesaikan kelas "${session.title}".
 
-🏛️ Ditandatangani oleh:
+🏛️ Sertifikat ditandatangani oleh:
 Abd. Rahman Danial
 Founder & CEO YATTA
 
-📌 Klik tombol di bawah untuk melihat sertifikat Anda.`,
+📌 Klik tombol di bawah untuk melihat dan mengunduh sertifikat Anda.`;
+
+                    await sendNotificationWithAction(
+                        userId,
+                        notifTitle,
+                        notifContent,
                         'success',
                         '📜 Lihat Sertifikat',
                         '/certificates.html'
                     );
+                    
+                    console.log(`✅ Notifikasi sertifikat terkirim ke user ${userId}`);
                     return true;
                 }
 
@@ -748,6 +752,8 @@ Founder & CEO YATTA
         // ============================================
         async function markAttendance(participantId, status) {
             try {
+                console.log('📝 [markAttendance] Participant:', participantId, 'Status:', status);
+                
                 const { data: participant, error: fetchError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*, session:session_id(*)')
@@ -761,6 +767,9 @@ Founder & CEO YATTA
                 const sessionId = participant.session_id;
                 const userId = participant.user_id;
 
+                console.log('📝 [markAttendance] Session ID:', sessionId);
+                console.log('📝 [markAttendance] User ID:', userId);
+
                 const { error: updateError } = await _supabase
                     .from('yata_mentoring_participants')
                     .update({
@@ -773,6 +782,26 @@ Founder & CEO YATTA
                 if (updateError) throw updateError;
 
                 if (isPresent) {
+                    // 🔥 KIRIM NOTIFIKASI KELAS SELESAI
+                    console.log('📝 [markAttendance] Mengirim notifikasi kelas selesai untuk user:', userId);
+                    
+                    const notifTitle = `✅ Kelas "${sessionTitle}" Selesai!`;
+                    const notifContent = `Selamat! Anda telah menyelesaikan kelas "${sessionTitle}".
+
+📌 Langkah selanjutnya:
+1. Buka menu "Mentoring Saya"
+2. Klik tombol "Ulasan" pada kelas ini
+3. Berikan rating dan feedback
+4. Setelah review, sertifikat akan otomatis tersedia!`;
+
+                    await sendNotification(
+                        userId,
+                        notifTitle,
+                        notifContent,
+                        'success'
+                    );
+
+                    // Update status participant
                     const { error: updateStatusError } = await _supabase
                         .from('yata_mentoring_participants')
                         .update({ 
@@ -786,10 +815,6 @@ Founder & CEO YATTA
                     } else {
                         console.log(`✅ Peserta ${participantId} status diupdate ke completed`);
                     }
-
-                    // 🔥 CEK DAN BUAT SERTIFIKAT OTOMATIS!
-                    const certResult = await checkAndCreateCertificate(userId, sessionId);
-                    console.log('📜 Hasil sertifikat:', certResult ? 'BERHASIL' : 'GAGAL');
 
                 } else {
                     await sendAttendanceAbsentNotification(userId, sessionTitle);
@@ -839,6 +864,8 @@ Founder & CEO YATTA
 
                 if (fetchError) throw fetchError;
 
+                const sessionTitle = allSessions.find(s => s.id === currentSessionId)?.title || 'Kelas';
+
                 for (const p of participants) {
                     await _supabase
                         .from('yata_mentoring_participants')
@@ -851,8 +878,22 @@ Founder & CEO YATTA
                         })
                         .eq('id', p.id);
 
-                    // 🔥 CEK DAN BUAT SERTIFIKAT UNTUK SETIAP USER
-                    await checkAndCreateCertificate(p.user_id, currentSessionId);
+                    // 🔥 KIRIM NOTIFIKASI KELAS SELESAI UNTUK SETIAP USER
+                    const notifTitle = `✅ Kelas "${sessionTitle}" Selesai!`;
+                    const notifContent = `Selamat! Anda telah menyelesaikan kelas "${sessionTitle}".
+
+📌 Langkah selanjutnya:
+1. Buka menu "Mentoring Saya"
+2. Klik tombol "Ulasan" pada kelas ini
+3. Berikan rating dan feedback
+4. Setelah review, sertifikat akan otomatis tersedia!`;
+
+                    await sendNotification(
+                        p.user_id,
+                        notifTitle,
+                        notifContent,
+                        'success'
+                    );
                 }
 
                 await _supabase

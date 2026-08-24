@@ -652,19 +652,17 @@
         // ============================================
         // 🔥 BUAT SERTIFIKAT (SUPPORT SEMUA TIPE)
         // ============================================
-        async function createCertificate(userId, certificateType = 'onboarding', sessionTitle = null) {
+        async function createCertificate(userId, certificateType = 'onboarding', certificateName = null) {
             try {
-                console.log('🔍 [createCertificate] Dipanggil untuk user:', userId, 'type:', certificateType);
+                console.log('🔍 [createCertificate] Dipanggil untuk user:', userId, 'type:', certificateType, 'name:', certificateName);
                 
                 // 🔥 CEK APAKAH SERTIFIKAT SUDAH ADA
-                const certIdentifier = sessionTitle ? `${certificateType}_${sessionTitle}` : certificateType;
-                
                 const { data: existingCert, error: certError } = await _supabase
                     .from('yata_certificates')
                     .select('id, certificate_number')
                     .eq('user_id', userId)
                     .eq('certificate_type', certificateType)
-                    .eq('certificate_name', sessionTitle || certificateType)
+                    .eq('certificate_name', certificateName || certificateType)
                     .maybeSingle();
 
                 if (certError) {
@@ -712,7 +710,7 @@
                     .insert([{
                         user_id: userId,
                         certificate_type: certificateType,
-                        certificate_name: sessionTitle || certificateType,
+                        certificate_name: certificateName || certificateType,
                         certificate_number: certNumber,
                         is_claimed: true,
                         claimed_at: new Date().toISOString(),
@@ -810,31 +808,37 @@
 
                 // Tentukan tipe sertifikat
                 let certificateType = 'onboarding';
+                let certificateName = session.title;
                 if (session.is_onboarding) {
                     certificateType = 'onboarding';
                 } else if (session.is_mandatory) {
                     certificateType = 'mandatory_mentoring';
                 }
 
-                const certResult = await createCertificate(userId, certificateType, session.title);
+                const certResult = await createCertificate(userId, certificateType, certificateName);
                 console.log('📜 Hasil sertifikat:', certResult ? 'BERHASIL' : 'GAGAL');
 
                 if (certResult) {
-                    // 📨 NOTIFIKASI SERTIFIKAT
-                    await sendNotificationWithAction(
-                        userId,
-                        `📜 Sertifikat "${session.title}" Tersedia!`,
-                        `Sertifikat untuk kelas "${session.title}" sudah tersedia di menu Sertifikat.
+                    // 📨 NOTIFIKASI SERTIFIKAT DENGAN TOMBOL AKSI
+                    const notifTitle = `📜 Sertifikat "${session.title}" Tersedia!`;
+                    const notifContent = `Selamat! Anda telah menyelesaikan kelas "${session.title}".
 
-🏛️ Ditandatangani oleh:
+🏛️ Sertifikat ditandatangani oleh:
 Abd. Rahman Danial
 Founder & CEO YATTA
 
-📌 Klik tombol di bawah untuk melihat sertifikat Anda.`,
+📌 Klik tombol di bawah untuk melihat dan mengunduh sertifikat Anda.`;
+
+                    await sendNotificationWithAction(
+                        userId,
+                        notifTitle,
+                        notifContent,
                         'success',
                         '📜 Lihat Sertifikat',
                         '/certificates.html'
                     );
+                    
+                    console.log(`✅ Notifikasi sertifikat terkirim ke user ${userId}`);
                     return true;
                 }
 
@@ -1403,6 +1407,9 @@ Founder & CEO YATTA
                 const session = await checkAuth();
                 if (!session) return;
 
+                console.log('📝 [review] User ID:', session.user.id);
+                console.log('📝 [review] Session ID:', sessionId);
+
                 // ✅ INSERT REVIEW
                 const { error } = await _supabase
                     .from('yata_onboarding_reviews')
@@ -1423,7 +1430,7 @@ Founder & CEO YATTA
                 await updateSessionRating(sessionId);
 
                 // 🔥 CEK DAN BUAT SERTIFIKAT OTOMATIS!
-                console.log('🔍 Memanggil checkAndCreateCertificate untuk user:', session.user.id, 'session:', sessionId);
+                console.log('📝 [review] Memanggil checkAndCreateCertificate...');
                 const certResult = await checkAndCreateCertificate(session.user.id, sessionId);
                 console.log('📜 Hasil sertifikat:', certResult ? 'BERHASIL' : 'GAGAL');
 
