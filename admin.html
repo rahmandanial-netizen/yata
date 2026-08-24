@@ -430,7 +430,7 @@
                             <div id="memberSearchResults" class="mt-2 max-h-48 overflow-y-auto border border-slate-200 rounded-xl hidden bg-white shadow-lg">
                             </div>
                             
-                            <div id="selectedMembersContainer" class="mt-2 flex flex-wrap gap-2"></div>
+                            <div id="selectedMembersContainer" class="mt-2 flex-wrap gap-2"></div>
                             <p class="text-xs text-slate-400 mt-1" id="selectedCountText">💡 Belum ada member dipilih. Notifikasi akan dikirim ke semua member berdasarkan target audience.</p>
                         </div>
 
@@ -1023,6 +1023,35 @@
         let allBooks = [];
 
         let deleteClassTargetId = null;
+
+        // ============================================
+        // 🔥 FUNGSI SHOW ONBOARDING MESSAGE (FIX PERMANEN)
+        // ============================================
+        function showOnboardingMessage(text, type) {
+            const msg = document.getElementById('onboardingMessage');
+            if (!msg) {
+                console.error('❌ Element onboardingMessage tidak ditemukan');
+                alert(text);
+                return;
+            }
+            
+            msg.textContent = text;
+            
+            let className = 'text-sm text-center';
+            if (type) {
+                className += ' block';
+                if (type === 'success') {
+                    className += ' text-emerald-600';
+                } else if (type === 'error') {
+                    className += ' text-red-600';
+                }
+            } else {
+                className += ' hidden';
+            }
+            
+            msg.className = className;
+            console.log('📝 Onboarding Message:', text, type);
+        }
 
         // ============================================
         // 1. ADMIN CHECK
@@ -2652,6 +2681,8 @@
         document.getElementById('onboardingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            console.log('🔥 Form submitted!');
+
             const classType = document.getElementById('classType').value;
             const title = document.getElementById('onboardingTitle').value.trim();
             const slug = document.getElementById('onboardingSlug').value.trim().toLowerCase();
@@ -2663,7 +2694,7 @@
             const meetingLink = document.getElementById('onboardingLink').value.trim();
             const mentorName = document.getElementById('onboardingMentor').value.trim();
 
-            console.log('🔥 Form submitted!', { classType, title, slug, description, mentorName });
+            console.log('📝 Data form:', { classType, title, slug, description, mentorName });
 
             if (!title || !slug || !description || !mentorName) {
                 showOnboardingMessage('Harap isi semua kolom wajib.', 'error');
