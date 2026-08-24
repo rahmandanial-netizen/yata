@@ -2633,7 +2633,21 @@
         }
 
         // ============================================
-        // 30. CREATE ONBOARDING (ADMIN) - DENGAN JENIS KELAS
+        // 30. UPDATE HINT JENIS KELAS
+        // ============================================
+        document.getElementById('classType').addEventListener('change', function() {
+            const hint = document.getElementById('classTypeHint');
+            if (this.value === 'onboarding') {
+                hint.textContent = '💡 Onboarding: 1 kelas wajib untuk semua member baru.';
+                hint.className = 'text-xs text-blue-600 mt-1';
+            } else {
+                hint.textContent = '📖 Mentoring Wajib: 2 kelas wajib untuk naik level.';
+                hint.className = 'text-xs text-purple-600 mt-1';
+            }
+        });
+
+        // ============================================
+        // 31. CREATE ONBOARDING (ADMIN) - DENGAN JENIS KELAS
         // ============================================
         document.getElementById('onboardingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -2649,6 +2663,8 @@
             const meetingLink = document.getElementById('onboardingLink').value.trim();
             const mentorName = document.getElementById('onboardingMentor').value.trim();
 
+            console.log('🔥 Form submitted!', { classType, title, slug, description, mentorName });
+
             if (!title || !slug || !description || !mentorName) {
                 showOnboardingMessage('Harap isi semua kolom wajib.', 'error');
                 return;
@@ -2660,7 +2676,10 @@
             }
 
             const session = await checkAdmin();
-            if (!session) return;
+            if (!session) {
+                showOnboardingMessage('Sesi admin tidak valid. Silakan login ulang.', 'error');
+                return;
+            }
 
             const isOnboarding = classType === 'onboarding';
             const isMandatory = true;
@@ -2736,20 +2755,6 @@
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Buat Kelas';
-            }
-        });
-
-        // ============================================
-        // 31. UPDATE HINT JENIS KELAS
-        // ============================================
-        document.getElementById('classType').addEventListener('change', function() {
-            const hint = document.getElementById('classTypeHint');
-            if (this.value === 'onboarding') {
-                hint.textContent = '💡 Onboarding: 1 kelas wajib untuk semua member baru.';
-                hint.className = 'text-xs text-blue-600 mt-1';
-            } else {
-                hint.textContent = '📖 Mentoring Wajib: 2 kelas wajib untuk naik level.';
-                hint.className = 'text-xs text-purple-600 mt-1';
             }
         });
 
