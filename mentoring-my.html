@@ -555,92 +555,49 @@
         }
 
         // ============================================
-        // KIRIM NOTIFIKASI - HANYA KE 1 USER!
+        // 🔥 KIRIM NOTIFIKASI DENGAN TOMBOL AKSI (DIPERBAIKI)
         // ============================================
-        async function sendNotification(userId, title, content, type = 'success') {
+        async function sendNotificationWithAction(userId, title, content, type = 'success', actionLabel = null, actionUrl = null) {
             try {
-                const { data: notifData, error } = await _supabase
+                console.log('📝 [sendNotificationWithAction] Dipanggil untuk user:', userId);
+                console.log('📝 actionLabel:', actionLabel);
+                console.log('📝 actionUrl:', actionUrl);
+                
+                // 1. Buat notifikasi dengan action
+                const { data: notifData, error: notifError } = await _supabase
                     .from('yata_notifications')
                     .insert([{
                         title: title,
                         content: content,
-                        type: type
+                        type: type,
+                        action_label: actionLabel,
+                        action_url: actionUrl
                     }])
                     .select()
                     .single();
 
-                if (error) {
-                    console.error('❌ Insert notif error:', error);
+                if (notifError) {
+                    console.error('❌ Gagal insert notifikasi:', notifError);
                     return false;
                 }
 
-                if (notifData && userId) {
-                    const { error: linkError } = await _supabase
-                        .from('yata_user_notifications')
-                        .insert([{
-                            notification_id: notifData.id,
-                            user_id: userId,
-                            is_read: false
-                        }]);
+                console.log('✅ Notifikasi berhasil dibuat:', notifData.id);
 
-                    if (linkError) {
-                        console.error('❌ Link notif error:', linkError);
-                        return false;
-                    }
-                }
+                // 2. Link ke user
+                const { error: linkError } = await _supabase
+                    .from('yata_user_notifications')
+                    .insert([{
+                        notification_id: notifData.id,
+                        user_id: userId,
+                        is_read: false
+                    }]);
 
-                console.log(`✅ Notifikasi ke user ${userId}: ${title}`);
-                return true;
-
-            } catch (err) {
-                console.error('❌ Send notification error:', err);
-                return false;
-            }
-        }
-
-        // ============================================
-        // 🔥 KIRIM NOTIFIKASI DENGAN TOMBOL AKSI
-        // ============================================
-        async function sendNotificationWithAction(userId, title, content, type = 'success', actionLabel = null, actionUrl = null) {
-            try {
-                let notifData = {
-                    title: title,
-                    content: content,
-                    type: type
-                };
-
-                if (actionLabel && actionUrl) {
-                    notifData.action_label = actionLabel;
-                    notifData.action_url = actionUrl;
-                }
-
-                const { data: notifDataResult, error } = await _supabase
-                    .from('yata_notifications')
-                    .insert([notifData])
-                    .select()
-                    .single();
-
-                if (error) {
-                    console.error('❌ Insert notif error:', error);
+                if (linkError) {
+                    console.error('❌ Gagal link notifikasi ke user:', linkError);
                     return false;
                 }
 
-                if (notifDataResult && userId) {
-                    const { error: linkError } = await _supabase
-                        .from('yata_user_notifications')
-                        .insert([{
-                            notification_id: notifDataResult.id,
-                            user_id: userId,
-                            is_read: false
-                        }]);
-
-                    if (linkError) {
-                        console.error('❌ Link notif error:', linkError);
-                        return false;
-                    }
-                }
-
-                console.log(`✅ Notifikasi dengan aksi ke user ${userId}: ${title}`);
+                console.log('✅ Notifikasi berhasil dikirim ke user:', userId);
                 return true;
 
             } catch (err) {
@@ -652,9 +609,9 @@
         // ============================================
         // 🔥 BUAT SERTIFIKAT (SUPPORT SEMUA TIPE)
         // ============================================
-        async function createCertificate(userId, certificateType = 'onboarding', certificateName = null) {
+        async function createCertificate(userId, certificateType = 'onboarding') {
             try {
-                console.log('🔍 [createCertificate] Dipanggil untuk user:', userId, 'type:', certificateType, 'name:', certificateName);
+                console.log('🔍 [createCertificate] Dipanggil untuk user:', userId, 'type:', certificateType);
                 
                 // 🔥 CEK APAKAH SERTIFIKAT SUDAH ADA
                 const { data: existingCert, error: certError } = await _supabase
@@ -662,7 +619,6 @@
                     .select('id, certificate_number')
                     .eq('user_id', userId)
                     .eq('certificate_type', certificateType)
-                    .eq('certificate_name', certificateName || certificateType)
                     .maybeSingle();
 
                 if (certError) {
@@ -704,13 +660,12 @@
 
                 console.log('📜 [createCertificate] Membuat sertifikat:', certNumber);
 
-                // ✅ INSERT SERTIFIKAT
+                // ✅ INSERT SERTIFIKAT (TANPA certificate_name)
                 const { data: newCert, error: insertError } = await _supabase
                     .from('yata_certificates')
                     .insert([{
                         user_id: userId,
                         certificate_type: certificateType,
-                        certificate_name: certificateName || certificateType,
                         certificate_number: certNumber,
                         is_claimed: true,
                         claimed_at: new Date().toISOString(),
@@ -808,14 +763,13 @@
 
                 // Tentukan tipe sertifikat
                 let certificateType = 'onboarding';
-                let certificateName = session.title;
                 if (session.is_onboarding) {
                     certificateType = 'onboarding';
                 } else if (session.is_mandatory) {
                     certificateType = 'mandatory_mentoring';
                 }
 
-                const certResult = await createCertificate(userId, certificateType, certificateName);
+                const certResult = await createCertificate(userId, certificateType);
                 console.log('📜 Hasil sertifikat:', certResult ? 'BERHASIL' : 'GAGAL');
 
                 if (certResult) {
@@ -829,7 +783,9 @@ Founder & CEO YATTA
 
 📌 Klik tombol di bawah untuk melihat dan mengunduh sertifikat Anda.`;
 
-                    await sendNotificationWithAction(
+                    console.log('📝 Mengirim notifikasi...');
+                    
+                    const result = await sendNotificationWithAction(
                         userId,
                         notifTitle,
                         notifContent,
@@ -838,8 +794,8 @@ Founder & CEO YATTA
                         '/certificates.html'
                     );
                     
-                    console.log(`✅ Notifikasi sertifikat terkirim ke user ${userId}`);
-                    return true;
+                    console.log('📝 Hasil kirim notifikasi:', result ? 'BERHASIL' : 'GAGAL');
+                    return result;
                 }
 
                 return false;
@@ -1433,6 +1389,10 @@ Founder & CEO YATTA
                 console.log('📝 [review] Memanggil checkAndCreateCertificate...');
                 const certResult = await checkAndCreateCertificate(session.user.id, sessionId);
                 console.log('📜 Hasil sertifikat:', certResult ? 'BERHASIL' : 'GAGAL');
+                
+                if (certResult) {
+                    showReviewMessage('✅ Sertifikat telah dibuat! Cek menu Notifikasi.', 'success');
+                }
 
                 setTimeout(() => {
                     closeReviewModal();
