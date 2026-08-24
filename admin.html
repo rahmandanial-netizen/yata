@@ -430,7 +430,7 @@
                             <div id="memberSearchResults" class="mt-2 max-h-48 overflow-y-auto border border-slate-200 rounded-xl hidden bg-white shadow-lg">
                             </div>
                             
-                            <div id="selectedMembersContainer" class="mt-2 flex-wrap gap-2"></div>
+                            <div id="selectedMembersContainer" class="mt-2 flex flex-wrap gap-2"></div>
                             <p class="text-xs text-slate-400 mt-1" id="selectedCountText">💡 Belum ada member dipilih. Notifikasi akan dikirim ke semua member berdasarkan target audience.</p>
                         </div>
 
@@ -728,11 +728,11 @@
                 </div>
 
                 <!-- ============================================ -->
-                <!-- DAFTAR KELAS -->
+                <!-- DAFTAR KELAS (FIX: SEMUA KELAS WAJIB) -->
                 <!-- ============================================ -->
                 <div class="p-5">
                     <div class="flex items-center justify-between mb-3">
-                        <h3 class="font-semibold text-slate-700 text-sm">📋 Daftar Kelas</h3>
+                        <h3 class="font-semibold text-slate-700 text-sm">📋 Daftar Kelas Wajib</h3>
                         <span class="text-xs text-slate-400" id="onboardingCount">0</span>
                     </div>
                     <div id="onboardingList" class="divide-y divide-slate-100">
@@ -2583,67 +2583,71 @@
         }
 
         // ============================================
-        // 29. LOAD ONBOARDING LIST (ADMIN)
+        // 🔥 29. LOAD ONBOARDING LIST (FIXED - TAMPILKAN SEMUA KELAS WAJIB)
         // ============================================
         async function loadOnboardingList() {
             const container = document.getElementById('onboardingList');
             const countEl = document.getElementById('onboardingCount');
 
             try {
-                const { data: onboardings, error } = await _supabase
+                // 🔥 AMBIL SEMUA KELAS WAJIB (Onboarding + Mentoring Wajib)
+                const { data: sessions, error } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('*')
-                    .eq('is_onboarding', true)
+                    .or('is_onboarding.eq.true,is_mandatory.eq.true')  // 🔥 FIX!
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
 
-                countEl.textContent = onboardings?.length || 0;
+                countEl.textContent = sessions?.length || 0;
 
-                if (!onboardings || onboardings.length === 0) {
+                if (!sessions || sessions.length === 0) {
                     container.innerHTML = `
                         <div class="text-center py-6 text-slate-400 text-sm">
                             <i class="fa-regular fa-circle-check text-2xl block mb-2"></i>
-                            Belum ada kelas.
+                            Belum ada kelas wajib.
                         </div>
                     `;
                     return;
                 }
 
-                container.innerHTML = onboardings.map(o => {
-                    const reviewCount = o.total_reviews || 0;
-                    const participantCount = o.current_participants || 0;
+                container.innerHTML = sessions.map(s => {
+                    const reviewCount = s.total_reviews || 0;
+                    const participantCount = s.current_participants || 0;
 
-                    const isOnboarding = o.is_onboarding === true;
-                    const typeBadge = isOnboarding ? 
-                        '<span class="onboarding-badge">🎓 Onboarding</span>' : 
-                        '<span class="mandatory-badge">📖 Mentoring Wajib</span>';
+                    // 🔥 Tentukan jenis badge
+                    let typeBadge = '';
+                    if (s.is_onboarding) {
+                        typeBadge = '<span class="onboarding-badge">🎓 Onboarding</span>';
+                    } else if (s.is_mandatory) {
+                        typeBadge = '<span class="mandatory-badge">📖 Mentoring Wajib</span>';
+                    }
 
                     return `
                         <div class="p-4 hover:bg-slate-50 transition flex items-center justify-between">
                             <div>
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <h4 class="font-bold text-slate-800 text-sm">${o.title}</h4>
+                                    <h4 class="font-bold text-slate-800 text-sm">${s.title}</h4>
                                     ${typeBadge}
-                                    <span class="text-xs px-2 py-0.5 rounded-full ${o.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}">
-                                        ${o.status === 'published' ? '✅ Published' : '📝 Draft'}
+                                    <span class="text-xs px-2 py-0.5 rounded-full ${s.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-yellow-100 text-yellow-700'}">
+                                        ${s.status === 'published' ? '✅ Published' : '📝 Draft'}
                                     </span>
                                 </div>
-                                <p class="text-xs text-slate-500 line-clamp-1">${o.description || 'Tidak ada deskripsi'}</p>
+                                <p class="text-xs text-slate-500 line-clamp-1">${s.description || 'Tidak ada deskripsi'}</p>
                                 <div class="flex items-center gap-3 mt-1 text-xs text-slate-400">
-                                    <span><i class="fa-regular fa-user"></i> ${participantCount}/${o.max_participants || '∞'}</span>
+                                    <span><i class="fa-regular fa-user"></i> ${participantCount}/${s.max_participants || '∞'}</span>
                                     <span><i class="fa-regular fa-star"></i> ${reviewCount} ulasan</span>
-                                    <span><i class="fa-regular fa-calendar"></i> ${o.schedule || 'TBA'}</span>
-                                    <span class="text-emerald-600 font-semibold">${o.price === 0 ? '🆓 Gratis' : '💰 Rp' + (o.price || 0).toLocaleString()}</span>
-                                    ${o.meeting_link ? `<span class="text-blue-500"><i class="fa-regular fa-link"></i> Link tersedia</span>` : ''}
-                                    ${o.mentor_name ? `<span class="text-purple-600"><i class="fa-regular fa-user"></i> Mentor: ${o.mentor_name}</span>` : '<span class="text-slate-400">Belum ada mentor</span>'}
+                                    <span><i class="fa-regular fa-calendar"></i> ${s.schedule || 'TBA'}</span>
+                                    <span class="text-emerald-600 font-semibold">${s.price === 0 ? '🆓 Gratis' : '💰 Rp' + (s.price || 0).toLocaleString()}</span>
+                                    ${s.meeting_link ? `<span class="text-blue-500"><i class="fa-regular fa-link"></i> Link tersedia</span>` : ''}
+                                    ${s.mentor_name ? `<span class="text-purple-600"><i class="fa-regular fa-user"></i> Mentor: ${s.mentor_name}</span>` : '<span class="text-slate-400">Belum ada mentor</span>'}
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <button onclick="openEditOnboardingModal('${o.id}')" class="text-blue-400 hover:text-blue-600 transition text-sm font-semibold">
+                                <button onclick="openEditOnboardingModal('${s.id}')" class="text-blue-400 hover:text-blue-600 transition text-sm font-semibold">
                                     <i class="fa-regular fa-pen-to-square"></i> Edit
                                 </button>
-                                <button onclick="openDeleteClassModal('${o.id}', '${o.title.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-600 transition text-sm font-semibold delete-btn">
+                                <button onclick="openDeleteClassModal('${s.id}', '${s.title.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-600 transition text-sm font-semibold delete-btn">
                                     <i class="fa-regular fa-trash-can"></i> Hapus
                                 </button>
                             </div>
@@ -2652,10 +2656,10 @@
                 }).join('');
 
             } catch (err) {
-                console.error('Load onboarding error:', err);
+                console.error('Load wajib classes error:', err);
                 container.innerHTML = `
                     <div class="text-center py-6 text-red-400 text-sm">
-                        Gagal memuat onboarding: ${err.message}
+                        Gagal memuat kelas: ${err.message}
                     </div>
                 `;
             }
