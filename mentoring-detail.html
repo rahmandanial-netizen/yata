@@ -740,20 +740,32 @@
         }
 
         // ============================================
-        // 🔥 CEK AKSES KELAS (ONBOARDING TERBUKA, REGULER TERKUNCI)
+        // 🔥 CEK AKSES KELAS (DIPERBAIKI)
         // ============================================
         async function checkClassAccess(sessionId, userId) {
             try {
+                console.log('🔍 [checkClassAccess] Dipanggil untuk user:', userId, 'session:', sessionId);
+                
                 // 1. Ambil data kelas
-                const { data: session, error } = await _supabase
+                const { data: session, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('is_onboarding, is_mandatory, title')
                     .eq('id', sessionId)
                     .single();
 
-                if (error) throw error;
+                if (sessionError) {
+                    console.error('❌ Error ambil sesi:', sessionError);
+                    return {
+                        allowed: false,
+                        message: 'Gagal memuat data kelas.',
+                        isOnboarding: false,
+                        isMandatory: false
+                    };
+                }
 
-                // 2. KALAU INI KELAS ONBOARDING → TERBUKA (TANPA SYARAT)
+                console.log('📚 Session data:', session);
+
+                // 2. KALAU INI KELAS ONBOARDING → TERBUKA
                 if (session.is_onboarding === true) {
                     return {
                         allowed: true,
@@ -763,17 +775,44 @@
                     };
                 }
 
-                // 3. KALAU BUKAN ONBOARDING → CEK APAKAH SUDAH ONBOARDING
-                const { count: onboardingCount, error: countError } = await _supabase
+                // 3. CEK APAKAH USER SUDAH ONBOARDING
+                const { data: onboardingData, error: onboardingError } = await _supabase
                     .from('yata_mentoring_participants')
-                    .select('*', { count: 'exact', head: true })
+                    .select('id, attended, session_id')
                     .eq('user_id', userId)
-                    .eq('attended', true)
-                    .eq('session:session_id(is_onboarding)', true);
+                    .eq('attended', true);
 
-                if (countError) throw countError;
+                if (onboardingError) {
+                    console.error('❌ Error cek onboarding:', onboardingError);
+                    return {
+                        allowed: false,
+                        message: 'Gagal mengecek status onboarding.',
+                        isOnboarding: false,
+                        isMandatory: session.is_mandatory || false
+                    };
+                }
 
-                if (onboardingCount === 0) {
+                console.log('📊 Onboarding data:', onboardingData);
+
+                // Cek apakah user sudah menyelesaikan onboarding
+                let hasOnboarding = false;
+                if (onboardingData && onboardingData.length > 0) {
+                    const onboardingSessionIds = onboardingData.map(p => p.session_id);
+                    
+                    const { data: onboardingSessions, error: sessionCheckError } = await _supabase
+                        .from('yata_mentoring_sessions')
+                        .select('id')
+                        .in('id', onboardingSessionIds)
+                        .eq('is_onboarding', true);
+
+                    if (!sessionCheckError && onboardingSessions && onboardingSessions.length > 0) {
+                        hasOnboarding = true;
+                    }
+                }
+
+                console.log('📊 HasOnboarding:', hasOnboarding);
+
+                if (!hasOnboarding) {
                     return {
                         allowed: false,
                         message: '🔒 Anda harus menyelesaikan ONBOARDING terlebih dahulu sebelum mengikuti kelas ini.',
@@ -1040,7 +1079,17 @@
             let access = { allowed: true, message: '', isOnboarding: false };
 
             if (currentUser) {
-                access = await checkClassAccess(sessionId, currentUser.id);
+                try {
+                    access = await checkClassAccess(sessionId, currentUser.id);
+                    console.log('📊 Access result:', access);
+                } catch (err) {
+                    console.error('❌ Error checking access:', err);
+                    access = {
+                        allowed: false,
+                        message: 'Gagal mengecek akses. Silakan refresh halaman.',
+                        isOnboarding: false
+                    };
+                }
             }
 
             // Tampilkan access message
