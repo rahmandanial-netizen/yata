@@ -236,6 +236,13 @@
             background: #DC2626;
             color: white;
         }
+
+        /* 🔥 REPUTATION STYLES */
+        .rep-level-premium { background: #fef3c7; color: #92400e; }
+        .rep-level-trusted { background: #d1fae5; color: #065f46; }
+        .rep-level-standard { background: #dbeafe; color: #1e40af; }
+        .rep-level-improving { background: #fef3c7; color: #92400e; }
+        .rep-level-limited { background: #fee2e2; color: #991b1b; }
     </style>
 </head>
 <body>
@@ -283,6 +290,10 @@
                     <i class="fa-solid fa-arrow-up w-5"></i> Pengajuan Naik Level
                     <span id="pendingLevelCount" class="ml-auto bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
                 </a>
+                <!-- 🔥 TAB REPUTASI BARU -->
+                <a href="#" onclick="switchAdminTab('reputation')" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition" id="tabReputation">
+                    <i class="fa-solid fa-star w-5 text-yellow-500"></i> Reputasi Member
+                </a>
                 <a href="admin-presensi.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
                     <i class="fa-solid fa-clipboard-check w-5"></i> Presensi Onboarding
                 </a>
@@ -323,6 +334,7 @@
             <a href="#" onclick="switchAdminTab('books')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Pengajuan Buku</a>
             <a href="#" onclick="switchAdminTab('onboarding')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kelola Onboarding</a>
             <a href="#" onclick="switchAdminTab('levelRequests')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Pengajuan Naik Level</a>
+            <a href="#" onclick="switchAdminTab('reputation')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">⭐ Reputasi Member</a>
             <a href="admin-presensi.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Presensi Onboarding</a>
             <hr class="my-2 border-emerald-100" />
             <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kembali ke Yatta</a>
@@ -628,7 +640,7 @@
             </div>
 
             <!-- ============================================ -->
-            <!-- 🔥 TAB: KELOLA ONBOARDING (DENGAN JENIS KELAS) -->
+            <!-- TAB: KELOLA ONBOARDING -->
             <!-- ============================================ -->
             <div id="adminOnboarding" class="hidden bg-white rounded-2xl border border-emerald-100/60 shadow-sm overflow-hidden">
                 <div class="p-4 border-b border-emerald-100/60">
@@ -641,14 +653,10 @@
                     </div>
                 </div>
 
-                <!-- ============================================ -->
-                <!-- FORM BUAT KELAS (ONBOARDING + MENTORING WAJIB) -->
-                <!-- ============================================ -->
                 <div class="p-5 border-b border-emerald-100/60">
                     <h3 class="font-semibold text-slate-700 text-sm mb-3">➕ Buat Kelas Baru</h3>
                     <form id="onboardingForm" class="space-y-4">
                         
-                        <!-- 🔥 PILIHAN JENIS KELAS -->
                         <div>
                             <label for="classType" class="block text-xs font-semibold text-slate-700 mb-1">Jenis Kelas <span class="text-red-500">*</span></label>
                             <select id="classType" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white">
@@ -660,20 +668,17 @@
                             </p>
                         </div>
 
-                        <!-- Judul -->
                         <div>
                             <label for="onboardingTitle" class="block text-xs font-semibold text-slate-700 mb-1">Judul <span class="text-red-500">*</span></label>
                             <input type="text" id="onboardingTitle" placeholder="Contoh: Onboarding YATTA" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
                         </div>
 
-                        <!-- Slug -->
                         <div>
                             <label for="onboardingSlug" class="block text-xs font-semibold text-slate-700 mb-1">Slug <span class="text-red-500">*</span></label>
                             <input type="text" id="onboardingSlug" placeholder="Contoh: onboarding-yatta" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm lowercase" />
                             <p class="text-xs text-slate-400 mt-1">Hanya huruf kecil, angka, dan tanda hubung (-)</p>
                         </div>
 
-                        <!-- Deskripsi -->
                         <div>
                             <label for="onboardingDescription" class="block text-xs font-semibold text-slate-700 mb-1">Deskripsi <span class="text-red-500">*</span></label>
                             <textarea id="onboardingDescription" rows="3" placeholder="Jelaskan materi kelas ini..." required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
@@ -727,9 +732,6 @@
                     </form>
                 </div>
 
-                <!-- ============================================ -->
-                <!-- DAFTAR KELAS (FIX: SEMUA KELAS WAJIB) -->
-                <!-- ============================================ -->
                 <div class="p-5">
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="font-semibold text-slate-700 text-sm">📋 Daftar Kelas Wajib</h3>
@@ -744,7 +746,7 @@
             </div>
 
             <!-- ============================================ -->
-            <!-- 🔥 TAB: PENGAJUAN NAIK LEVEL -->
+            <!-- TAB: PENGAJUAN NAIK LEVEL -->
             <!-- ============================================ -->
             <div id="adminLevelRequests" class="hidden bg-white rounded-2xl border border-emerald-100/60 shadow-sm overflow-hidden">
                 <div class="p-4 border-b border-emerald-100/60">
@@ -763,6 +765,69 @@
                 <div id="levelRequestList" class="divide-y divide-slate-100 admin-tab-content p-4">
                     <div class="text-center py-8 text-slate-400 text-sm">
                         <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat pengajuan...
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- 🔥 TAB: REPUTASI MEMBER (BARU) -->
+            <!-- ============================================ -->
+            <div id="adminReputation" class="hidden bg-white rounded-2xl border border-emerald-100/60 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-emerald-100/60">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="font-bold text-slate-800">⭐ Manajemen Reputasi</h2>
+                            <p class="text-xs text-slate-500">Pantau reputasi member dan intervensi jika diperlukan.</p>
+                        </div>
+                        <button onclick="loadReputationData()" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-rotate-right"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Statistik Ringkas -->
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 border-b border-slate-100">
+                    <div class="bg-slate-50 rounded-xl p-3 text-center">
+                        <p class="text-2xl font-black text-slate-800" id="repTotalMembers">0</p>
+                        <p class="text-[10px] text-slate-400">Total Member</p>
+                    </div>
+                    <div class="bg-amber-50 rounded-xl p-3 text-center">
+                        <p class="text-2xl font-black text-amber-600" id="repPremium">0</p>
+                        <p class="text-[10px] text-slate-400">🌟 Premium (150+)</p>
+                    </div>
+                    <div class="bg-emerald-50 rounded-xl p-3 text-center">
+                        <p class="text-2xl font-black text-emerald-600" id="repTrusted">0</p>
+                        <p class="text-[10px] text-slate-400">✅ Terpercaya (100-149)</p>
+                    </div>
+                    <div class="bg-blue-50 rounded-xl p-3 text-center">
+                        <p class="text-2xl font-black text-blue-600" id="repStandard">0</p>
+                        <p class="text-[10px] text-slate-400">📝 Standar (60-99)</p>
+                    </div>
+                    <div class="bg-red-50 rounded-xl p-3 text-center">
+                        <p class="text-2xl font-black text-red-500" id="repLow">0</p>
+                        <p class="text-[10px] text-slate-400">⚠️ Perlu Perhatian (&lt;60)</p>
+                    </div>
+                </div>
+
+                <!-- Daftar Member -->
+                <div class="p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-semibold text-slate-700 text-sm">📋 Daftar Member</h3>
+                        <div class="flex items-center gap-2">
+                            <select id="repFilter" onchange="filterReputation()" class="text-xs border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                <option value="all">Semua Level</option>
+                                <option value="premium">🌟 Premium (150+)</option>
+                                <option value="trusted">✅ Terpercaya (100-149)</option>
+                                <option value="standard">📝 Standar (60-99)</option>
+                                <option value="low">⚠️ Perlu Perhatian (&lt;60)</option>
+                            </select>
+                            <input type="text" id="repSearch" placeholder="Cari member..." oninput="filterReputation()" class="text-xs border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 w-40" />
+                        </div>
+                    </div>
+                    <div id="reputationMemberList" class="space-y-2 max-h-[500px] overflow-y-auto">
+                        <div class="text-center py-8 text-slate-400 text-sm">
+                            <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data...
+                        </div>
                     </div>
                 </div>
             </div>
@@ -905,7 +970,6 @@
                     </select>
                 </div>
 
-                <!-- 🔥 EDIT JENIS KELAS -->
                 <div>
                     <label for="editClassType" class="form-label">Jenis Kelas</label>
                     <select id="editClassType" class="form-input bg-white">
@@ -925,7 +989,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- 🔥 MODAL VERIFIKASI KARYA -->
+    <!-- MODAL VERIFIKASI KARYA -->
     <!-- ============================================ -->
     <div id="verifyWritingModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 relative shadow-2xl modal-enter max-h-[90vh] overflow-y-auto">
@@ -959,7 +1023,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- 🔥 MODAL KONFIRMASI HAPUS KELAS -->
+    <!-- MODAL KONFIRMASI HAPUS KELAS -->
     <!-- ============================================ -->
     <div id="deleteClassModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
@@ -1024,8 +1088,13 @@
 
         let deleteClassTargetId = null;
 
+        // 🔥 REPUTATION DATA
+        let allReputationData = [];
+        let repFilter = 'all';
+        let repSearch = '';
+
         // ============================================
-        // 🔥 FUNGSI SHOW ONBOARDING MESSAGE (FIX PERMANEN)
+        // 🔥 FUNGSI SHOW ONBOARDING MESSAGE
         // ============================================
         function showOnboardingMessage(text, type) {
             const msg = document.getElementById('onboardingMessage');
@@ -2433,7 +2502,8 @@
                 'campaigns': { id: 'tabCampaigns', content: 'adminCampaigns' },
                 'books': { id: 'tabBooks', content: 'adminBooks' },
                 'onboarding': { id: 'tabOnboarding', content: 'adminOnboarding' },
-                'levelRequests': { id: 'tabLevelRequests', content: 'adminLevelRequests' }
+                'levelRequests': { id: 'tabLevelRequests', content: 'adminLevelRequests' },
+                'reputation': { id: 'tabReputation', content: 'adminReputation' }  // 🔥 TAMBAHKAN
             };
 
             const info = tabMap[tab];
@@ -2459,6 +2529,8 @@
                 contentEl.classList.remove('hidden');
                 if (tab === 'levelRequests') {
                     loadLevelRequests();
+                } else if (tab === 'reputation') {
+                    loadReputationData();  // 🔥 TAMBAHKAN
                 }
             }
         }
@@ -2583,18 +2655,17 @@
         }
 
         // ============================================
-        // 🔥 29. LOAD ONBOARDING LIST (FIXED - TAMPILKAN SEMUA KELAS WAJIB)
+        // 🔥 29. LOAD ONBOARDING LIST
         // ============================================
         async function loadOnboardingList() {
             const container = document.getElementById('onboardingList');
             const countEl = document.getElementById('onboardingCount');
 
             try {
-                // 🔥 AMBIL SEMUA KELAS WAJIB (Onboarding + Mentoring Wajib)
                 const { data: sessions, error } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('*')
-                    .or('is_onboarding.eq.true,is_mandatory.eq.true')  // 🔥 FIX!
+                    .or('is_onboarding.eq.true,is_mandatory.eq.true')
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
@@ -2615,7 +2686,6 @@
                     const reviewCount = s.total_reviews || 0;
                     const participantCount = s.current_participants || 0;
 
-                    // 🔥 Tentukan jenis badge
                     let typeBadge = '';
                     if (s.is_onboarding) {
                         typeBadge = '<span class="onboarding-badge">🎓 Onboarding</span>';
@@ -2680,7 +2750,7 @@
         });
 
         // ============================================
-        // 31. CREATE ONBOARDING (ADMIN) - DENGAN JENIS KELAS
+        // 31. CREATE ONBOARDING (ADMIN)
         // ============================================
         document.getElementById('onboardingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -2719,7 +2789,6 @@
             const isOnboarding = classType === 'onboarding';
             const isMandatory = true;
 
-            // CEK ONBOARDING (HANYA 1)
             if (isOnboarding) {
                 const { count: existingOnboarding } = await _supabase
                     .from('yata_mentoring_sessions')
@@ -2732,7 +2801,6 @@
                 }
             }
 
-            // CEK SLUG DUPLIKAT
             const { data: existing } = await _supabase
                 .from('yata_mentoring_sessions')
                 .select('slug')
@@ -2893,7 +2961,7 @@
         });
 
         // ============================================
-        // 34. EDIT ONBOARDING (ADMIN) - DENGAN JENIS KELAS
+        // 34. EDIT ONBOARDING (ADMIN)
         // ============================================
         async function openEditOnboardingModal(sessionId) {
             try {
@@ -2915,7 +2983,6 @@
                 document.getElementById('editOnboardingStatus').value = session.status || 'draft';
                 document.getElementById('editOnboardingMentor').value = session.mentor_name || '';
 
-                // 🔥 SET JENIS KELAS
                 const classTypeSelect = document.getElementById('editClassType');
                 if (session.is_onboarding) {
                     classTypeSelect.value = 'onboarding';
@@ -2960,7 +3027,6 @@
             const isOnboarding = classType === 'onboarding';
             const isMandatory = true;
 
-            // CEK ONBOARDING (HANYA 1)
             if (isOnboarding) {
                 const { count: existingOnboarding } = await _supabase
                     .from('yata_mentoring_sessions')
@@ -3599,7 +3665,162 @@
         }
 
         // ============================================
-        // 41. LOGOUT
+        // 🔥 41. LOAD REPUTASI DATA (ADMIN)
+        // ============================================
+        let allReputationData = [];
+        let repFilter = 'all';
+        let repSearch = '';
+
+        async function loadReputationData() {
+            const container = document.getElementById('reputationMemberList');
+            
+            try {
+                const session = await checkAdmin();
+                if (!session) return;
+
+                // Ambil semua profil member
+                const { data: members, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('id, full_name, username, email, member_level, reputation, total_published, total_views_received, total_likes_received, created_at')
+                    .eq('role', 'member')
+                    .order('reputation', { ascending: false });
+
+                if (error) throw error;
+
+                allReputationData = members || [];
+
+                // Hitung statistik
+                const total = allReputationData.length;
+                const premium = allReputationData.filter(m => (m.reputation || 0) >= 150).length;
+                const trusted = allReputationData.filter(m => (m.reputation || 0) >= 100 && (m.reputation || 0) < 150).length;
+                const standard = allReputationData.filter(m => (m.reputation || 0) >= 60 && (m.reputation || 0) < 100).length;
+                const low = allReputationData.filter(m => (m.reputation || 0) < 60).length;
+
+                document.getElementById('repTotalMembers').textContent = total;
+                document.getElementById('repPremium').textContent = premium;
+                document.getElementById('repTrusted').textContent = trusted;
+                document.getElementById('repStandard').textContent = standard;
+                document.getElementById('repLow').textContent = low;
+
+                renderReputationList();
+
+            } catch (err) {
+                console.error('Load reputation data error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-8 text-red-400 text-sm">
+                        Gagal memuat data: ${err.message}
+                        <button onclick="loadReputationData()" class="block mt-2 text-emerald-600 hover:text-emerald-700 font-semibold">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function renderReputationList() {
+            const container = document.getElementById('reputationMemberList');
+
+            let filtered = allReputationData;
+
+            // Filter
+            if (repFilter !== 'all') {
+                if (repFilter === 'premium') {
+                    filtered = filtered.filter(m => (m.reputation || 0) >= 150);
+                } else if (repFilter === 'trusted') {
+                    filtered = filtered.filter(m => (m.reputation || 0) >= 100 && (m.reputation || 0) < 150);
+                } else if (repFilter === 'standard') {
+                    filtered = filtered.filter(m => (m.reputation || 0) >= 60 && (m.reputation || 0) < 100);
+                } else if (repFilter === 'low') {
+                    filtered = filtered.filter(m => (m.reputation || 0) < 60);
+                }
+            }
+
+            // Search
+            if (repSearch.trim()) {
+                const query = repSearch.toLowerCase().trim();
+                filtered = filtered.filter(m =>
+                    (m.full_name && m.full_name.toLowerCase().includes(query)) ||
+                    (m.username && m.username.toLowerCase().includes(query)) ||
+                    (m.email && m.email.toLowerCase().includes(query))
+                );
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-400 text-sm bg-slate-50 rounded-xl">
+                        <i class="fa-regular fa-users-slash text-2xl block mb-2"></i>
+                        Tidak ada member yang cocok dengan filter ini.
+                    </div>
+                `;
+                return;
+            }
+
+            // Level labels untuk badge
+            const levelLabels = {
+                premium: '🌟 Premium',
+                trusted: '✅ Terpercaya',
+                standard: '📝 Standar',
+                improving: '⚠️ Perbaikan',
+                limited: '🚫 Terbatas'
+            };
+
+            const levelColors = {
+                premium: 'rep-level-premium',
+                trusted: 'rep-level-trusted',
+                standard: 'rep-level-standard',
+                improving: 'rep-level-improving',
+                limited: 'rep-level-limited'
+            };
+
+            container.innerHTML = filtered.map(m => {
+                const reputation = m.reputation || 100;
+                const level = getReputationLevel(reputation);
+                const levelLabel = levelLabels[level.badge] || '📝 Standar';
+                const levelColor = levelColors[level.badge] || 'rep-level-standard';
+
+                return `
+                    <div class="flex items-center justify-between bg-white rounded-xl p-3 border border-slate-100 hover:shadow-sm transition">
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                            <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm flex-shrink-0">
+                                ${m.full_name?.charAt(0) || '?'}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-semibold text-slate-800 text-sm truncate">${m.full_name || 'User'}</span>
+                                    <span class="text-xs text-slate-400">@${m.username || '-'}</span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full ${levelColor}">${levelLabel}</span>
+                                </div>
+                                <div class="flex items-center gap-3 text-xs text-slate-400">
+                                    <span>${m.member_level || 'Tamu'}</span>
+                                    <span>•</span>
+                                    <span>📖 ${m.total_published || 0} karya</span>
+                                    <span>•</span>
+                                    <span>👁️ ${m.total_views_received || 0}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 flex-shrink-0">
+                            <div class="text-right">
+                                <p class="text-lg font-bold text-slate-800">${reputation}</p>
+                                <p class="text-[10px] text-slate-400">reputasi</p>
+                            </div>
+                            <div class="w-24 bg-slate-200 rounded-full h-1.5">
+                                <div class="bg-yellow-500 h-1.5 rounded-full" style="width: ${Math.min((reputation / 200) * 100, 100)}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterReputation() {
+            repFilter = document.getElementById('repFilter').value;
+            repSearch = document.getElementById('repSearch').value;
+            renderReputationList();
+        }
+
+        // ============================================
+        // 42. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -3617,7 +3838,7 @@
         }
 
         // ============================================
-        // 42. EVENT LISTENERS
+        // 43. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadAdminData();
