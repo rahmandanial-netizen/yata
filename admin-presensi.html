@@ -316,12 +316,13 @@
         }
 
         // ============================================
-        // 🔥 BUAT SERTIFIKAT
+        // 🔥 BUAT SERTIFIKAT - TANPA certificate_name di WHERE
         // ============================================
-        async function createCertificate(userId, certificateType = 'onboarding') {
+        async function createCertificate(userId, certificateType = 'onboarding', certificateName = null) {
             try {
-                console.log('🔍 [createCertificate] Dipanggil untuk user:', userId, 'type:', certificateType);
+                console.log('🔍 [createCertificate] Dipanggil untuk user:', userId, 'type:', certificateType, 'name:', certificateName);
                 
+                // 🔥 CEK APAKAH SERTIFIKAT SUDAH ADA (TANPA certificate_name)
                 const { data: existingCert, error: certError } = await _supabase
                     .from('yata_certificates')
                     .select('id, certificate_number')
@@ -339,6 +340,7 @@
                     return true;
                 }
 
+                // AMBIL DATA USER
                 const { data: profile, error: profileError } = await _supabase
                     .from('yata_profiles')
                     .select('full_name, email')
@@ -350,6 +352,7 @@
                     return false;
                 }
 
+                // GENERATE NOMOR SERTIFIKAT
                 const now = new Date();
                 const dateStr = now.getFullYear() + 
                     String(now.getMonth() + 1).padStart(2, '0') + 
@@ -365,11 +368,13 @@
 
                 console.log('📜 [createCertificate] Membuat sertifikat:', certNumber);
 
+                // ✅ INSERT SERTIFIKAT DENGAN certificate_name
                 const { data: newCert, error: insertError } = await _supabase
                     .from('yata_certificates')
                     .insert([{
                         user_id: userId,
                         certificate_type: certificateType,
+                        certificate_name: certificateName || certificateType,
                         certificate_number: certNumber,
                         is_claimed: true,
                         claimed_at: new Date().toISOString(),
@@ -419,6 +424,7 @@
                     return false;
                 }
 
+                // CEK KEHADIRAN
                 const { count: attendedCount, error: attendError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*', { count: 'exact', head: true })
@@ -438,6 +444,7 @@
                     return false;
                 }
 
+                // CEK REVIEW
                 const { count: reviewCount, error: reviewError } = await _supabase
                     .from('yata_onboarding_reviews')
                     .select('*', { count: 'exact', head: true })
@@ -458,6 +465,7 @@
 
                 console.log('✅ User sudah hadir dan review, membuat sertifikat...');
 
+                // Tentukan tipe dan nama sertifikat
                 let certificateType = 'onboarding';
                 if (session.is_onboarding) {
                     certificateType = 'onboarding';
@@ -465,7 +473,8 @@
                     certificateType = 'mandatory_mentoring';
                 }
 
-                const certResult = await createCertificate(userId, certificateType);
+                // 🔥 GUNAKAN JUDUL KELAS SEBAGAI NAMA SERTIFIKAT
+                const certResult = await createCertificate(userId, certificateType, session.title);
                 console.log('📜 Hasil sertifikat:', certResult ? 'BERHASIL' : 'GAGAL');
 
                 if (certResult) {
@@ -599,6 +608,7 @@ Founder & CEO YATTA
                             Belum ada peserta yang mendaftar di kelas ini.
                         </div>
                     `;
+                    document.getElementById('sessionInfo').classList.add('hidden');
                     return;
                 }
 
