@@ -75,6 +75,15 @@
         .share-btn:hover {
             transform: scale(1.05);
         }
+        .favorite-btn {
+            transition: all 0.2s ease;
+        }
+        .favorite-btn:hover {
+            transform: scale(1.15);
+        }
+        .favorite-btn.favorited {
+            color: #ef4444;
+        }
     </style>
 </head>
 <body>
@@ -174,6 +183,11 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
+                            <!-- 🔥 TOMBOL FAVORIT -->
+                            <button id="favoriteBtn" onclick="toggleFavoriteFromRead()" class="favorite-btn text-slate-400 hover:text-red-500 transition text-xl p-2 hover:bg-red-50 rounded-full">
+                                <i class="fa-regular fa-heart"></i>
+                            </button>
+                            <span id="favoriteCount" class="text-sm font-semibold text-slate-600 min-w-[20px]">0</span>
                             <button id="likeBtn" class="like-btn text-slate-400 hover:text-red-500 transition text-xl p-2 hover:bg-red-50 rounded-full">
                                 <i class="fa-regular fa-heart"></i>
                             </button>
@@ -197,6 +211,7 @@
                     <div class="flex items-center gap-4 text-sm text-slate-400">
                         <span><i class="fa-regular fa-eye mr-1"></i> <span id="viewCount">0</span> dibaca</span>
                         <span><i class="fa-regular fa-heart mr-1"></i> <span id="footerLikeCount">0</span> menyukai</span>
+                        <span><i class="fa-regular fa-star mr-1"></i> <span id="footerFavoriteCount">0</span> favorit</span>
                     </div>
                     <div class="flex items-center gap-3">
                         <a href="explore.html" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition flex items-center gap-2">
@@ -280,6 +295,8 @@
         let currentUser = null;
         let hasLiked = false;
         let writingId = null;
+        let favoriteIds = new Set();
+        let isFavorited = false;
 
         // ============================================
         // 1. AMBIL ID KARYA DARI URL
@@ -297,6 +314,7 @@
                 const { data: { session } } = await _supabase.auth.getSession();
                 if (session) {
                     currentUser = session.user;
+                    favoriteIds = await getFavoriteIds(session.user.id);
                     updateCommentAvatar();
                 }
                 return session;
@@ -350,12 +368,18 @@
 
                 currentWriting = writing;
 
+                // Update views
                 await _supabase
                     .from('yata_writings')
                     .update({ views: (writing.views || 0) + 1 })
                     .eq('id', writingId);
 
+                // Cek like status
                 await checkLikeStatus(writingId);
+
+                // Cek favorite status
+                isFavorited = favoriteIds.has(writingId);
+                updateFavoriteUI();
 
                 renderWriting(writing);
                 await loadComments(writingId);
@@ -398,7 +422,24 @@
         }
 
         // ============================================
-        // 6. RENDER KARYA
+        // 6. UPDATE FAVORITE UI
+        // ============================================
+        function updateFavoriteUI() {
+            const btn = document.getElementById('favoriteBtn');
+            const countEl = document.getElementById('favoriteCount');
+            
+            if (btn) {
+                btn.innerHTML = `<i class="${isFavorited ? 'fa-solid' : 'fa-regular'} fa-heart"></i>`;
+                btn.classList.toggle('favorited', isFavorited);
+            }
+            
+            if (countEl) {
+                countEl.textContent = currentWriting?.favorites_count || 0;
+            }
+        }
+
+        // ============================================
+        // 7. RENDER KARYA
         // ============================================
         function renderWriting(writing) {
             document.getElementById('writingTitle').textContent = writing.title;
@@ -411,6 +452,8 @@
             document.getElementById('viewCount').textContent = writing.views || 0;
             document.getElementById('likeCount').textContent = writing.likes || 0;
             document.getElementById('footerLikeCount').textContent = writing.likes || 0;
+            document.getElementById('favoriteCount').textContent = writing.favorites_count || 0;
+            document.getElementById('footerFavoriteCount').textContent = writing.favorites_count || 0;
 
             const content = writing.content || 'Tidak ada konten.';
             const paragraphs = content.split('\n').filter(p => p.trim() !== '');
@@ -435,7 +478,7 @@
         }
 
         // ============================================
-        // 7. GET LEVEL ICON
+        // 8. GET LEVEL ICON
         // ============================================
         function getLevelIcon(level) {
             const icons = {
@@ -448,7 +491,7 @@
         }
 
         // ============================================
-        // 8. LOAD AUTHOR STATS
+        // 9. LOAD AUTHOR STATS
         // ============================================
         async function loadAuthorStats(authorId) {
             try {
@@ -476,7 +519,54 @@
         }
 
         // ============================================
-        // 9. LIKE / UNLIKE (TANPA LOGIN - PAKAI GUEST)
+        // 10. TOGGLE FAVORITE DARI READ
+        // ============================================
+        async function toggleFavoriteFromRead() {
+            if (!currentWriting) return;
+
+            const rateCheck = checkRateLimit('favorite');
+            if (!rateCheck.allowed) {
+                showError(rateCheck.message, '⏳ Terlalu Cepat');
+                return;
+            }
+
+            let userId = currentUser?.id || getGuestId();
+
+            if (!currentUser) {
+                await ensureGuestProfile(userId);
+            }
+
+            try {
+                const result = await toggleFavorite(currentWriting.id, userId);
+                saveRateLimit('favorite');
+
+                if (result.action === 'added') {
+                    isFavorited = true;
+                    favoriteIds.add(currentWriting.id);
+                    currentWriting.favorites_count = (currentWriting.favorites_count || 0) + 1;
+                } else {
+                    isFavorited = false;
+                    favoriteIds.delete(currentWriting.id);
+                    currentWriting.favorites_count = Math.max(0, (currentWriting.favorites_count || 0) - 1);
+                }
+
+                // Update database
+                await _supabase
+                    .from('yata_writings')
+                    .update({ favorites_count: currentWriting.favorites_count })
+                    .eq('id', currentWriting.id);
+
+                updateFavoriteUI();
+                showError(result.message, 'Sukses');
+
+            } catch (err) {
+                console.error('Toggle favorite error:', err);
+                showError('Gagal mengubah favorit: ' + err.message, 'Error');
+            }
+        }
+
+        // ============================================
+        // 11. LIKE / UNLIKE
         // ============================================
         document.getElementById('likeBtn').addEventListener('click', async function() {
             const rateCheck = checkRateLimit('like');
@@ -560,7 +650,7 @@
         });
 
         // ============================================
-        // 10. SHARE WRITING
+        // 12. SHARE WRITING
         // ============================================
         function shareWriting() {
             if (!currentWriting) return;
@@ -570,41 +660,27 @@
         }
 
         // ============================================
-        // 11. KOMENTAR - LOAD
+        // 13. KOMENTAR - LOAD
         // ============================================
         async function loadComments(writingId) {
             const container = document.getElementById('commentsList');
             const countEl = document.getElementById('commentCount');
 
             try {
-                const result = await fetchWithErrorHandling(
-                    _supabase.from('yata_comments')
-                        .select(`
-                            *,
-                            profiles:user_id(full_name, member_level, avatar_url)
-                        `)
-                        .eq('writing_id', writingId)
-                        .order('created_at', { ascending: false }),
-                    'Memuat komentar'
-                );
+                const { data: comments, error } = await _supabase
+                    .from('yata_comments')
+                    .select(`
+                        *,
+                        profiles:user_id(full_name, member_level, avatar_url)
+                    `)
+                    .eq('writing_id', writingId)
+                    .order('created_at', { ascending: false });
 
-                if (result.error) {
-                    container.innerHTML = `
-                        <div class="text-center py-6 text-red-400 text-sm">
-                            <i class="fa-solid fa-circle-exclamation mr-1"></i>
-                            Gagal memuat komentar.
-                            <button onclick="loadComments('${writingId}')" class="text-emerald-600 hover:underline block mt-2">
-                                Coba lagi
-                            </button>
-                        </div>
-                    `;
-                    return;
-                }
+                if (error) throw error;
 
-                const comments = result.data || [];
-                countEl.textContent = comments.length;
+                countEl.textContent = comments?.length || 0;
 
-                if (comments.length === 0) {
+                if (!comments || comments.length === 0) {
                     container.innerHTML = `
                         <div class="text-center py-6 text-slate-400 text-sm">
                             <i class="fa-regular fa-comment-dots text-2xl block mb-2"></i>
@@ -652,7 +728,7 @@
         }
 
         // ============================================
-        // 12. KOMENTAR - TAMBAH (TANPA LOGIN)
+        // 14. KOMENTAR - TAMBAH
         // ============================================
         document.getElementById('submitCommentBtn').addEventListener('click', async function() {
             const rateCheck = checkRateLimit('comment');
@@ -684,20 +760,15 @@
                     await ensureGuestProfile(userId);
                 }
 
-                const result = await fetchWithErrorHandling(
-                    _supabase.from('yata_comments').insert([{
+                const { error } = await _supabase
+                    .from('yata_comments')
+                    .insert([{
                         writing_id: currentWriting.id,
                         user_id: userId,
                         content: content
-                    }]),
-                    'Mengirim komentar'
-                );
+                    }]);
 
-                if (result.error) {
-                    this.disabled = false;
-                    this.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim';
-                    return;
-                }
+                if (error) throw error;
 
                 saveRateLimit('comment');
 
@@ -721,18 +792,18 @@
         });
 
         // ============================================
-        // 13. KOMENTAR - HAPUS
+        // 15. KOMENTAR - HAPUS
         // ============================================
         async function deleteComment(commentId) {
             if (!confirm('Yakin ingin menghapus komentar ini?')) return;
 
             try {
-                const result = await fetchWithErrorHandling(
-                    _supabase.from('yata_comments').delete().eq('id', commentId),
-                    'Menghapus komentar'
-                );
+                const { error } = await _supabase
+                    .from('yata_comments')
+                    .delete()
+                    .eq('id', commentId);
 
-                if (result.error) return;
+                if (error) throw error;
 
                 showError('✅ Komentar berhasil dihapus.', 'Sukses');
                 await loadComments(currentWriting.id);
@@ -743,7 +814,7 @@
         }
 
         // ============================================
-        // 14. LOGOUT
+        // 16. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -761,7 +832,7 @@
         }
 
         // ============================================
-        // 15. EVENT LISTENERS
+        // 17. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadWriting();
