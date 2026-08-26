@@ -455,6 +455,142 @@
         let favoriteIds = new Set();
 
         // ============================================
+        // 🔥 FALLBACK FUNCTIONS (jika utils.js belum terload)
+        // ============================================
+
+        // Get Guest ID
+        function getGuestId() {
+            let guestId = localStorage.getItem('guest_id');
+            if (!guestId) {
+                guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+                localStorage.setItem('guest_id', guestId);
+            }
+            return guestId;
+        }
+
+        // Get Favorite IDs
+        async function getFavoriteIds(userId) {
+            try {
+                const { data, error } = await _supabase
+                    .from('yata_favorites')
+                    .select('writing_id')
+                    .eq('user_id', userId);
+
+                if (error) throw error;
+                return new Set(data.map(f => f.writing_id));
+            } catch (err) {
+                console.error('Get favorites error:', err);
+                return new Set();
+            }
+        }
+
+        // Calculate Trending Score
+        async function calculateTrendingScore(writings) {
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+            const writingIds = writings.map(w => w.id);
+            
+            try {
+                const { data: histories, error } = await _supabase
+                    .from('yata_writing_history')
+                    .select('writing_id, likes, recorded_at')
+                    .in('writing_id', writingIds)
+                    .gte('recorded_at', sevenDaysAgo.toISOString());
+
+                const historyMap = {};
+                if (histories) {
+                    histories.forEach(h => {
+                        if (!historyMap[h.writing_id]) {
+                            historyMap[h.writing_id] = { oldLikes: h.likes };
+                        }
+                    });
+                }
+
+                return writings.map(w => {
+                    const history = historyMap[w.id] || { oldLikes: 0 };
+                    const likeIncrease = (w.likes || 0) - history.oldLikes;
+                    
+                    return {
+                        ...w,
+                        trending_score: (likeIncrease * 2) + ((w.views || 0) * 0.5),
+                        like_increase: likeIncrease,
+                        old_likes: history.oldLikes
+                    };
+                });
+            } catch (err) {
+                console.error('Calculate trending error:', err);
+                return writings.map(w => ({
+                    ...w,
+                    trending_score: 0,
+                    like_increase: 0,
+                    old_likes: 0
+                }));
+            }
+        }
+
+        // Ensure Guest Profile
+        async function ensureGuestProfile(userId) {
+            try {
+                const { data: existing, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('id')
+                    .eq('id', userId)
+                    .maybeSingle();
+                    
+                if (!existing && userId.startsWith('guest_')) {
+                    await _supabase
+                        .from('yata_profiles')
+                        .insert([{
+                            id: userId,
+                            full_name: 'Tamu',
+                            username: 'tamu_' + Date.now(),
+                            role: 'guest',
+                            member_level: 'Tamu',
+                        }]);
+                }
+                return true;
+            } catch (err) {
+                console.error('Ensure guest profile error:', err);
+                return false;
+            }
+        }
+
+        // Toggle Favorite
+        async function toggleFavorite(writingId, userId) {
+            try {
+                const { data: existing, error: checkError } = await _supabase
+                    .from('yata_favorites')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .eq('writing_id', writingId)
+                    .maybeSingle();
+
+                if (checkError) throw checkError;
+
+                if (existing) {
+                    const { error: deleteError } = await _supabase
+                        .from('yata_favorites')
+                        .delete()
+                        .eq('id', existing.id);
+
+                    if (deleteError) throw deleteError;
+                    return { action: 'removed', message: '✅ Dihapus dari favorit' };
+                } else {
+                    const { error: insertError } = await _supabase
+                        .from('yata_favorites')
+                        .insert([{ user_id: userId, writing_id: writingId }]);
+
+                    if (insertError) throw insertError;
+                    return { action: 'added', message: '✅ Ditambahkan ke favorit' };
+                }
+            } catch (err) {
+                console.error('Toggle favorite error:', err);
+                throw err;
+            }
+        }
+
+        // ============================================
         // CEK SESSION
         // ============================================
         async function checkSession() {
@@ -703,6 +839,9 @@
                         <div class="col-span-full text-center py-12 text-red-400 text-sm">
                             <i class="fa-solid fa-circle-exclamation text-2xl block mb-2"></i>
                             Gagal memuat karya: ${err.message}
+                            <button onclick="loadWritings(true)" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                                <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                            </button>
                         </div>
                     `;
                 }
