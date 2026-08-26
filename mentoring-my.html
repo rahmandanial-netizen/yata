@@ -605,13 +605,13 @@
         }
 
         // ============================================
-        // 🔥 BUAT SERTIFIKAT - DENGAN NAMA KELAS
+        // 🔥 BUAT SERTIFIKAT - DENGAN CEK NAMA KELAS
         // ============================================
         async function createCertificate(userId, certificateType = 'onboarding', certificateName = null) {
             try {
-                console.log('🔍 [createCertificate] Dipanggil untuk user:', userId, 'type:', certificateType, 'name:', certificateName);
+                console.log('🔍 [createCertificate] userId:', userId, 'type:', certificateType, 'name:', certificateName);
                 
-                // CEK APAKAH SERTIFIKAT SUDAH ADA
+                // 🔥 CEK APAKAH SERTIFIKAT SUDAH ADA - CEK BERDASARKAN TIPE DAN NAMA
                 const { data: existingCert, error: certError } = await _supabase
                     .from('yata_certificates')
                     .select('id, certificate_number')
@@ -658,7 +658,7 @@
 
                 console.log('📜 [createCertificate] Membuat sertifikat:', certNumber);
 
-                // INSERT SERTIFIKAT DENGAN certificate_name
+                // ✅ INSERT SERTIFIKAT DENGAN certificate_name
                 const { data: newCert, error: insertError } = await _supabase
                     .from('yata_certificates')
                     .insert([{
