@@ -39,6 +39,25 @@
         .sidebar-link.active i { color: white; }
         .sidebar-link:hover:not(.active) { background-color: #e2e8f0; }
         .editor-textarea { min-height: 400px; resize: vertical; }
+        
+        /* 🔥 QUOTA INDICATOR */
+        .quota-indicator {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 16px;
+        }
+        .quota-indicator .reputation-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 9999px;
+        }
+        .quota-indicator .reputation-badge.premium { background: #fef3c7; color: #92400e; }
+        .quota-indicator .reputation-badge.trusted { background: #d1fae5; color: #065f46; }
+        .quota-indicator .reputation-badge.standard { background: #dbeafe; color: #1e40af; }
+        .quota-indicator .reputation-badge.improving { background: #fef3c7; color: #92400e; }
+        .quota-indicator .reputation-badge.limited { background: #fee2e2; color: #991b1b; }
     </style>
 </head>
 <body>
@@ -50,22 +69,23 @@
         <div class="flex flex-col h-full">
             <div class="flex items-center justify-center h-16 border-b border-emerald-100/60">
                 <a href="dashboard.html" class="flex items-center space-x-2">
-    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30" />
-    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
-</a>
+                    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30" />
+                    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
+                </a>
             </div>
 
             <!-- SIDEBAR NAVIGATION - STRUKTUR MENU FINAL -->
-          <nav class="flex-1 px-4 py-6 space-y-1">
-    <!-- 🌟 Menuju Jelajahi Yatta -->
-    <a href="explore.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-amber-600 hover:text-amber-700 rounded-xl transition">
-        <i class="fa-solid fa-compass w-5 text-amber-500"></i> Menuju Jelajahi Yatta
-    </a>
+            <nav class="flex-1 px-4 py-6 space-y-1">
+                <!-- 🌟 Menuju Jelajahi Yatta -->
+                <a href="explore.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-amber-600 hover:text-amber-700 rounded-xl transition">
+                    <i class="fa-solid fa-compass w-5 text-amber-500"></i> Menuju Jelajahi Yatta
+                </a>
 
-    <!-- Beranda -->
-    <a href="dashboard.html" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-sm font-semibold text-emerald-800 rounded-xl transition">
-        <i class="fa-solid fa-house w-5 text-emerald-600"></i> Beranda
-    </a>
+                <!-- Beranda -->
+                <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-house w-5"></i> Beranda
+                </a>
+
                 <!-- Tulis -->
                 <a href="write.html" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-sm font-semibold text-emerald-800 rounded-xl transition">
                     <i class="fa-solid fa-pen w-5 text-emerald-600"></i> Tulis
@@ -92,19 +112,19 @@
                 </div>
 
                 <!-- Mentoring -->
-<a href="mentoring-my.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
-    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring Saya
-</a>
+                <a href="mentoring-my.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-graduation-cap w-5"></i> Mentoring Saya
+                </a>
 
-<!-- Sertifikat -->
-<a href="certificates.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
-    <i class="fa-solid fa-certificate w-5"></i> Sertifikat
-</a>
+                <!-- Sertifikat -->
+                <a href="certificates.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-certificate w-5"></i> Sertifikat
+                </a>
 
-<!-- Profil -->
-<a href="profile.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
-    <i class="fa-solid fa-user w-5"></i> Profil
-</a>
+                <!-- Profil -->
+                <a href="profile.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">
+                    <i class="fa-solid fa-user w-5"></i> Profil
+                </a>
             </nav>
             <!-- END SIDEBAR NAVIGATION -->
 
@@ -122,17 +142,17 @@
     <header class="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
         <div class="flex items-center justify-between px-4 h-16">
             <a href="dashboard.html" class="flex items-center space-x-2">
-    <img src="assets/favicon.png" alt="Yatta" class="h-8 w-8 rounded-xl object-cover" />
-    <span class="text-lg font-extrabold text-emerald-800">Yatta</span>
-</a>
+                <img src="assets/favicon.png" alt="Yatta" class="h-8 w-8 rounded-xl object-cover" />
+                <span class="text-lg font-extrabold text-emerald-800">Yatta</span>
+            </a>
             <button id="mobileMenuButton" class="text-slate-600 hover:text-emerald-600">
                 <i class="fa-solid fa-bars text-xl"></i>
             </button>
         </div>
         <div id="mobileMenu" class="hidden bg-white border-t border-emerald-100/60 px-4 py-4 space-y-2">
             <a href="explore.html" class="block px-4 py-2.5 text-amber-600 font-semibold hover:bg-amber-50 rounded-xl">
-    <i class="fa-solid fa-compass mr-2 text-amber-500"></i> Menuju Jelajahi Yatta
-</a>
+                <i class="fa-solid fa-compass mr-2 text-amber-500"></i> Menuju Jelajahi Yatta
+            </a>
             <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Beranda</a>
             <a href="write.html" class="block px-4 py-2.5 bg-emerald-50 text-emerald-800 font-semibold rounded-xl">Tulis</a>
             <a href="#" onclick="checkProjectAccess(event)" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Proyek Buku</a>
@@ -141,9 +161,9 @@
             <a href="campaigns.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl pl-6 text-xs opacity-75">
                 <i class="fa-solid fa-flag mr-1 text-slate-400"></i> Lihat Kampanye
             </a>
-           <a href="mentoring-my.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Mentoring Saya</a>
-<a href="certificates.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Sertifikat</a>
-<a href="profile.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Profil</a>
+            <a href="mentoring-my.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Mentoring Saya</a>
+            <a href="certificates.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Sertifikat</a>
+            <a href="profile.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Profil</a>
             <hr class="my-2 border-emerald-100" />
             <button id="btnLogoutMobile" class="block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
         </div>
@@ -158,6 +178,24 @@
             <div class="mb-6">
                 <h1 class="text-2xl font-black text-slate-800">✍️ Tulis Karya Baru</h1>
                 <p class="text-sm text-slate-500">Bagikan ide dan ceritamu kepada dunia.</p>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- 🔥 QUOTA INDICATOR - BARU -->
+            <!-- ============================================ -->
+            <div id="quotaIndicator" class="quota-indicator flex flex-wrap items-center justify-between gap-2 mb-4">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-star text-yellow-500"></i>
+                    <span class="text-sm text-slate-600">
+                        Reputasi: <strong id="writeReputation" class="text-slate-800">100</strong>
+                    </span>
+                    <span class="text-slate-300">|</span>
+                    <span class="text-sm text-slate-600">
+                        Sisa publikasi hari ini: 
+                        <strong id="writeRemaining" class="text-emerald-600">5</strong>
+                    </span>
+                </div>
+                <span id="reputationLevelLabel" class="reputation-badge standard">📝 Standar</span>
             </div>
 
             <form id="writeForm" class="bg-white rounded-3xl p-6 border border-emerald-100/60 shadow-sm space-y-5">
@@ -345,6 +383,52 @@
         }
 
         // ============================================
+        // 🔥 LOAD QUOTA (BARU)
+        // ============================================
+        async function loadQuota() {
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('reputation')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error) throw error;
+
+                const reputation = profile?.reputation || 100;
+                const level = getReputationLevel(reputation);
+                const eligibility = await checkPublishEligibility(session.user.id);
+
+                // Update UI
+                document.getElementById('writeReputation').textContent = reputation;
+                document.getElementById('writeRemaining').textContent = eligibility.remaining;
+
+                // Update badge
+                const badgeEl = document.getElementById('reputationLevelLabel');
+                badgeEl.textContent = level.label;
+                badgeEl.className = `reputation-badge ${level.badge === '🌟' ? 'premium' : level.badge === '✅' ? 'trusted' : level.badge === '📝' ? 'standard' : level.badge === '⚠️' ? 'improving' : 'limited'}`;
+
+                // Jika kuota habis, disable tombol publish
+                const btnPublish = document.getElementById('btnPublish');
+                if (!eligibility.allowed) {
+                    btnPublish.disabled = true;
+                    btnPublish.title = eligibility.message;
+                    btnPublish.className = 'flex-1 bg-slate-300 text-slate-500 font-bold py-3 rounded-xl transition text-sm cursor-not-allowed';
+                } else {
+                    btnPublish.disabled = false;
+                    btnPublish.title = '';
+                    btnPublish.className = 'flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition shadow-sm shadow-emerald-500/20 text-sm';
+                }
+
+            } catch (err) {
+                console.error('Load quota error:', err);
+            }
+        }
+
+        // ============================================
         // 2. HITUNG KATA
         // ============================================
         document.getElementById('content').addEventListener('input', function() {
@@ -408,6 +492,15 @@
             if (!content) { showMessage('Konten wajib diisi!', 'error'); return; }
             if (content.length < 20) { showMessage('Konten minimal 20 karakter.', 'error'); return; }
 
+            // 🔥 CEK KUOTA SEBELUM PUBLISH
+            if (status === 'published') {
+                const eligibility = await checkPublishEligibility(session.user.id);
+                if (!eligibility.allowed) {
+                    showMessage(eligibility.message, 'error');
+                    return;
+                }
+            }
+
             document.getElementById('btnDraft').disabled = true;
             document.getElementById('btnPublish').disabled = true;
             document.getElementById('btnDraft').innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Menyimpan...';
@@ -432,6 +525,9 @@
                 if (error) throw error;
 
                 if (status === 'published') {
+                    // Update reputasi setelah publikasi
+                    await calculateReputation(session.user.id);
+                    
                     await sendNotification(
                         session.user.id,
                         '📖 Karyamu Telah Tayang!',
@@ -453,6 +549,9 @@
                 document.getElementById('title').value = '';
                 document.getElementById('content').value = '';
                 document.getElementById('wordCount').textContent = '0';
+
+                // Refresh kuota
+                await loadQuota();
 
                 setTimeout(() => window.location.href = 'dashboard.html', 2000);
 
@@ -497,10 +596,11 @@
         });
 
         // ============================================
-        // 7. CEK SESSION SAAT LOAD
+        // 7. INIT
         // ============================================
-        document.addEventListener('DOMContentLoaded', () => {
-            checkAuth();
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+            await loadQuota();
         });
     </script>
 
