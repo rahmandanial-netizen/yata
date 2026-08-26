@@ -1,46 +1,37 @@
 // ============================================
-// FUNGSI UTILITY - TERPUSAT
+// KONFIGURASI SUPABASE - TERPUSAT
 // ============================================
-// CATATAN: SUPABASE_CONFIG sudah didefinisikan di config.js
-// JANGAN deklarasikan ulang di sini!
+
+const SUPABASE_CONFIG = {
+    url: 'https://fowkcubpplwpljfjjcfy.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvd2tjdWJwcGx3cGxqZmpqY2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTI1NzcsImV4cCI6MjEwMDk2ODU3N30.bgh3fbdJnS0h_cwRTe_exKP2NmKugOTUJDNocpt4cy4'
+};
 
 // ============================================
-// ✅ TIME AGO - AKURAT (LANGSUNG HITUNG SELISIH)
+// FUNGSI UTILITY - TERPUSAT
 // ============================================
+
+// Format waktu (time ago)
 function timeAgo(date) {
     const now = new Date();
     const past = new Date(date);
     const diff = Math.floor((now - past) / 1000);
 
-    if (diff < 10) return 'baru saja';
-    if (diff < 60) return Math.floor(diff) + ' detik lalu';
-    if (diff < 3600) {
-        const minutes = Math.floor(diff / 60);
-        return minutes + ' menit lalu';
-    }
-    if (diff < 86400) {
-        const hours = Math.floor(diff / 3600);
-        return hours + ' jam lalu';
-    }
-    if (diff < 604800) {
-        const days = Math.floor(diff / 86400);
-        return days + ' hari lalu';
-    }
-    if (diff < 2592000) {
-        const weeks = Math.floor(diff / 604800);
-        return weeks + ' minggu lalu';
-    }
-    
-    return past.toLocaleDateString('id-ID', { 
-        day: 'numeric', 
-        month: 'short', 
-        year: 'numeric' 
-    });
+    if (diff < 60) return 'baru saja';
+    if (diff < 3600) return Math.floor(diff / 60) + ' menit lalu';
+    if (diff < 86400) return Math.floor(diff / 3600) + ' jam lalu';
+    if (diff < 604800) return Math.floor(diff / 86400) + ' hari lalu';
+    if (diff < 2592000) return Math.floor(diff / 604800) + ' minggu lalu';
+    return past.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-// ============================================
-// GET LEVEL ICON
-// ============================================
+// Generate ID Anggota
+function generateMemberId(prefix, count) {
+    const padded = String(count).padStart(5, '0');
+    return `${prefix}-${padded}`;
+}
+
+// Get Level Icon
 function getLevelIcon(level) {
     const icons = {
         'Tamu': '🌱',
@@ -52,53 +43,8 @@ function getLevelIcon(level) {
 }
 
 // ============================================
-// GENERATE MEMBER ID
+// FORMAT MEMBER ID
 // ============================================
-function generateMemberId(prefix, count) {
-    const padded = String(count).padStart(5, '0');
-    return `${prefix}-${padded}`;
-}
-
-async function generateMemberIdWithLevel(levelKey) {
-    const prefixMap = {
-        'tamu': 'Yatta-T',
-        'penulis': 'Yatta-P',
-        'penulis_profesional': 'Yatta-PP',
-        'mentor': 'Yatta-M'
-    };
-    
-    const prefix = prefixMap[levelKey] || 'Yatta-T';
-    
-    const now = new Date();
-    const tanggal = String(now.getDate()).padStart(2, '0');
-    const bulan = String(now.getMonth() + 1).padStart(2, '0');
-    const tahun = String(now.getFullYear()).slice(-2);
-    const dateSuffix = `${tanggal}${bulan}${tahun}`;
-    
-    try {
-        const { count, error } = await _supabase
-            .from('yata_profiles')
-            .select('*', { count: 'exact', head: true })
-            .ilike('member_id', `${prefix}-%`);
-        
-        if (error) {
-            console.error('Error counting members:', error);
-            const timestamp = String(Date.now()).slice(-2);
-            return `${prefix}-${timestamp}${dateSuffix}`;
-        }
-        
-        const number = (count || 0) + 1;
-        const urutan = number < 10 ? `0${number}` : String(number);
-        
-        return `${prefix}-${urutan}${dateSuffix}`;
-        
-    } catch (err) {
-        console.error('Generate member ID error:', err);
-        const timestamp = String(Date.now()).slice(-2);
-        return `${prefix}-${timestamp}${dateSuffix}`;
-    }
-}
-
 function formatMemberId(memberId) {
     if (!memberId) {
         const now = new Date();
@@ -121,7 +67,257 @@ function getKTAValidDate() {
 }
 
 // ============================================
-// ✅ QR CODE GENERATOR UNTUK SERTIFIKAT
+// 🔥 SISTEM REPUTASI
+// ============================================
+
+const REPUTATION_LEVELS = {
+    premium: { min: 150, label: '🌟 Premium', dailyLimit: Infinity, badge: '🌟' },
+    trusted: { min: 100, label: '✅ Terpercaya', dailyLimit: 10, badge: '✅' },
+    standard: { min: 60, label: '📝 Standar', dailyLimit: 5, badge: '📝' },
+    improving: { min: 30, label: '⚠️ Perlu Perbaikan', dailyLimit: 2, badge: '⚠️' },
+    limited: { min: 0, label: '🚫 Terbatas', dailyLimit: 1, badge: '🚫' }
+};
+
+function getReputationLevel(reputation) {
+    if (reputation >= 150) return REPUTATION_LEVELS.premium;
+    if (reputation >= 100) return REPUTATION_LEVELS.trusted;
+    if (reputation >= 60) return REPUTATION_LEVELS.standard;
+    if (reputation >= 30) return REPUTATION_LEVELS.improving;
+    return REPUTATION_LEVELS.limited;
+}
+
+// ============================================
+// HITUNG REPUTASI MEMBER
+// ============================================
+async function calculateReputation(userId) {
+    try {
+        const { data: writings, error } = await _supabase
+            .from('yata_writings')
+            .select('views, likes, comments_count, word_count, created_at')
+            .eq('author_id', userId)
+            .eq('status', 'published');
+
+        if (error) throw error;
+
+        let reputation = 100;
+        let totalWritings = writings?.length || 0;
+        let totalViews = 0;
+        let totalLikes = 0;
+
+        if (writings && writings.length > 0) {
+            writings.forEach(w => {
+                totalViews += (w.views || 0);
+                totalLikes += (w.likes || 0);
+            });
+
+            // +1 per tulisan (maks 20)
+            reputation += Math.min(totalWritings, 20);
+
+            // +1 per 10 views (maks 30)
+            reputation += Math.min(Math.floor(totalViews / 10), 30);
+
+            // +1 per like (maks 30)
+            reputation += Math.min(totalLikes, 30);
+
+            // Bonus jika like ratio > 10%
+            const likeRatio = totalViews > 0 ? (totalLikes / totalViews) * 100 : 0;
+            if (likeRatio > 10) reputation += 10;
+            if (likeRatio > 20) reputation += 10;
+
+            // Penalti jika banyak tulisan tapi views rendah
+            const avgViews = totalWritings > 0 ? totalViews / totalWritings : 0;
+            if (totalWritings > 10 && avgViews < 3) {
+                reputation -= 20;
+            } else if (totalWritings > 5 && avgViews < 5) {
+                reputation -= 10;
+            }
+        } else {
+            // Tidak ada tulisan → turun perlahan
+            reputation -= 2;
+        }
+
+        // Batasi range 0-200
+        reputation = Math.max(0, Math.min(200, Math.round(reputation)));
+
+        // Update database
+        await _supabase
+            .from('yata_profiles')
+            .update({ 
+                reputation: reputation,
+                total_published: totalWritings,
+                total_views_received: totalViews,
+                total_likes_received: totalLikes,
+                last_reputation_update: new Date().toISOString()
+            })
+            .eq('id', userId);
+
+        return { reputation, totalWritings, totalViews, totalLikes };
+
+    } catch (err) {
+        console.error('Calculate reputation error:', err);
+        return { reputation: 100, totalWritings: 0, totalViews: 0, totalLikes: 0 };
+    }
+}
+
+// ============================================
+// CEK ELIGIBILITAS PUBLIKASI
+// ============================================
+async function checkPublishEligibility(userId) {
+    try {
+        const { data: profile, error } = await _supabase
+            .from('yata_profiles')
+            .select('reputation')
+            .eq('id', userId)
+            .single();
+
+        if (error) throw error;
+
+        const reputation = profile?.reputation || 100;
+        const level = getReputationLevel(reputation);
+        
+        // Hitung publikasi hari ini
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const { count, error: countError } = await _supabase
+            .from('yata_writings')
+            .select('*', { count: 'exact', head: true })
+            .eq('author_id', userId)
+            .eq('status', 'published')
+            .gte('created_at', today.toISOString());
+
+        if (countError) throw countError;
+
+        const used = count || 0;
+        const dailyLimit = level.dailyLimit === Infinity ? Infinity : level.dailyLimit;
+        const remaining = dailyLimit === Infinity ? Infinity : dailyLimit - used;
+        const allowed = remaining > 0 || dailyLimit === Infinity;
+
+        return {
+            allowed: allowed,
+            remaining: remaining === Infinity ? '∞' : remaining,
+            dailyLimit: dailyLimit === Infinity ? '∞' : dailyLimit,
+            used: used,
+            reputation: reputation,
+            level: level,
+            message: allowed 
+                ? `✅ Reputasi ${reputation} | Sisa ${remaining === Infinity ? '∞' : remaining} publikasi hari ini`
+                : `⚠️ Batas publikasi tercapai (${dailyLimit}/hari). Tingkatkan reputasi untuk kuota lebih banyak!`
+        };
+
+    } catch (err) {
+        console.error('Check eligibility error:', err);
+        return {
+            allowed: true,
+            remaining: '∞',
+            dailyLimit: '∞',
+            used: 0,
+            reputation: 100,
+            level: getReputationLevel(100),
+            message: '⚠️ Gagal mengecek reputasi'
+        };
+    }
+}
+
+// ============================================
+// 🔥 SISTEM FAVORIT
+// ============================================
+
+async function toggleFavorite(writingId, userId) {
+    try {
+        // Cek apakah sudah difavorit
+        const { data: existing, error: checkError } = await _supabase
+            .from('yata_favorites')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('writing_id', writingId)
+            .maybeSingle();
+
+        if (checkError) throw checkError;
+
+        if (existing) {
+            // Hapus favorit
+            const { error: deleteError } = await _supabase
+                .from('yata_favorites')
+                .delete()
+                .eq('id', existing.id);
+
+            if (deleteError) throw deleteError;
+            return { action: 'removed', message: '✅ Dihapus dari favorit' };
+        } else {
+            // Tambah favorit
+            const { error: insertError } = await _supabase
+                .from('yata_favorites')
+                .insert([{ user_id: userId, writing_id: writingId }]);
+
+            if (insertError) throw insertError;
+            return { action: 'added', message: '✅ Ditambahkan ke favorit' };
+        }
+
+    } catch (err) {
+        console.error('Toggle favorite error:', err);
+        throw err;
+    }
+}
+
+async function getFavoriteIds(userId) {
+    try {
+        const { data, error } = await _supabase
+            .from('yata_favorites')
+            .select('writing_id')
+            .eq('user_id', userId);
+
+        if (error) throw error;
+        return new Set(data.map(f => f.writing_id));
+    } catch (err) {
+        console.error('Get favorites error:', err);
+        return new Set();
+    }
+}
+
+// ============================================
+// 🔥 SISTEM TRENDING
+// ============================================
+
+async function calculateTrendingScore(writings) {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Ambil history likes untuk setiap karya
+    const writingIds = writings.map(w => w.id);
+    const { data: histories, error } = await _supabase
+        .from('yata_writing_history')
+        .select('writing_id, likes, recorded_at')
+        .in('writing_id', writingIds)
+        .gte('recorded_at', sevenDaysAgo.toISOString());
+
+    // Buat map history
+    const historyMap = {};
+    if (histories) {
+        histories.forEach(h => {
+            if (!historyMap[h.writing_id]) {
+                historyMap[h.writing_id] = { oldLikes: h.likes, oldViews: 0 };
+            }
+        });
+    }
+
+    return writings.map(w => {
+        const history = historyMap[w.id] || { oldLikes: 0, oldViews: 0 };
+        const likeIncrease = (w.likes || 0) - history.oldLikes;
+        const viewIncrease = (w.views || 0) - history.oldViews;
+        
+        return {
+            ...w,
+            trending_score: (likeIncrease * 2) + ((w.views || 0) * 0.5),
+            like_increase: likeIncrease,
+            view_increase: viewIncrease,
+            old_likes: history.oldLikes
+        };
+    });
+}
+
+// ============================================
+// QR CODE GENERATOR UNTUK SERTIFIKAT
 // ============================================
 function generateQRForCertificate(certificateNumber, userId) {
     const container = document.getElementById('qrCodeContainer');
@@ -130,14 +326,11 @@ function generateQRForCertificate(certificateNumber, userId) {
         return;
     }
 
-    // Hapus QR lama
     container.innerHTML = '';
 
-    // Buat link verifikasi
     const verificationUrl = `https://yata-gold.vercel.app/verify.html?cert=${certificateNumber}&user=${userId}`;
 
     try {
-        // Gunakan QRCode.js jika tersedia
         if (typeof QRCode !== 'undefined') {
             new QRCode(container, {
                 text: verificationUrl,
@@ -149,7 +342,6 @@ function generateQRForCertificate(certificateNumber, userId) {
             });
             console.log('✅ QR Code generated successfully');
         } else {
-            // Fallback: tampilkan link
             container.innerHTML = `
                 <div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:#f1f5f9;border-radius:8px;font-size:10px;text-align:center;color:#64748b;padding:8px;">
                     <div>
@@ -174,7 +366,7 @@ function generateQRForCertificate(certificateNumber, userId) {
 }
 
 // ============================================
-// ✅ DOWNLOAD SERTIFIKAT PDF
+// DOWNLOAD SERTIFIKAT PDF
 // ============================================
 async function downloadCertificatePDF(elementId, filename) {
     const element = document.getElementById(elementId);
@@ -192,7 +384,6 @@ async function downloadCertificatePDF(elementId, filename) {
     }
 
     try {
-        // Gunakan html2pdf.js jika tersedia
         if (typeof html2pdf !== 'undefined') {
             const opt = {
                 margin:        [0.5, 0.5, 0.5, 0.5],
@@ -211,7 +402,6 @@ async function downloadCertificatePDF(elementId, filename) {
             }
             return true;
         } else {
-            // Fallback: gunakan print
             showError('⚠️ Fitur PDF akan segera hadir. Gunakan print/save as PDF.', 'Info');
             window.print();
             return false;
@@ -230,7 +420,7 @@ async function downloadCertificatePDF(elementId, filename) {
 }
 
 // ============================================
-// ✅ KIRIM SERTIFIKAT VIA EMAIL
+// KIRIM SERTIFIKAT VIA EMAIL
 // ============================================
 async function sendCertificateEmail(certificateData, userId) {
     if (!certificateData) {
@@ -247,7 +437,6 @@ async function sendCertificateEmail(certificateData, userId) {
     }
 
     try {
-        // Ambil email user
         const { data: profile, error } = await _supabase
             .from('yata_profiles')
             .select('email')
@@ -265,7 +454,6 @@ async function sendCertificateEmail(certificateData, userId) {
             return false;
         }
 
-        // Kirim notifikasi ke user (sebagai placeholder untuk email)
         const certNumber = certificateData.certificate_number || 'YATTA-2026-0001';
         const notifContent = `📧 Sertifikat Anda (${certNumber}) akan dikirim ke email ${profile.email}. 
         
@@ -308,9 +496,6 @@ Jika tidak muncul dalam 5 menit, periksa folder SPAM atau hubungi admin YATTA.
     }
 }
 
-// ============================================
-// ✅ SHOW CERT MESSAGE
-// ============================================
 function showCertMessage(text, type) {
     const msg = document.getElementById('certMessage');
     if (!msg) return;
@@ -325,7 +510,7 @@ function showCertMessage(text, type) {
 }
 
 // ============================================
-// UTILITY - ERROR HANDLING TERPUSAT
+// ERROR HANDLING
 // ============================================
 function showError(message, title = 'Terjadi Kesalahan') {
     let toast = document.getElementById('errorToast');
@@ -451,7 +636,7 @@ function validateForm(formId) {
 }
 
 // ============================================
-// LOADING STATE - KOMPONEN REUSABLE
+// LOADING STATE - SKELETON
 // ============================================
 function injectSkeletonStyles() {
     if (document.getElementById('skeleton-styles')) return;
@@ -542,25 +727,6 @@ function showSkeletonGrid(containerId, count = 6, type = 'card') {
                 </div>
             `;
         }
-    } else if (type === 'community') {
-        for (let i = 0; i < count; i++) {
-            skeletonHtml += `
-                <div class="skeleton-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm">
-                    <div class="flex items-start gap-3">
-                        <div class="w-12 h-12 rounded-xl bg-slate-200 flex-shrink-0"></div>
-                        <div class="flex-1 space-y-2">
-                            <div class="h-4 bg-slate-200 rounded w-2/3"></div>
-                            <div class="h-3 bg-slate-200 rounded w-1/3"></div>
-                            <div class="h-3 bg-slate-200 rounded w-full"></div>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between">
-                        <div class="h-3 bg-slate-200 rounded w-1/4"></div>
-                        <div class="h-6 bg-slate-200 rounded w-20"></div>
-                    </div>
-                </div>
-            `;
-        }
     }
 
     container.innerHTML = skeletonHtml;
@@ -609,24 +775,6 @@ function showSkeletonTable(containerId, rows = 5) {
     container.innerHTML = skeletonHtml;
 }
 
-function showSkeletonContent(containerId, lines = 5) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    let skeletonHtml = `
-        <div class="space-y-4">
-            <div class="h-8 bg-slate-200 rounded w-2/3"></div>
-            <div class="h-4 bg-slate-200 rounded w-1/3"></div>
-    `;
-
-    for (let i = 0; i < lines; i++) {
-        skeletonHtml += `<div class="h-4 bg-slate-200 rounded w-full"></div>`;
-    }
-
-    skeletonHtml += `</div>`;
-    container.innerHTML = skeletonHtml;
-}
-
 function showLoadingSpinner(containerId, message = 'Memuat...') {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -659,7 +807,7 @@ function hideButtonLoading(buttonId) {
 }
 
 // ============================================
-// RATE LIMITING - CEGAH SPAM
+// RATE LIMITING
 // ============================================
 const RATE_LIMITS = {
     comment: 30,
@@ -671,6 +819,7 @@ const RATE_LIMITS = {
     register: 10,
     campaign: 60,
     like: 3,
+    favorite: 3,
 };
 
 function checkRateLimit(action, customCooldown = null) {
@@ -721,6 +870,9 @@ function resetRateLimit(action) {
     localStorage.removeItem(key);
 }
 
+// ============================================
+// GUEST FUNCTIONS
+// ============================================
 function getGuestId() {
     let guestId = localStorage.getItem('guest_id');
     if (!guestId) {
@@ -765,7 +917,7 @@ async function ensureGuestProfile(userId) {
 }
 
 // ============================================
-// FITUR SHARE - MEDIA SOSIAL
+// SHARE FUNCTIONS
 // ============================================
 function openShareDialog(title, url, type = 'karya') {
     let dialog = document.getElementById('shareDialog');
@@ -914,7 +1066,7 @@ function copyLink(url) {
 }
 
 // ============================================
-// FUNGSI KHUSUS MENTORING
+// MENTORING FUNCTIONS
 // ============================================
 function getMentoringStatusLabel(status) {
     const labels = {
@@ -1041,6 +1193,10 @@ console.log('✅ utils.js loaded successfully');
 console.log('📦 Functions available:');
 console.log('  - timeAgo()');
 console.log('  - getLevelIcon()');
+console.log('  - calculateReputation()');
+console.log('  - checkPublishEligibility()');
+console.log('  - toggleFavorite() / getFavoriteIds()');
+console.log('  - calculateTrendingScore()');
 console.log('  - generateQRForCertificate()');
 console.log('  - downloadCertificatePDF()');
 console.log('  - sendCertificateEmail()');
