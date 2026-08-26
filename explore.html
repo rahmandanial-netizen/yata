@@ -48,6 +48,8 @@
         }
         .filter-btn.active { background-color: #065F46; color: white; }
         .filter-btn:not(.active):hover { background-color: #f1f5f9; }
+        .filter-btn-category.active { background-color: #065F46; color: white; }
+        .filter-btn-category:not(.active):hover { background-color: #f1f5f9; }
         .animate-float {
             animation: float 3s ease-in-out infinite;
         }
@@ -196,35 +198,41 @@
     </section>
 
     <!-- ============================================ -->
-    <!-- FILTER & SEARCH - DENGAN TAB BARU -->
+    <!-- FILTER & SEARCH - DIPISAHKAN MENJADI 2 BARIS -->
     <!-- ============================================ -->
-    <section class="py-6 bg-white border-b border-slate-200/60 sticky top-16 z-30 shadow-sm">
+    <section class="py-4 bg-white border-b border-slate-200/60 sticky top-16 z-30 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <!-- BARIS 1: TAB UTAMA -->
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+                <span class="text-xs font-semibold text-slate-400 mr-1">📌 Jelajahi:</span>
+                <button onclick="filterExplore('latest')" class="filter-btn active px-4 py-1.5 rounded-full text-xs font-bold transition bg-emerald-600 text-white" id="filterLatest">
+                    🆕 Karya Terbaru
+                </button>
+                <button onclick="filterExplore('popular')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterPopular">
+                    📈 Karya Terpopuler
+                </button>
+                <button onclick="filterExplore('trending')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterTrending">
+                    🔥 Trending
+                </button>
+                <button onclick="filterExplore('favorites')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterFavorites">
+                    ⭐ Favorit Saya
+                </button>
+            </div>
+
+            <!-- BARIS 2: KATEGORI + SEARCH -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div class="flex items-center gap-2 flex-wrap">
-                    <button onclick="filterExplore('latest')" class="filter-btn active px-3 py-1.5 rounded-full text-xs font-bold transition bg-emerald-600 text-white" id="filterLatest">
-                        🆕 Karya Terbaru
-                    </button>
-                    <button onclick="filterExplore('popular')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterPopular">
-                        📈 Karya Terpopuler
-                    </button>
-                    <button onclick="filterExplore('trending')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterTrending">
-                        🔥 Trending
-                    </button>
-                    <button onclick="filterExplore('favorites')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterFavorites">
-                        ⭐ Favorit Saya
-                    </button>
-                    <span class="text-slate-300 mx-1">|</span>
-                    <button onclick="filterExplore('all')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterAll">Semua</button>
-                    <button onclick="filterExplore('cerpen')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterCerpen">Cerpen</button>
-                    <button onclick="filterExplore('puisi')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterPuisi">Puisi</button>
-                    <button onclick="filterExplore('esai')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterEsai">Esai</button>
-                    <button onclick="filterExplore('opini')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterOpini">Opini</button>
-                    <button onclick="filterExplore('resensi')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterResensi">Resensi</button>
+                    <span class="text-xs font-semibold text-slate-400 mr-1">📂 Kategori:</span>
+                    <button onclick="filterExplore('all')" class="filter-btn-category active px-3 py-1.5 rounded-full text-xs font-bold transition bg-emerald-600 text-white" id="filterAll">Semua</button>
+                    <button onclick="filterExplore('cerpen')" class="filter-btn-category px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterCerpen">Cerpen</button>
+                    <button onclick="filterExplore('puisi')" class="filter-btn-category px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterPuisi">Puisi</button>
+                    <button onclick="filterExplore('esai')" class="filter-btn-category px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterEsai">Esai</button>
+                    <button onclick="filterExplore('opini')" class="filter-btn-category px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterOpini">Opini</button>
+                    <button onclick="filterExplore('resensi')" class="filter-btn-category px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="filterResensi">Resensi</button>
                 </div>
-                <div class="relative w-full sm:w-64">
+                <div class="relative w-full sm:w-56">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                    <input type="text" id="searchExplore" placeholder="Cari judul atau penulis..." oninput="searchExplore()" class="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                    <input type="text" id="searchExplore" placeholder="Cari judul atau penulis..." oninput="searchExplore()" class="w-full pl-9 pr-4 py-1.5 rounded-full border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white" />
                 </div>
             </div>
         </div>
@@ -472,71 +480,90 @@
         // FILTER EXPLORE
         // ============================================
         function filterExplore(filter) {
-            // Cek apakah filter adalah kategori (cerpen, puisi, dll)
+            // Cek apakah filter adalah kategori (all, cerpen, puisi, esai, opini, resensi)
             const categoryFilters = ['all', 'cerpen', 'puisi', 'esai', 'opini', 'resensi'];
             
             if (categoryFilters.includes(filter)) {
+                // Ini adalah filter kategori
                 currentCategory = filter;
-                // Jika klik kategori, tetap di tab yang sama
+                
+                // Update tombol kategori
+                document.querySelectorAll('.filter-btn-category').forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.classList.add('text-slate-600');
+                });
+                
+                const idMap = {
+                    'all': 'filterAll',
+                    'cerpen': 'filterCerpen',
+                    'puisi': 'filterPuisi',
+                    'esai': 'filterEsai',
+                    'opini': 'filterOpini',
+                    'resensi': 'filterResensi'
+                };
+                
+                const activeBtn = document.getElementById(idMap[filter]);
+                if (activeBtn) {
+                    activeBtn.classList.add('active');
+                    activeBtn.classList.remove('text-slate-600');
+                }
             } else {
+                // Ini adalah filter tab utama
                 currentFilter = filter;
-                currentCategory = 'all';
-                // Reset kategori filter buttons
-                document.querySelectorAll('.filter-btn').forEach(btn => {
-                    if (['filterAll', 'filterCerpen', 'filterPuisi', 'filterEsai', 'filterOpini', 'filterResensi'].includes(btn.id)) {
-                        btn.classList.remove('active');
-                        btn.classList.add('text-slate-600');
-                    }
+                currentCategory = 'all'; // Reset kategori ke Semua
+                
+                // Reset tombol kategori
+                document.querySelectorAll('.filter-btn-category').forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.classList.add('text-slate-600');
                 });
                 document.getElementById('filterAll').classList.add('active');
                 document.getElementById('filterAll').classList.remove('text-slate-600');
-            }
-
-            // Update tab buttons
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                if (['filterLatest', 'filterPopular', 'filterTrending', 'filterFavorites'].includes(btn.id)) {
+                
+                // Update tab buttons
+                document.querySelectorAll('.filter-btn').forEach(btn => {
                     btn.classList.remove('active');
                     btn.classList.add('text-slate-600');
+                });
+
+                const idMap = {
+                    'latest': 'filterLatest',
+                    'popular': 'filterPopular',
+                    'trending': 'filterTrending',
+                    'favorites': 'filterFavorites'
+                };
+
+                const activeBtn = document.getElementById(idMap[filter]);
+                if (activeBtn) {
+                    activeBtn.classList.add('active');
+                    activeBtn.classList.remove('text-slate-600');
                 }
-            });
 
-            const idMap = {
-                'latest': 'filterLatest',
-                'popular': 'filterPopular',
-                'trending': 'filterTrending',
-                'favorites': 'filterFavorites'
-            };
+                // Update title
+                const titleMap = {
+                    'latest': 'Karya Terbaru',
+                    'popular': 'Karya Terpopuler',
+                    'trending': '🔥 Trending',
+                    'favorites': '⭐ Karya Favorit Saya'
+                };
+                document.getElementById('exploreTitle').textContent = titleMap[filter] || 'Karya Terbaru';
 
-            const activeBtn = document.getElementById(idMap[currentFilter]);
-            if (activeBtn && !categoryFilters.includes(filter)) {
-                activeBtn.classList.add('active');
-                activeBtn.classList.remove('text-slate-600');
+                const subtitleMap = {
+                    'latest': 'Karya dari seluruh penulis Yatta',
+                    'popular': '10 karya terbaik berdasarkan popularitas',
+                    'trending': 'Karya yang sedang naik daun',
+                    'favorites': 'Karya yang Anda simpan'
+                };
+                document.getElementById('exploreSubtitle').textContent = subtitleMap[filter] || 'Karya dari seluruh penulis Yatta';
+
+                const sortMap = {
+                    'latest': 'Diurutkan berdasarkan terbaru',
+                    'popular': 'Diurutkan berdasarkan popularitas',
+                    'trending': 'Diurutkan berdasarkan kenaikan likes',
+                    'favorites': 'Diurutkan berdasarkan waktu disimpan'
+                };
+                document.getElementById('exploreSortInfo').textContent = sortMap[filter] || 'Diurutkan berdasarkan terbaru';
             }
-
-            // Update title
-            const titleMap = {
-                'latest': 'Karya Terbaru',
-                'popular': 'Karya Terpopuler',
-                'trending': '🔥 Trending',
-                'favorites': '⭐ Karya Favorit Saya'
-            };
-            document.getElementById('exploreTitle').textContent = titleMap[currentFilter] || 'Karya Terbaru';
-
-            const subtitleMap = {
-                'latest': 'Karya dari seluruh penulis Yatta',
-                'popular': '10 karya terbaik berdasarkan popularitas',
-                'trending': 'Karya yang sedang naik daun',
-                'favorites': 'Karya yang Anda simpan'
-            };
-            document.getElementById('exploreSubtitle').textContent = subtitleMap[currentFilter] || 'Karya dari seluruh penulis Yatta';
-
-            const sortMap = {
-                'latest': 'Diurutkan berdasarkan terbaru',
-                'popular': 'Diurutkan berdasarkan popularitas',
-                'trending': 'Diurutkan berdasarkan kenaikan likes',
-                'favorites': 'Diurutkan berdasarkan waktu disimpan'
-            };
-            document.getElementById('exploreSortInfo').textContent = sortMap[currentFilter] || 'Diurutkan berdasarkan terbaru';
 
             // Reset dan muat ulang
             currentPage = 0;
