@@ -555,7 +555,7 @@
         }
 
         // ============================================
-        // 🔥 KIRIM NOTIFIKASI DENGAN TOMBOL AKSI (DIPERBAIKI)
+        // 🔥 KIRIM NOTIFIKASI DENGAN TOMBOL AKSI
         // ============================================
         async function sendNotificationWithAction(userId, title, content, type = 'success', actionLabel = null, actionUrl = null) {
             try {
@@ -563,8 +563,7 @@
                 console.log('📝 actionLabel:', actionLabel);
                 console.log('📝 actionUrl:', actionUrl);
                 
-                // 1. Buat notifikasi dengan action
-                const { data: notifData, error: notifError } = await _supabase
+                const { data: notifData, error } = await _supabase
                     .from('yata_notifications')
                     .insert([{
                         title: title,
@@ -576,14 +575,13 @@
                     .select()
                     .single();
 
-                if (notifError) {
-                    console.error('❌ Gagal insert notifikasi:', notifError);
+                if (error) {
+                    console.error('❌ Gagal insert notifikasi:', error);
                     return false;
                 }
 
                 console.log('✅ Notifikasi berhasil dibuat:', notifData.id);
 
-                // 2. Link ke user
                 const { error: linkError } = await _supabase
                     .from('yata_user_notifications')
                     .insert([{
@@ -607,18 +605,19 @@
         }
 
         // ============================================
-        // 🔥 BUAT SERTIFIKAT (SUPPORT SEMUA TIPE)
+        // 🔥 BUAT SERTIFIKAT - DENGAN NAMA KELAS
         // ============================================
-        async function createCertificate(userId, certificateType = 'onboarding') {
+        async function createCertificate(userId, certificateType = 'onboarding', certificateName = null) {
             try {
-                console.log('🔍 [createCertificate] Dipanggil untuk user:', userId, 'type:', certificateType);
+                console.log('🔍 [createCertificate] Dipanggil untuk user:', userId, 'type:', certificateType, 'name:', certificateName);
                 
-                // 🔥 CEK APAKAH SERTIFIKAT SUDAH ADA
+                // CEK APAKAH SERTIFIKAT SUDAH ADA
                 const { data: existingCert, error: certError } = await _supabase
                     .from('yata_certificates')
                     .select('id, certificate_number')
                     .eq('user_id', userId)
                     .eq('certificate_type', certificateType)
+                    .eq('certificate_name', certificateName || certificateType)
                     .maybeSingle();
 
                 if (certError) {
@@ -631,7 +630,7 @@
                     return true;
                 }
 
-                // ✅ AMBIL DATA USER
+                // AMBIL DATA USER
                 const { data: profile, error: profileError } = await _supabase
                     .from('yata_profiles')
                     .select('full_name, email')
@@ -643,7 +642,7 @@
                     return false;
                 }
 
-                // ✅ GENERATE NOMOR SERTIFIKAT
+                // GENERATE NOMOR SERTIFIKAT
                 const now = new Date();
                 const dateStr = now.getFullYear() + 
                     String(now.getMonth() + 1).padStart(2, '0') + 
@@ -655,17 +654,17 @@
                     'mandatory_mentoring': 'MENTOR'
                 };
                 const typeCode = typeMap[certificateType] || 'CERT';
-                
                 const certNumber = `YATTA-${typeCode}-${dateStr}-${random}`;
 
                 console.log('📜 [createCertificate] Membuat sertifikat:', certNumber);
 
-                // ✅ INSERT SERTIFIKAT (TANPA certificate_name)
+                // INSERT SERTIFIKAT DENGAN certificate_name
                 const { data: newCert, error: insertError } = await _supabase
                     .from('yata_certificates')
                     .insert([{
                         user_id: userId,
                         certificate_type: certificateType,
+                        certificate_name: certificateName || certificateType,
                         certificate_number: certNumber,
                         is_claimed: true,
                         claimed_at: new Date().toISOString(),
@@ -692,7 +691,7 @@
         }
 
         // ============================================
-        // 🔥 CEK DAN BUAT SERTIFIKAT UNTUK SEMUA KELAS ADMIN
+        // 🔥 CEK DAN BUAT SERTIFIKAT
         // ============================================
         async function checkAndCreateCertificate(userId, sessionId) {
             try {
@@ -719,7 +718,7 @@
 
                 console.log(`📚 Kelas admin: ${session.title} (onboarding: ${session.is_onboarding}, mandatory: ${session.is_mandatory})`);
 
-                // 2. CEK APAKAH USER SUDAH HADIR DI KELAS INI
+                // 2. CEK KEHADIRAN
                 const { count: attendedCount, error: attendError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*', { count: 'exact', head: true })
@@ -739,7 +738,7 @@
                     return false;
                 }
 
-                // 3. CEK APAKAH SUDAH REVIEW
+                // 3. CEK REVIEW
                 const { count: reviewCount, error: reviewError } = await _supabase
                     .from('yata_onboarding_reviews')
                     .select('*', { count: 'exact', head: true })
@@ -761,7 +760,7 @@
                 // 4. 🔥 SEMUA SYARAT TERPENUHI → BUAT SERTIFIKAT!
                 console.log('✅ User sudah hadir dan review, membuat sertifikat...');
 
-                // Tentukan tipe sertifikat
+                // Tentukan tipe dan nama sertifikat
                 let certificateType = 'onboarding';
                 if (session.is_onboarding) {
                     certificateType = 'onboarding';
@@ -769,7 +768,8 @@
                     certificateType = 'mandatory_mentoring';
                 }
 
-                const certResult = await createCertificate(userId, certificateType);
+                // 🔥 GUNAKAN JUDUL KELAS SEBAGAI NAMA SERTIFIKAT
+                const certResult = await createCertificate(userId, certificateType, session.title);
                 console.log('📜 Hasil sertifikat:', certResult ? 'BERHASIL' : 'GAGAL');
 
                 if (certResult) {
