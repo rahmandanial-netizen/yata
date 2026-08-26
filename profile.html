@@ -379,6 +379,20 @@
             background: #FEE2E2;
             color: #991B1B;
         }
+        .reputation-badge-profile {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            background: #fef3c7;
+            padding: 2px 12px;
+            border-radius: 9999px;
+            border: 1px solid #fcd34d;
+            color: #92400e;
+        }
+        .reputation-badge-profile i {
+            color: #f59e0b;
+        }
     </style>
 </head>
 <body>
@@ -521,8 +535,12 @@
                                     <span id="profileLevelIcon" class="level-icon">🌱</span> 
                                     <span id="profileLevelName">Tamu</span>
                                 </span>
-                                <!-- 🔥 STATUS LEVEL -->
-                                <span id="profileLevelStatus" class="level-status-badge hidden"></span>
+                                <!-- 🔥 BADGE REPUTASI - BARU -->
+                                <span class="reputation-badge-profile">
+                                    <i class="fa-solid fa-star"></i>
+                                    <span id="profileReputation" class="font-semibold">100</span>
+                                    <span class="text-xs text-slate-500">reputasi</span>
+                                </span>
                                 <span class="text-slate-400">•</span>
                                 <span id="profileMemberId" class="text-xs font-mono text-slate-500">Yatta-T-00001</span>
                             </div>
@@ -986,11 +1004,10 @@
         }
 
         // ============================================
-        // 🔥 CEK SYARAT NAIK LEVEL (1 ONBOARDING + 2 MENTORING ADMIN + 5 KARYA)
+        // 🔥 CEK SYARAT NAIK LEVEL
         // ============================================
         async function checkLevelUpRequirements(userId) {
             try {
-                // 1. CEK ONBOARDING (1x)
                 const { count: onboardingCount, error: onError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*', { count: 'exact', head: true })
@@ -1000,7 +1017,6 @@
 
                 if (onError) throw onError;
 
-                // 2. CEK MENTORING ADMIN WAJIB (2x)
                 const { count: mandatoryMentoringCount, error: manError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*', { count: 'exact', head: true })
@@ -1011,7 +1027,6 @@
 
                 if (manError) throw manError;
 
-                // 3. CEK KARYA (5x)
                 const { count: writingsCount, error: wError } = await _supabase
                     .from('yata_writings')
                     .select('*', { count: 'exact', head: true })
@@ -1049,7 +1064,40 @@
         }
 
         // ============================================
-        // LOAD PROFILE (PUBLIK - TANPA REDIRECT)
+        // KIRIM NOTIFIKASI
+        // ============================================
+        async function sendNotification(userId, title, content, type = 'info') {
+            try {
+                const { data: notifData, error } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: title,
+                        content: content,
+                        type: type
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                if (notifData) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+                }
+                return true;
+            } catch (err) {
+                console.error('Send notification error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // LOAD PROFILE
         // ============================================
         async function loadProfile() {
             try {
@@ -1194,7 +1242,7 @@
         }
 
         // ============================================
-        // RENDER PROFILE - DENGAN STATUS LEVEL & PROGRESS
+        // RENDER PROFILE - DENGAN REPUTASI
         // ============================================
         function renderProfile(profile, user) {
             // Avatar
@@ -1211,7 +1259,7 @@
             document.getElementById('profileBio').textContent = profile.bio || 'Belum ada bio.';
             document.getElementById('profileUsername').textContent = '@' + (profile.username || 'username');
             
-            // Email (hanya tampil jika pemilik)
+            // Email
             const emailEl = document.getElementById('profileEmail');
             if (isOwnProfile && user) {
                 emailEl.textContent = user.email || 'email@domain.com';
@@ -1261,6 +1309,21 @@
                 rejectContainer.classList.add('hidden');
             }
 
+            // 🔥 REPUTASI - BARU
+            if (profile.reputation !== undefined) {
+                document.getElementById('profileReputation').textContent = profile.reputation || 100;
+            } else {
+                // Jika reputasi belum ada, set default 100
+                document.getElementById('profileReputation').textContent = '100';
+                if (isOwnProfile) {
+                    _supabase
+                        .from('yata_profiles')
+                        .update({ reputation: 100 })
+                        .eq('id', user.id)
+                        .then(() => console.log('✅ Reputasi default 100 diset'));
+                }
+            }
+
             // Member ID
             const memberId = profile.member_id || formatMemberId();
             document.getElementById('profileMemberId').textContent = memberId;
@@ -1308,15 +1371,13 @@
             try {
                 const requirements = await checkLevelUpRequirements(userId);
                 
-                const totalRequired = 8; // 1 + 2 + 5
+                const totalRequired = 8;
                 const achieved = requirements.onboardingCount + requirements.mandatoryMentoringCount + requirements.writingsCount;
                 const progress = Math.min((achieved / totalRequired) * 100, 100);
 
-                // Update progress bar
                 document.getElementById('levelProgressBar').style.width = progress + '%';
                 document.getElementById('levelProgressLabel').textContent = Math.round(progress) + '%';
 
-                // Detail progress
                 const detailsContainer = document.getElementById('progressDetails');
                 const items = [
                     { 
@@ -1351,7 +1412,6 @@
                     </div>
                 `).join('');
 
-                // Update tombol naik level
                 const btnLevelUp = document.getElementById('btnLevelUp');
                 const statusEl = document.getElementById('levelUpStatus');
 
@@ -1420,7 +1480,6 @@
                     return;
                 }
 
-                // 🔥 CEK SYARAT
                 const requirements = await checkLevelUpRequirements(session.user.id);
                 
                 if (!requirements.canLevelUp) {
@@ -1432,7 +1491,6 @@
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
 
-                // Kirim notifikasi ke admin
                 const { data: admins, error: adminError } = await _supabase
                     .from('yata_profiles')
                     .select('id')
@@ -1491,39 +1549,6 @@
                 statusEl.className = 'text-xs text-red-400 mt-1 text-center block';
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
-            }
-        }
-
-        // ============================================
-        // KIRIM NOTIFIKASI
-        // ============================================
-        async function sendNotification(userId, title, content, type = 'info') {
-            try {
-                const { data: notifData, error } = await _supabase
-                    .from('yata_notifications')
-                    .insert([{
-                        title: title,
-                        content: content,
-                        type: type
-                    }])
-                    .select()
-                    .single();
-
-                if (error) throw error;
-
-                if (notifData) {
-                    await _supabase
-                        .from('yata_user_notifications')
-                        .insert([{
-                            notification_id: notifData.id,
-                            user_id: userId,
-                            is_read: false
-                        }]);
-                }
-                return true;
-            } catch (err) {
-                console.error('Send notification error:', err);
-                return false;
             }
         }
 
@@ -1679,7 +1704,7 @@
         }
 
         // ============================================
-        // SEND KTA VIA EMAIL (HANYA PEMILIK)
+        // SEND KTA VIA EMAIL
         // ============================================
         async function sendKTAViaEmail() {
             if (!isOwnProfile) {
@@ -1903,7 +1928,7 @@
         }
 
         // ============================================
-        // EDIT PROFILE (HANYA PEMILIK)
+        // EDIT PROFILE
         // ============================================
         function openEditProfile() {
             if (!isOwnProfile) {
@@ -1977,7 +2002,7 @@
         });
 
         // ============================================
-        // CHANGE PASSWORD (HANYA PEMILIK)
+        // CHANGE PASSWORD
         // ============================================
         function changePassword() {
             if (!isOwnProfile) {
@@ -2049,7 +2074,7 @@
         });
 
         // ============================================
-        // LOAD KAMPANYE YANG DIBUAT USER (HANYA PEMILIK)
+        // LOAD KAMPANYE YANG DIBUAT USER
         // ============================================
         async function loadUserCampaigns() {
             if (!isOwnProfile) return;
