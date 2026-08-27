@@ -82,7 +82,15 @@
             transform: scale(1.15);
         }
         .favorite-btn.favorited {
-            color: #ef4444;
+            color: #f59e0b;
+        }
+        .favorite-btn.favorited i {
+            font-weight: 900;
+        }
+        .modal-enter { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
@@ -183,15 +191,18 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
-                            <!-- 🔥 TOMBOL FAVORIT -->
-                            <button id="favoriteBtn" onclick="toggleFavoriteFromRead()" class="favorite-btn text-slate-400 hover:text-red-500 transition text-xl p-2 hover:bg-red-50 rounded-full">
-                                <i class="fa-regular fa-heart"></i>
+                            <!-- 🔥 TOMBOL FAVORIT (BINTANG) -->
+                            <button id="favoriteBtn" onclick="toggleFavoriteFromRead()" class="favorite-btn text-slate-400 hover:text-yellow-500 transition text-xl p-2 hover:bg-yellow-50 rounded-full" title="Tambahkan ke favorit">
+                                <i class="fa-regular fa-star"></i>
                             </button>
                             <span id="favoriteCount" class="text-sm font-semibold text-slate-600 min-w-[20px]">0</span>
-                            <button id="likeBtn" class="like-btn text-slate-400 hover:text-red-500 transition text-xl p-2 hover:bg-red-50 rounded-full">
+                            
+                            <!-- 🔥 TOMBOL LIKE (HATI) -->
+                            <button id="likeBtn" class="like-btn text-slate-400 hover:text-red-500 transition text-xl p-2 hover:bg-red-50 rounded-full" title="Sukai karya ini">
                                 <i class="fa-regular fa-heart"></i>
                             </button>
                             <span id="likeCount" class="text-sm font-semibold text-slate-600 min-w-[20px]">0</span>
+                            
                             <button onclick="shareWriting()" class="share-btn text-slate-400 hover:text-emerald-600 transition text-xl p-2 hover:bg-emerald-50 rounded-full" title="Bagikan karya ini">
                                 <i class="fa-regular fa-share-from-square"></i>
                             </button>
@@ -353,6 +364,7 @@
                     .from('yata_writings')
                     .select('*, profiles:author_id(full_name, username, member_level, avatar_url)')
                     .eq('id', writingId)
+                    .eq('status', 'published')
                     .single();
 
                 if (error) {
@@ -429,7 +441,7 @@
             const countEl = document.getElementById('favoriteCount');
             
             if (btn) {
-                btn.innerHTML = `<i class="${isFavorited ? 'fa-solid' : 'fa-regular'} fa-heart"></i>`;
+                btn.innerHTML = `<i class="${isFavorited ? 'fa-solid' : 'fa-regular'} fa-star"></i>`;
                 btn.classList.toggle('favorited', isFavorited);
             }
             
@@ -519,10 +531,13 @@
         }
 
         // ============================================
-        // 10. TOGGLE FAVORITE DARI READ
+        // 10. TOGGLE FAVORITE DARI READ (DIPERBAIKI)
         // ============================================
         async function toggleFavoriteFromRead() {
-            if (!currentWriting) return;
+            if (!currentWriting) {
+                showError('Karya tidak ditemukan.', 'Error');
+                return;
+            }
 
             const rateCheck = checkRateLimit('favorite');
             if (!rateCheck.allowed) {
@@ -530,14 +545,17 @@
                 return;
             }
 
-            let userId = currentUser?.id || getGuestId();
-
+            // ✅ CEK LOGIN
             if (!currentUser) {
-                await ensureGuestProfile(userId);
+                showError('Silakan login untuk menambahkan ke favorit.', 'Info');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+                return;
             }
 
             try {
-                const result = await toggleFavorite(currentWriting.id, userId);
+                const result = await toggleFavorite(currentWriting.id, currentUser.id);
                 saveRateLimit('favorite');
 
                 if (result.action === 'added') {
@@ -566,7 +584,7 @@
         }
 
         // ============================================
-        // 11. LIKE / UNLIKE
+        // 11. LIKE / UNLIKE (DIPERBAIKI)
         // ============================================
         document.getElementById('likeBtn').addEventListener('click', async function() {
             const rateCheck = checkRateLimit('like');
@@ -580,16 +598,23 @@
                 return;
             }
 
+            // ✅ CEK LOGIN
+            if (!currentUser) {
+                showError('Silakan login untuk menyukai karya.', 'Info');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+                return;
+            }
+
             const writingId = currentWriting.id;
 
             try {
-                let userId = currentUser?.id || getGuestId();
-
                 const { data: existing, error: checkError } = await _supabase
                     .from('yata_likes')
                     .select('*')
                     .eq('writing_id', writingId)
-                    .eq('user_id', userId)
+                    .eq('user_id', currentUser.id)
                     .maybeSingle();
 
                 if (checkError) throw checkError;
@@ -601,7 +626,7 @@
                         .from('yata_likes')
                         .delete()
                         .eq('writing_id', writingId)
-                        .eq('user_id', userId);
+                        .eq('user_id', currentUser.id);
 
                     if (error) throw error;
 
@@ -612,15 +637,11 @@
                     this.innerHTML = '<i class="fa-regular fa-heart"></i>';
 
                 } else {
-                    if (!currentUser) {
-                        await ensureGuestProfile(userId);
-                    }
-
                     const { error } = await _supabase
                         .from('yata_likes')
                         .insert([{
                             writing_id: writingId,
-                            user_id: userId
+                            user_id: currentUser.id
                         }]);
 
                     if (error) throw error;
@@ -676,7 +697,15 @@
                     .eq('writing_id', writingId)
                     .order('created_at', { ascending: false });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Load comments error:', error);
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-red-400 text-sm">
+                            Gagal memuat komentar: ${error.message}
+                        </div>
+                    `;
+                    return;
+                }
 
                 countEl.textContent = comments?.length || 0;
 
@@ -723,12 +752,17 @@
                 }).join('');
 
             } catch (err) {
-                handleSupabaseError(err, 'Memuat komentar');
+                console.error('Load comments error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-6 text-red-400 text-sm">
+                        Gagal memuat komentar: ${err.message}
+                    </div>
+                `;
             }
         }
 
         // ============================================
-        // 14. KOMENTAR - TAMBAH
+        // 14. KOMENTAR - TAMBAH (DIPERBAIKI)
         // ============================================
         document.getElementById('submitCommentBtn').addEventListener('click', async function() {
             const rateCheck = checkRateLimit('comment');
@@ -750,25 +784,36 @@
                 return;
             }
 
-            let userId = currentUser?.id || getGuestId();
+            // ✅ CEK LOGIN
+            if (!currentUser) {
+                showError('Silakan login untuk berkomentar.', 'Info');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+                return;
+            }
 
             this.disabled = true;
             this.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
 
             try {
-                if (!currentUser) {
-                    await ensureGuestProfile(userId);
-                }
-
                 const { error } = await _supabase
                     .from('yata_comments')
                     .insert([{
                         writing_id: currentWriting.id,
-                        user_id: userId,
+                        user_id: currentUser.id,
                         content: content
                     }]);
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Comment error:', error);
+                    if (error.code === '42501') {
+                        showError('❌ Anda tidak memiliki izin untuk berkomentar. Hubungi admin.', 'Error');
+                    } else {
+                        showError('❌ Gagal mengirim komentar: ' + error.message, 'Error');
+                    }
+                    return;
+                }
 
                 saveRateLimit('comment');
 
