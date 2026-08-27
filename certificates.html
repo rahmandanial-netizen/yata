@@ -715,11 +715,9 @@
                 // Cari sertifikat onboarding
                 const onboardingCerts = filteredCertificates.filter(c => c.certificate_type === 'onboarding');
                 if (onboardingCerts.length > 1) {
-                    // Ambil yang terbaru (issued_at terbaru)
                     onboardingCerts.sort((a, b) => new Date(b.issued_at) - new Date(a.issued_at));
                     const latestOnboarding = onboardingCerts[0];
                     
-                    // Hapus yang lama
                     const oldOnboardingIds = onboardingCerts.slice(1).map(c => c.id);
                     filteredCertificates = filteredCertificates.filter(c => 
                         !oldOnboardingIds.includes(c.id)
@@ -755,23 +753,20 @@
         }
 
         // ============================================
-        // RENDER SERTIFIKAT
+        // RENDER SERTIFIKAT (DIPERBAIKI)
         // ============================================
         function renderCertificates() {
             const container = document.getElementById('certificatesGrid');
 
+            // 🔥 TYPE LABELS UNTUK FALLBACK
             const typeLabels = {
-                onboarding: '🎓 Onboarding YATTA',
-                mentoring: '📚 Mentoring',
-                penulis: '✍️ Penulis',
-                mentor: '🌟 Mentor'
+                'onboarding': '🎓 Onboarding YATTA',
+                'mandatory_mentoring': '📖 Mentoring Wajib'
             };
 
             const typeColors = {
-                onboarding: 'bg-emerald-100 text-emerald-700',
-                mentoring: 'bg-blue-100 text-blue-700',
-                penulis: 'bg-purple-100 text-purple-700',
-                mentor: 'bg-amber-100 text-amber-700'
+                'onboarding': 'bg-emerald-100 text-emerald-700',
+                'mandatory_mentoring': 'bg-purple-100 text-purple-700'
             };
 
             const avatarUrl = currentUser?.user_metadata?.avatar_url || null;
@@ -779,13 +774,21 @@
             const initial = fullName.charAt(0).toUpperCase();
 
             container.innerHTML = allCertificates.map(c => {
+                // 🔥 PRIORITASKAN certificate_name (nama kelas) jika ada
+                let displayName = c.certificate_name || typeLabels[c.certificate_type] || c.certificate_type || 'Sertifikat';
+                
+                // Jika certificate_name ada, gunakan itu sebagai judul utama
+                if (c.certificate_name) {
+                    displayName = c.certificate_name;
+                }
+                
                 const displayType = c.certificate_type === 'onboarding' ? 'onboarding' : c.certificate_type;
-                const typeLabel = typeLabels[displayType] || c.certificate_type || 'Sertifikat';
+                const typeColor = typeColors[displayType] || 'bg-emerald-100 text-emerald-700';
                 
                 return `
                     <div class="certificate-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm relative" onclick="openCertificateModal('${c.id}')">
                         <div class="flex items-start gap-4">
-                            <div class="w-14 h-14 rounded-xl ${typeColors[displayType] || 'bg-emerald-100'} flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
+                            <div class="w-14 h-14 rounded-xl ${typeColor} flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
                                 ${avatarUrl 
                                     ? `<img src="${avatarUrl}" class="w-full h-full object-cover" />` 
                                     : `<span class="font-bold text-emerald-700">${initial}</span>`
@@ -793,7 +796,7 @@
                             </div>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <h4 class="font-bold text-slate-800 text-sm">${typeLabel}</h4>
+                                    <h4 class="font-bold text-slate-800 text-sm">${displayName}</h4>
                                     <span class="cert-badge ${c.is_claimed ? 'cert-badge-claimed' : 'cert-badge-pending'}">
                                         ${c.is_claimed ? '✅ Diklaim' : '⏳ Belum Diklaim'}
                                     </span>
@@ -822,7 +825,7 @@
         }
 
         // ============================================
-        // OPEN CERTIFICATE MODAL DENGAN QR CODE
+        // OPEN CERTIFICATE MODAL (DIPERBAIKI)
         // ============================================
         async function openCertificateModal(certId) {
             const cert = allCertificates.find(c => c.id === certId);
@@ -833,8 +836,11 @@
 
             selectedCertificate = cert;
 
+            // 🔥 GANTI: Gunakan certificate_name untuk judul sertifikat
+            const programName = cert.certificate_name || 'Program YATTA';
+            
             document.getElementById('certName').textContent = currentUser?.user_metadata?.full_name || currentUser?.email || 'Member';
-            document.getElementById('certProgram').textContent = 'Onboarding YATTA';
+            document.getElementById('certProgram').textContent = programName;
             document.getElementById('certDate').textContent = `Diberikan pada ${new Date(cert.issued_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`;
             document.getElementById('certNumber').textContent = `No. ${cert.certificate_number || 'YATTA-2026-0001'}`;
 

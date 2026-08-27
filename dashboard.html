@@ -522,7 +522,10 @@
             <a href="certificates.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Sertifikat</a>
             <a href="profile.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Profil</a>
             <hr class="my-2 border-emerald-100" />
-            <button onclick="openContactModal()" class="block w-full text-left px-4 py-2.5 text-emerald-600 hover:bg-emerald-50 rounded-xl font-medium">Hubungi Tim</button>
+            <!-- ✅ HUBUNGI TIM - TETAP ADA DI SEMUA HALAMAN -->
+            <button onclick="openContactModal()" class="block w-full text-left px-4 py-2.5 text-emerald-600 hover:bg-emerald-50 rounded-xl font-medium">
+                <i class="fa-regular fa-envelope mr-2"></i> Hubungi Tim
+            </button>
             <button id="btnLogoutMobile" class="block w-full text-left px-4 py-2.5 text-red-600 font-medium hover:bg-red-50 rounded-xl">Keluar</button>
         </div>
     </header>
@@ -997,7 +1000,9 @@
         </div>
     </div>
 
-    <!-- Modal Contact -->
+    <!-- ============================================ -->
+    <!-- 🔥 MODAL HUBUNGI TIM - DIPERBAIKI -->
+    <!-- ============================================ -->
     <div id="contactModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">
             <button onclick="closeContactModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
@@ -1162,7 +1167,7 @@
         };
 
         // ============================================
-        // TIME AGO
+        // FUNGSI TIME AGO
         // ============================================
         function timeAgo(date) {
             const now = new Date();
@@ -2678,7 +2683,7 @@
         }
 
         // ============================================
-        // CONTACT FORM
+        // 🔥 CONTACT FORM - DIPERBAIKI
         // ============================================
         function openContactModal() {
             document.getElementById('contactModal').classList.remove('hidden');
@@ -2711,26 +2716,110 @@
 
             try {
                 const session = await checkAuth();
-                if (!session) return;
+                if (!session) {
+                    showError('Silakan login terlebih dahulu.', 'Info');
+                    return;
+                }
 
-                const { error } = await _supabase
+                // ✅ INSERT KE yata_messages
+                const { data, error } = await _supabase
                     .from('yata_messages')
                     .insert([{
                         user_id: session.user.id,
                         category: category,
                         subject: subject,
                         message: message,
-                        status: 'sent'
-                    }]);
+                        status: 'sent',
+                        created_at: new Date().toISOString()
+                    }])
+                    .select();
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Insert error:', error);
+                    if (error.code === '42501') {
+                        showError('❌ Gagal mengirim pesan: Anda tidak memiliki izin. Hubungi admin.', 'Error');
+                    } else {
+                        showError('❌ Gagal mengirim pesan: ' + error.message, 'Error');
+                    }
+                    return;
+                }
 
+                console.log('✅ Pesan berhasil dikirim:', data);
+
+                // ✅ NOTIFIKASI KE ADMIN
+                try {
+                    const { data: admins, error: adminError } = await _supabase
+                        .from('yata_profiles')
+                        .select('id')
+                        .eq('role', 'admin');
+
+                    if (!adminError && admins && admins.length > 0) {
+                        const notifContent = `📩 Pesan baru dari member:\n\n📋 Kategori: ${category}\n📌 Subjek: ${subject}\n📝 Pesan: ${message}`;
+                        
+                        for (const admin of admins) {
+                            const { data: notifData, error: notifError } = await _supabase
+                                .from('yata_notifications')
+                                .insert([{
+                                    title: '📩 Pesan Baru dari Member',
+                                    content: notifContent,
+                                    type: 'info',
+                                    target_audience: 'admin'
+                                }])
+                                .select()
+                                .single();
+
+                            if (!notifError && notifData) {
+                                await _supabase
+                                    .from('yata_user_notifications')
+                                    .insert([{
+                                        notification_id: notifData.id,
+                                        user_id: admin.id,
+                                        is_read: false
+                                    }]);
+                            }
+                        }
+                        console.log('✅ Notifikasi dikirim ke admin');
+                    }
+                } catch (notifErr) {
+                    console.error('❌ Error sending admin notification:', notifErr);
+                }
+
+                // ✅ NOTIFIKASI KE USER (konfirmasi)
+                try {
+                    const notifContent = `Pesan Anda dengan subjek "${subject}" telah terkirim ke tim Yatta. Kami akan merespons dalam 1x24 jam.`;
+                    
+                    const { data: userNotif, error: userNotifError } = await _supabase
+                        .from('yata_notifications')
+                        .insert([{
+                            title: '📩 Pesan Terkirim ke Tim Yatta',
+                            content: notifContent,
+                            type: 'success'
+                        }])
+                        .select()
+                        .single();
+
+                    if (!userNotifError && userNotif) {
+                        await _supabase
+                            .from('yata_user_notifications')
+                            .insert([{
+                                notification_id: userNotif.id,
+                                user_id: session.user.id,
+                                is_read: false
+                            }]);
+                        console.log('✅ Notifikasi konfirmasi dikirim ke user');
+                    }
+                } catch (userNotifErr) {
+                    console.error('❌ Error sending user notification:', userNotifErr);
+                }
+
+                // Sembunyikan form, tampilkan success
                 document.getElementById('contactForm').classList.add('hidden');
                 document.getElementById('contactSuccess').classList.remove('hidden');
+
                 showError('✅ Pesan berhasil dikirim! Tim Yatta akan merespons secepatnya.', 'Sukses');
 
             } catch (err) {
-                console.error('Send message error:', err);
+                console.error('❌ Send message error:', err);
                 showError('❌ Gagal mengirim pesan: ' + err.message, 'Error');
             } finally {
                 submitBtn.disabled = false;

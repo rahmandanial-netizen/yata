@@ -290,7 +290,6 @@
                     <i class="fa-solid fa-arrow-up w-5"></i> Pengajuan Naik Level
                     <span id="pendingLevelCount" class="ml-auto bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
                 </a>
-                <!-- 🔥 TAB REPUTASI BARU -->
                 <a href="#" onclick="switchAdminTab('reputation')" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition" id="tabReputation">
                     <i class="fa-solid fa-star w-5 text-yellow-500"></i> Reputasi Member
                 </a>
@@ -735,7 +734,7 @@
                 <div class="p-5">
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="font-semibold text-slate-700 text-sm">📋 Daftar Kelas Wajib</h3>
-                        <span class="text-xs text-slate-400" id="onboardingCount">0</span>
+                        <span class="text-xs text-slate-400" id="onboardingCountLabel">0</span>
                     </div>
                     <div id="onboardingList" class="divide-y divide-slate-100">
                         <div class="text-center py-6 text-slate-400 text-sm">
@@ -1058,8 +1057,14 @@
     <!-- JAVASCRIPT -->
     <!-- ============================================ -->
     <script>
+        // ============================================
+        // INISIALISASI SUPABASE
+        // ============================================
         const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
+        // ============================================
+        // VARIABEL GLOBAL
+        // ============================================
         let currentTab = 'notifications';
         let currentItemId = null;
         let currentItemType = null;
@@ -1094,7 +1099,7 @@
         let repSearch = '';
 
         // ============================================
-        // 🔥 FUNGSI SHOW ONBOARDING MESSAGE
+        // FUNGSI SHOW ONBOARDING MESSAGE
         // ============================================
         function showOnboardingMessage(text, type) {
             const msg = document.getElementById('onboardingMessage');
@@ -1169,20 +1174,29 @@
                     .select()
                     .single();
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Send notification error:', error);
+                    return false;
+                }
 
                 if (notifData) {
-                    await _supabase
+                    const { error: linkError } = await _supabase
                         .from('yata_user_notifications')
                         .insert([{
                             notification_id: notifData.id,
                             user_id: userId,
                             is_read: false
                         }]);
+
+                    if (linkError) {
+                        console.error('❌ Link notification error:', linkError);
+                        return false;
+                    }
                 }
+                console.log('✅ Notification sent to user:', userId);
                 return true;
             } catch (err) {
-                console.error('Send notification error:', err);
+                console.error('❌ Send notification error:', err);
                 return false;
             }
         }
@@ -1202,7 +1216,8 @@
                 loadBookSubmissions(true),
                 loadAllMembers(),
                 loadOnboardingList(),
-                loadLevelRequests()
+                loadLevelRequests(),
+                loadReputationData()
             ]);
         }
 
@@ -1229,10 +1244,15 @@
                     .select('*', { count: 'exact', head: true })
                     .eq('verification_status', 'pending');
 
-                document.getElementById('statTotalCommunities').textContent = totalCommunities || 0;
-                document.getElementById('statPendingCommunities').textContent = pendingCommunities || 0;
-                document.getElementById('statTotalCampaigns').textContent = totalCampaigns || 0;
-                document.getElementById('statPendingCampaigns').textContent = pendingCampaigns || 0;
+                const totalCommunitiesEl = document.getElementById('statTotalCommunities');
+                const pendingCommunitiesEl = document.getElementById('statPendingCommunities');
+                const totalCampaignsEl = document.getElementById('statTotalCampaigns');
+                const pendingCampaignsEl = document.getElementById('statPendingCampaigns');
+
+                if (totalCommunitiesEl) totalCommunitiesEl.textContent = totalCommunities || 0;
+                if (pendingCommunitiesEl) pendingCommunitiesEl.textContent = pendingCommunities || 0;
+                if (totalCampaignsEl) totalCampaignsEl.textContent = totalCampaigns || 0;
+                if (pendingCampaignsEl) pendingCampaignsEl.textContent = pendingCampaigns || 0;
 
             } catch (err) {
                 console.error('Load stats error:', err);
@@ -1379,7 +1399,9 @@
                     hasMoreCommunities = false;
                 }
 
-                document.getElementById('pendingCommunityCount').textContent = allCommunities.length;
+                const countEl = document.getElementById('pendingCommunityCount');
+                if (countEl) countEl.textContent = allCommunities.length;
+
                 renderCommunities();
 
                 if (hasMoreCommunities && allCommunities.length > 0) {
@@ -1466,7 +1488,9 @@
                     hasMoreCampaigns = false;
                 }
 
-                document.getElementById('pendingCampaignCount').textContent = allCampaigns.length;
+                const countEl = document.getElementById('pendingCampaignCount');
+                if (countEl) countEl.textContent = allCampaigns.length;
+
                 renderCampaigns();
 
                 if (hasMoreCampaigns && allCampaigns.length > 0) {
@@ -1538,15 +1562,7 @@
 
                 const { data: messages, error } = await _supabase
                     .from('yata_messages')
-                    .select(`
-                        id,
-                        category,
-                        subject,
-                        message,
-                        status,
-                        created_at,
-                        user_id
-                    `)
+                    .select('*')
                     .order('created_at', { ascending: false })
                     .range(from, to);
 
@@ -1585,6 +1601,18 @@
                 }
 
                 renderMessages();
+
+                // Update unread count
+                const unreadCount = allMessages.filter(m => m.status === 'sent' || m.status === 'read').length;
+                const badge = document.getElementById('unreadMessageCount');
+                if (badge) {
+                    if (unreadCount > 0) {
+                        badge.textContent = unreadCount;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
 
                 if (hasMoreMessages && allMessages.length > 0) {
                     loadMoreContainer.classList.remove('hidden');
@@ -1639,15 +1667,6 @@
                 return;
             }
 
-            const unreadCount = allMessages.filter(m => m.status === 'sent' || m.status === 'read').length;
-            const badge = document.getElementById('unreadMessageCount');
-            if (unreadCount > 0) {
-                badge.textContent = unreadCount;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
-
             container.innerHTML = allMessages.map(m => {
                 const userName = m.user?.full_name || 'User';
                 const isUnread = m.status === 'sent' || m.status === 'read';
@@ -1673,29 +1692,7 @@
         }
 
         // ============================================
-        // 11. TIME AGO HELPER
-        // ============================================
-        function timeAgo(date) {
-            const now = new Date();
-            const past = new Date(date);
-            const diff = Math.floor((now - past) / 1000);
-
-            if (diff < 10) return 'baru saja';
-            if (diff < 60) return Math.floor(diff) + ' detik lalu';
-            if (diff < 3600) return Math.floor(diff / 60) + ' menit lalu';
-            if (diff < 86400) return Math.floor(diff / 3600) + ' jam lalu';
-            if (diff < 604800) return Math.floor(diff / 86400) + ' hari lalu';
-            if (diff < 2592000) return Math.floor(diff / 604800) + ' minggu lalu';
-            
-            return past.toLocaleDateString('id-ID', { 
-                day: 'numeric', 
-                month: 'short', 
-                year: 'numeric' 
-            });
-        }
-
-        // ============================================
-        // 12. OPEN MESSAGE DETAIL & REPLY
+        // 11. OPEN MESSAGE DETAIL & REPLY
         // ============================================
         async function openMessageDetail(messageId) {
             currentMessageId = messageId;
@@ -1703,21 +1700,7 @@
             try {
                 const { data: message, error } = await _supabase
                     .from('yata_messages')
-                    .select(`
-                        id,
-                        category,
-                        subject,
-                        message,
-                        status,
-                        admin_reply,
-                        replied_at,
-                        created_at,
-                        user_id,
-                        user:user_id (
-                            full_name,
-                            username
-                        )
-                    `)
+                    .select('*')
                     .eq('id', messageId)
                     .single();
 
@@ -1731,6 +1714,20 @@
                     return;
                 }
 
+                // Ambil data user
+                let userName = 'User';
+                if (message.user_id) {
+                    const { data: user, error: userError } = await _supabase
+                        .from('yata_profiles')
+                        .select('full_name, username')
+                        .eq('id', message.user_id)
+                        .single();
+                    
+                    if (!userError && user) {
+                        userName = user.full_name || 'User';
+                    }
+                }
+
                 if (message.status === 'sent') {
                     await _supabase
                         .from('yata_messages')
@@ -1740,15 +1737,11 @@
                 }
 
                 document.getElementById('messageModalTitle').textContent = message.subject || 'Detail Pesan';
-                
-                const userName = message.user?.full_name || 'User Tidak Ditemukan';
-                const userUsername = message.user?.username || '-';
 
                 document.getElementById('messageModalContent').innerHTML = `
                     <div class="bg-slate-50 rounded-xl p-4 space-y-2">
                         <p><strong>Dari:</strong> ${userName}</p>
-                        <p><strong>Username:</strong> @${userUsername}</p>
-                        <p><strong>Kategori:</strong> ${message.category}</p>
+                        <p><strong>Kategori:</strong> ${message.category || 'Umum'}</p>
                         <p><strong>Status:</strong> ${message.status === 'sent' ? '📩 Baru' : message.status === 'read' ? '📖 Dibaca' : '✅ Dibalas'}</p>
                         <p><strong>Pesan:</strong></p>
                         <p class="bg-white p-3 rounded-xl border border-slate-200 text-sm">${message.message || 'Tidak ada konten'}</p>
@@ -1776,7 +1769,7 @@
         }
 
         // ============================================
-        // 13. REPLY MESSAGE
+        // 12. REPLY MESSAGE
         // ============================================
         document.getElementById('replyForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1857,7 +1850,7 @@
         });
 
         // ============================================
-        // 14. OPEN VERIFY
+        // 13. OPEN VERIFY
         // ============================================
         async function openVerify(type, id) {
             currentItemId = id;
@@ -1946,7 +1939,7 @@
         }
 
         // ============================================
-        // 15. VERIFY ITEM
+        // 14. VERIFY ITEM
         // ============================================
         function verifyItem(action) {
             if (action === 'reject') {
@@ -1963,7 +1956,7 @@
         }
 
         // ============================================
-        // 16. APPROVE COMMUNITY
+        // 15. APPROVE COMMUNITY
         // ============================================
         async function approveCommunity() {
             try {
@@ -2006,7 +1999,7 @@
         }
 
         // ============================================
-        // 17. APPROVE CAMPAIGN
+        // 16. APPROVE CAMPAIGN
         // ============================================
         async function approveCampaign() {
             try {
@@ -2049,7 +2042,7 @@
         }
 
         // ============================================
-        // 18. SUBMIT REJECTION
+        // 17. SUBMIT REJECTION
         // ============================================
         async function submitRejection() {
             const reason = document.getElementById('rejectionReason').value.trim();
@@ -2129,7 +2122,7 @@
         }
 
         // ============================================
-        // 19. LOAD BOOK SUBMISSIONS
+        // 18. LOAD BOOK SUBMISSIONS
         // ============================================
         async function loadBookSubmissions(reset = true) {
             if (reset) {
@@ -2176,7 +2169,8 @@
                 }
 
                 const pendingCount = allBooks.length;
-                document.getElementById('pendingBookCount').textContent = pendingCount;
+                const countEl = document.getElementById('pendingBookCount');
+                if (countEl) countEl.textContent = pendingCount;
 
                 renderBooks();
 
@@ -2218,7 +2212,7 @@
         }
 
         // ============================================
-        // 20. RENDER BOOKS (ADMIN)
+        // 19. RENDER BOOKS (ADMIN)
         // ============================================
         function renderBooks() {
             const container = document.getElementById('bookSubmissionList');
@@ -2277,7 +2271,7 @@
         }
 
         // ============================================
-        // 21. UPDATE BOOK STATUS
+        // 20. UPDATE BOOK STATUS
         // ============================================
         async function updateBookStatus(bookId, newStatus) {
             if (!confirm(`Ubah status buku ini menjadi "${newStatus}"?`)) return;
@@ -2352,7 +2346,7 @@
         }
 
         // ============================================
-        // 22. LOAD ALL MEMBERS (UNTUK NOTIFIKASI)
+        // 21. LOAD ALL MEMBERS (UNTUK NOTIFIKASI)
         // ============================================
         async function loadAllMembers() {
             try {
@@ -2375,7 +2369,7 @@
         }
 
         // ============================================
-        // 23. SEARCH MEMBERS
+        // 22. SEARCH MEMBERS
         // ============================================
         async function searchMembers() {
             const query = document.getElementById('searchMember').value.trim().toLowerCase();
@@ -2424,7 +2418,7 @@
         }
 
         // ============================================
-        // 24. TOGGLE MEMBER
+        // 23. TOGGLE MEMBER
         // ============================================
         function toggleMember(memberId) {
             const member = allMembers.find(m => m.id === memberId);
@@ -2443,7 +2437,7 @@
         }
 
         // ============================================
-        // 25. UPDATE SELECTED MEMBERS UI
+        // 24. UPDATE SELECTED MEMBERS UI
         // ============================================
         function updateSelectedMembersUI() {
             const container = document.getElementById('selectedMembersContainer');
@@ -2468,7 +2462,7 @@
         }
 
         // ============================================
-        // 26. SELECT ALL / CLEAR
+        // 25. SELECT ALL / CLEAR
         // ============================================
         function selectAllMembers() {
             selectedMembers = [...allMembers];
@@ -2481,62 +2475,84 @@
         }
 
         // ============================================
-        // 27. SWITCH TAB
+        // 26. SWITCH TAB
         // ============================================
         function switchAdminTab(tab) {
+            console.log('🔄 Switching to tab:', tab);
             currentTab = tab;
 
+            // Sembunyikan semua konten admin
+            document.querySelectorAll('[id^="admin"]').forEach(el => {
+                el.classList.add('hidden');
+            });
+
+            // Update sidebar links
             document.querySelectorAll('.sidebar-link').forEach(el => {
                 el.classList.remove('active');
                 el.classList.add('text-slate-600');
             });
 
-            document.querySelectorAll('#mobileMenu a').forEach(el => {
-                el.classList.remove('bg-emerald-50', 'text-emerald-800', 'font-semibold');
-            });
-
-            const tabMap = {
-                'notifications': { id: 'tabNotifications', content: 'adminNotifications' },
-                'messages': { id: 'tabMessages', content: 'adminMessages' },
-                'communities': { id: 'tabCommunities', content: 'adminCommunities' },
-                'campaigns': { id: 'tabCampaigns', content: 'adminCampaigns' },
-                'books': { id: 'tabBooks', content: 'adminBooks' },
-                'onboarding': { id: 'tabOnboarding', content: 'adminOnboarding' },
-                'levelRequests': { id: 'tabLevelRequests', content: 'adminLevelRequests' },
-                'reputation': { id: 'tabReputation', content: 'adminReputation' }  // 🔥 TAMBAHKAN
+            // Tampilkan konten yang dipilih
+            const contentMap = {
+                'notifications': 'adminNotifications',
+                'messages': 'adminMessages',
+                'communities': 'adminCommunities',
+                'campaigns': 'adminCampaigns',
+                'books': 'adminBooks',
+                'onboarding': 'adminOnboarding',
+                'levelRequests': 'adminLevelRequests',
+                'reputation': 'adminReputation'
             };
-
-            const info = tabMap[tab];
-            if (!info) return;
-
-            const sidebarEl = document.getElementById(info.id);
-            if (sidebarEl) {
-                sidebarEl.classList.add('active');
-                sidebarEl.classList.remove('text-slate-600');
-            }
-
-            const mobileEl = document.querySelector(`#mobileMenu a[onclick*="${tab}"]`);
-            if (mobileEl) {
-                mobileEl.classList.add('bg-emerald-50', 'text-emerald-800', 'font-semibold');
-            }
-
-            document.querySelectorAll('[id^="admin"]').forEach(el => {
-                el.classList.add('hidden');
-            });
-
-            const contentEl = document.getElementById(info.content);
-            if (contentEl) {
-                contentEl.classList.remove('hidden');
-                if (tab === 'levelRequests') {
-                    loadLevelRequests();
-                } else if (tab === 'reputation') {
-                    loadReputationData();  // 🔥 TAMBAHKAN
+            
+            const contentId = contentMap[tab];
+            if (contentId) {
+                const contentEl = document.getElementById(contentId);
+                if (contentEl) {
+                    contentEl.classList.remove('hidden');
                 }
+            }
+
+            // Update sidebar active state
+            const tabMap = {
+                'notifications': 'tabNotifications',
+                'messages': 'tabMessages',
+                'communities': 'tabCommunities',
+                'campaigns': 'tabCampaigns',
+                'books': 'tabBooks',
+                'onboarding': 'tabOnboarding',
+                'levelRequests': 'tabLevelRequests',
+                'reputation': 'tabReputation'
+            };
+            
+            const tabId = tabMap[tab];
+            if (tabId) {
+                const tabEl = document.getElementById(tabId);
+                if (tabEl) {
+                    tabEl.classList.add('active');
+                    tabEl.classList.remove('text-slate-600');
+                }
+            }
+
+            // Load data sesuai tab
+            if (tab === 'levelRequests') {
+                loadLevelRequests();
+            } else if (tab === 'reputation') {
+                loadReputationData();
+            } else if (tab === 'messages') {
+                loadMessages(true);
+            } else if (tab === 'communities') {
+                loadPendingCommunities(true);
+            } else if (tab === 'campaigns') {
+                loadPendingCampaigns(true);
+            } else if (tab === 'books') {
+                loadBookSubmissions(true);
+            } else if (tab === 'onboarding') {
+                loadOnboardingList();
             }
         }
 
         // ============================================
-        // 28. KIRIM NOTIFIKASI FORM
+        // 27. KIRIM NOTIFIKASI FORM
         // ============================================
         document.getElementById('notifForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -2655,11 +2671,11 @@
         }
 
         // ============================================
-        // 🔥 29. LOAD ONBOARDING LIST
+        // 28. LOAD ONBOARDING LIST
         // ============================================
         async function loadOnboardingList() {
             const container = document.getElementById('onboardingList');
-            const countEl = document.getElementById('onboardingCount');
+            const countEl = document.getElementById('onboardingCountLabel');
 
             try {
                 const { data: sessions, error } = await _supabase
@@ -2670,7 +2686,7 @@
 
                 if (error) throw error;
 
-                countEl.textContent = sessions?.length || 0;
+                if (countEl) countEl.textContent = sessions?.length || 0;
 
                 if (!sessions || sessions.length === 0) {
                     container.innerHTML = `
@@ -2736,7 +2752,7 @@
         }
 
         // ============================================
-        // 30. UPDATE HINT JENIS KELAS
+        // 29. UPDATE HINT JENIS KELAS
         // ============================================
         document.getElementById('classType').addEventListener('change', function() {
             const hint = document.getElementById('classTypeHint');
@@ -2750,7 +2766,7 @@
         });
 
         // ============================================
-        // 31. CREATE ONBOARDING (ADMIN)
+        // 30. CREATE ONBOARDING (ADMIN)
         // ============================================
         document.getElementById('onboardingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -2862,7 +2878,7 @@
         });
 
         // ============================================
-        // 32. DELETE ONBOARDING (DENGAN CASCADE)
+        // 31. DELETE ONBOARDING (DENGAN CASCADE)
         // ============================================
         async function deleteOnboardingWithCascade(sessionId) {
             try {
@@ -2898,7 +2914,7 @@
         }
 
         // ============================================
-        // 33. OPEN DELETE CLASS MODAL
+        // 32. OPEN DELETE CLASS MODAL
         // ============================================
         async function openDeleteClassModal(sessionId, sessionTitle) {
             deleteClassTargetId = sessionId;
@@ -2961,7 +2977,7 @@
         });
 
         // ============================================
-        // 34. EDIT ONBOARDING (ADMIN)
+        // 33. EDIT ONBOARDING (ADMIN)
         // ============================================
         async function openEditOnboardingModal(sessionId) {
             try {
@@ -3097,14 +3113,17 @@
         });
 
         // ============================================
-        // 35. LOAD PENGAJUAN NAIK LEVEL
+        // 34. LOAD PENGAJUAN NAIK LEVEL
         // ============================================
         async function loadLevelRequests() {
             const container = document.getElementById('levelRequestList');
             const countEl = document.getElementById('pendingLevelCount');
 
             const now = new Date();
-            document.getElementById('lastRefreshTime').textContent = `🔄 Terakhir diperbarui: ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+            const refreshEl = document.getElementById('lastRefreshTime');
+            if (refreshEl) {
+                refreshEl.textContent = `🔄 Terakhir diperbarui: ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+            }
 
             try {
                 console.log('🔄 loadLevelRequests dipanggil pada:', now.toISOString());
@@ -3123,7 +3142,7 @@
 
                 console.log('📊 Jumlah pending:', profiles?.length || 0);
 
-                countEl.textContent = profiles?.length || 0;
+                if (countEl) countEl.textContent = profiles?.length || 0;
 
                 if (!profiles || profiles.length === 0) {
                     container.innerHTML = `
@@ -3299,7 +3318,7 @@
         }
 
         // ============================================
-        // 36. APPROVE NAIK LEVEL
+        // 35. APPROVE NAIK LEVEL
         // ============================================
         async function approveLevelUp(userId, userName) {
             console.log('🔥 approveLevelUp dipanggil!', { userId, userName });
@@ -3413,7 +3432,7 @@
         }
 
         // ============================================
-        // 37. REJECT NAIK LEVEL
+        // 36. REJECT NAIK LEVEL
         // ============================================
         async function rejectLevelUp(userId, userName) {
             console.log('🔥 rejectLevelUp dipanggil!', { userId, userName });
@@ -3507,7 +3526,7 @@
         }
 
         // ============================================
-        // 38. UPDATE PENDING COUNT
+        // 37. UPDATE PENDING COUNT
         // ============================================
         function updatePendingCount() {
             const container = document.getElementById('levelRequestList');
@@ -3530,7 +3549,7 @@
         }
 
         // ============================================
-        // 39. VERIFIKASI KARYA
+        // 38. VERIFIKASI KARYA
         // ============================================
         async function openVerifyWriting(profileId, writingId) {
             try {
@@ -3652,7 +3671,7 @@
         }
 
         // ============================================
-        // 40. AUTO REFRESH LEVEL REQUESTS
+        // 39. AUTO REFRESH LEVEL REQUESTS
         // ============================================
         function autoRefreshLevelRequests() {
             setInterval(() => {
@@ -3665,12 +3684,8 @@
         }
 
         // ============================================
-        // 🔥 41. LOAD REPUTASI DATA (ADMIN)
+        // 40. LOAD REPUTASI DATA (ADMIN)
         // ============================================
-        let allReputationData = [];
-        let repFilter = 'all';
-        let repSearch = '';
-
         async function loadReputationData() {
             const container = document.getElementById('reputationMemberList');
             
@@ -3678,7 +3693,6 @@
                 const session = await checkAdmin();
                 if (!session) return;
 
-                // Ambil semua profil member
                 const { data: members, error } = await _supabase
                     .from('yata_profiles')
                     .select('id, full_name, username, email, member_level, reputation, total_published, total_views_received, total_likes_received, created_at')
@@ -3689,18 +3703,23 @@
 
                 allReputationData = members || [];
 
-                // Hitung statistik
                 const total = allReputationData.length;
                 const premium = allReputationData.filter(m => (m.reputation || 0) >= 150).length;
                 const trusted = allReputationData.filter(m => (m.reputation || 0) >= 100 && (m.reputation || 0) < 150).length;
                 const standard = allReputationData.filter(m => (m.reputation || 0) >= 60 && (m.reputation || 0) < 100).length;
                 const low = allReputationData.filter(m => (m.reputation || 0) < 60).length;
 
-                document.getElementById('repTotalMembers').textContent = total;
-                document.getElementById('repPremium').textContent = premium;
-                document.getElementById('repTrusted').textContent = trusted;
-                document.getElementById('repStandard').textContent = standard;
-                document.getElementById('repLow').textContent = low;
+                const totalEl = document.getElementById('repTotalMembers');
+                const premiumEl = document.getElementById('repPremium');
+                const trustedEl = document.getElementById('repTrusted');
+                const standardEl = document.getElementById('repStandard');
+                const lowEl = document.getElementById('repLow');
+
+                if (totalEl) totalEl.textContent = total;
+                if (premiumEl) premiumEl.textContent = premium;
+                if (trustedEl) trustedEl.textContent = trusted;
+                if (standardEl) standardEl.textContent = standard;
+                if (lowEl) lowEl.textContent = low;
 
                 renderReputationList();
 
@@ -3722,7 +3741,6 @@
 
             let filtered = allReputationData;
 
-            // Filter
             if (repFilter !== 'all') {
                 if (repFilter === 'premium') {
                     filtered = filtered.filter(m => (m.reputation || 0) >= 150);
@@ -3735,7 +3753,6 @@
                 }
             }
 
-            // Search
             if (repSearch.trim()) {
                 const query = repSearch.toLowerCase().trim();
                 filtered = filtered.filter(m =>
@@ -3755,7 +3772,6 @@
                 return;
             }
 
-            // Level labels untuk badge
             const levelLabels = {
                 premium: '🌟 Premium',
                 trusted: '✅ Terpercaya',
@@ -3814,13 +3830,15 @@
         }
 
         function filterReputation() {
-            repFilter = document.getElementById('repFilter').value;
-            repSearch = document.getElementById('repSearch').value;
+            const filterEl = document.getElementById('repFilter');
+            const searchEl = document.getElementById('repSearch');
+            if (filterEl) repFilter = filterEl.value;
+            if (searchEl) repSearch = searchEl.value;
             renderReputationList();
         }
 
         // ============================================
-        // 42. LOGOUT
+        // 41. LOGOUT
         // ============================================
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
@@ -3838,35 +3856,64 @@
         }
 
         // ============================================
-        // 43. EVENT LISTENERS
+        // 42. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadAdminData();
             autoRefreshLevelRequests();
 
-            document.getElementById('btnLogout').addEventListener('click', handleLogout);
-            document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);
+            const logoutBtn = document.getElementById('btnLogout');
+            const logoutMobileBtn = document.getElementById('btnLogoutMobile');
+            if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+            if (logoutMobileBtn) logoutMobileBtn.addEventListener('click', handleLogout);
 
-            document.getElementById('mobileMenuButton').addEventListener('click', function() {
-                document.getElementById('mobileMenu').classList.toggle('hidden');
+            const mobileMenuBtn = document.getElementById('mobileMenuButton');
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', function() {
+                    const menu = document.getElementById('mobileMenu');
+                    if (menu) menu.classList.toggle('hidden');
+                });
+            }
+
+            // Tutup mobile menu saat klik link
+            const mobileMenuLinks = document.querySelectorAll('#mobileMenu a, #mobileMenu button');
+            mobileMenuLinks.forEach(el => {
+                el.addEventListener('click', () => {
+                    const menu = document.getElementById('mobileMenu');
+                    if (menu) menu.classList.add('hidden');
+                });
             });
 
-            document.getElementById('messageModal').addEventListener('click', function(e) {
-                if (e.target === this) closeMessageModal();
-            });
+            // Close modal saat klik di luar
+            const messageModal = document.getElementById('messageModal');
+            if (messageModal) {
+                messageModal.addEventListener('click', function(e) {
+                    if (e.target === this) closeMessageModal();
+                });
+            }
 
-            document.getElementById('verifyModal').addEventListener('click', function(e) {
-                if (e.target === this) closeVerifyModal();
-            });
+            const verifyModal = document.getElementById('verifyModal');
+            if (verifyModal) {
+                verifyModal.addEventListener('click', function(e) {
+                    if (e.target === this) closeVerifyModal();
+                });
+            }
 
-            document.getElementById('verifyWritingModal').addEventListener('click', function(e) {
-                if (e.target === this) closeVerifyWritingModal();
-            });
+            const verifyWritingModal = document.getElementById('verifyWritingModal');
+            if (verifyWritingModal) {
+                verifyWritingModal.addEventListener('click', function(e) {
+                    if (e.target === this) closeVerifyWritingModal();
+                });
+            }
 
-            document.getElementById('deleteClassModal').addEventListener('click', function(e) {
-                if (e.target === this) closeDeleteClassModal();
-            });
+            const deleteClassModal = document.getElementById('deleteClassModal');
+            if (deleteClassModal) {
+                deleteClassModal.addEventListener('click', function(e) {
+                    if (e.target === this) closeDeleteClassModal();
+                });
+            }
 
+            // Close search results saat klik di luar
             document.addEventListener('click', function(e) {
                 const results = document.getElementById('memberSearchResults');
                 const searchInput = document.getElementById('searchMember');

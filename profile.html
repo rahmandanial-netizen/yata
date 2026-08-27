@@ -409,9 +409,7 @@
                 </a>
             </div>
 
-            <!-- SIDEBAR NAVIGATION - STRUKTUR MENU FINAL -->
             <nav class="flex-1 px-4 py-6 space-y-1">
-                <!-- 🌟 Menuju Jelajahi Yatta -->
                 <a href="explore.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-amber-600 hover:text-amber-700 rounded-xl transition">
                     <i class="fa-solid fa-compass w-5 text-amber-500"></i> Menuju Jelajahi Yatta
                 </a>
@@ -535,7 +533,6 @@
                                     <span id="profileLevelIcon" class="level-icon">🌱</span> 
                                     <span id="profileLevelName">Tamu</span>
                                 </span>
-                                <!-- 🔥 BADGE REPUTASI - BARU -->
                                 <span class="reputation-badge-profile">
                                     <i class="fa-solid fa-star"></i>
                                     <span id="profileReputation" class="font-semibold">100</span>
@@ -543,13 +540,13 @@
                                 </span>
                                 <span class="text-slate-400">•</span>
                                 <span id="profileMemberId" class="text-xs font-mono text-slate-500">Yatta-T-00001</span>
+                                <span id="profileLevelStatus" class="level-status-badge hidden"></span>
                             </div>
                             <p id="profileBio" class="text-sm text-slate-500 mt-2 max-w-md">Belum ada bio.</p>
                             <div class="flex flex-wrap items-center justify-center sm:justify-start gap-4 mt-3 text-xs text-slate-400">
                                 <span><i class="fa-regular fa-user mr-1"></i> <span id="profileUsername">@username</span></span>
                                 <span><i class="fa-regular fa-envelope mr-1"></i> <span id="profileEmail">email@domain.com</span></span>
                             </div>
-                            <!-- 🔥 REJECTION REASON -->
                             <div id="rejectionReasonContainer" class="hidden mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 max-w-md">
                                 <span class="font-semibold">❌ Alasan penolakan:</span>
                                 <span id="rejectionReasonText"></span>
@@ -571,17 +568,14 @@
                         <span id="levelProgressLabel" class="text-xs font-semibold text-slate-500">0%</span>
                     </div>
                     
-                    <!-- Progress Bar -->
                     <div class="w-full bg-slate-200 rounded-full h-2.5 mb-4">
-                        <div id="levelProgressBar" class="bg-emerald-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%;"></div>
+                        <div id="levelProgressBar" class="bg-amber-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%;"></div>
                     </div>
 
-                    <!-- Detail Progress -->
                     <div class="space-y-2" id="progressDetails">
                         <!-- Akan diisi JavaScript -->
                     </div>
 
-                    <!-- Tombol Ajukan Naik Level -->
                     <div id="levelUpButtonContainer" class="mt-4 pt-3 border-t border-slate-200">
                         <button 
                             id="btnLevelUp"
@@ -885,6 +879,42 @@
         let profileUserId = null;
 
         // ============================================
+        // HELPER FUNCTIONS UNTUK CEK ELEMENT
+        // ============================================
+        function setText(id, value, defaultValue = '') {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = value || defaultValue;
+                return true;
+            } else {
+                console.warn(`⚠️ Element #${id} tidak ditemukan di DOM`);
+                return false;
+            }
+        }
+        
+        function setHTML(id, html) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.innerHTML = html;
+                return true;
+            } else {
+                console.warn(`⚠️ Element #${id} tidak ditemukan di DOM`);
+                return false;
+            }
+        }
+        
+        function setClass(id, className) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.className = className;
+                return true;
+            } else {
+                console.warn(`⚠️ Element #${id} tidak ditemukan di DOM`);
+                return false;
+            }
+        }
+
+        // ============================================
         // CEK LOGIN (TANPA REDIRECT)
         // ============================================
         async function checkAuth() {
@@ -1004,51 +1034,106 @@
         }
 
         // ============================================
-        // 🔥 CEK SYARAT NAIK LEVEL
+        // 🔥 CEK SYARAT NAIK LEVEL (DIPERBAIKI)
         // ============================================
         async function checkLevelUpRequirements(userId) {
             try {
-                const { count: onboardingCount, error: onError } = await _supabase
+                console.log('🔍 [checkLevelUpRequirements] Checking for user:', userId);
+                
+                // ============================================
+                // 1. CEK ONBOARDING (is_onboarding = true)
+                // ============================================
+                const { data: participants, error: partError } = await _supabase
                     .from('yata_mentoring_participants')
-                    .select('*', { count: 'exact', head: true })
+                    .select('session_id, attended')
                     .eq('user_id', userId)
-                    .eq('attended', true)
-                    .eq('session:session_id(is_onboarding)', true);
+                    .eq('attended', true);
 
-                if (onError) throw onError;
+                if (partError) {
+                    console.error('❌ Error get participants:', partError);
+                }
 
-                const { count: mandatoryMentoringCount, error: manError } = await _supabase
-                    .from('yata_mentoring_participants')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('user_id', userId)
-                    .eq('attended', true)
-                    .eq('session:session_id(is_onboarding)', false)
-                    .eq('session:session_id(is_mandatory)', true);
+                const attendedSessionIds = participants?.map(p => p.session_id) || [];
+                console.log('📊 Attended session IDs:', attendedSessionIds);
 
-                if (manError) throw manError;
+                let onboardingCount = 0;
+                if (attendedSessionIds.length > 0) {
+                    const { data: onboardingSessions, error: onError } = await _supabase
+                        .from('yata_mentoring_sessions')
+                        .select('id')
+                        .in('id', attendedSessionIds)
+                        .eq('is_onboarding', true);
 
+                    if (!onError && onboardingSessions) {
+                        onboardingCount = onboardingSessions.length;
+                        console.log('🎓 Onboarding count:', onboardingCount);
+                    } else if (onError) {
+                        console.error('❌ Error check onboarding:', onError);
+                    }
+                }
+
+                // ============================================
+                // 2. CEK MENTORING ADMIN (is_mandatory = true, is_onboarding = false)
+                // ============================================
+                let mandatoryMentoringCount = 0;
+                if (attendedSessionIds.length > 0) {
+                    const { data: mandatorySessions, error: manError } = await _supabase
+                        .from('yata_mentoring_sessions')
+                        .select('id')
+                        .in('id', attendedSessionIds)
+                        .eq('is_onboarding', false)
+                        .eq('is_mandatory', true);
+
+                    if (!manError && mandatorySessions) {
+                        mandatoryMentoringCount = mandatorySessions.length;
+                        console.log('📖 Mandatory mentoring count:', mandatoryMentoringCount);
+                    } else if (manError) {
+                        console.error('❌ Error check mandatory mentoring:', manError);
+                    }
+                }
+
+                // ============================================
+                // 3. CEK KARYA PUBLISHED
+                // ============================================
                 const { count: writingsCount, error: wError } = await _supabase
                     .from('yata_writings')
                     .select('*', { count: 'exact', head: true })
                     .eq('author_id', userId)
                     .eq('status', 'published');
 
-                if (wError) throw wError;
+                if (wError) {
+                    console.error('❌ Error count writings:', wError);
+                }
+                console.log('✍️ Writings count:', writingsCount || 0);
+
+                // ============================================
+                // 4. HITUNG SYARAT
+                // ============================================
+                const finalOnboarding = onboardingCount || 0;
+                const finalMandatory = mandatoryMentoringCount || 0;
+                const finalWritings = writingsCount || 0;
 
                 const canLevelUp = (
-                    (onboardingCount || 0) >= 1 &&
-                    (mandatoryMentoringCount || 0) >= 2 &&
-                    (writingsCount || 0) >= 5
+                    finalOnboarding >= 1 &&
+                    finalMandatory >= 2 &&
+                    finalWritings >= 5
                 );
+
+                console.log('📊 Final Results:', {
+                    onboarding: finalOnboarding,
+                    mandatoryMentoring: finalMandatory,
+                    writings: finalWritings,
+                    canLevelUp: canLevelUp
+                });
 
                 return {
                     canLevelUp: canLevelUp,
-                    onboardingCount: onboardingCount || 0,
-                    mandatoryMentoringCount: mandatoryMentoringCount || 0,
-                    writingsCount: writingsCount || 0,
+                    onboardingCount: finalOnboarding,
+                    mandatoryMentoringCount: finalMandatory,
+                    writingsCount: finalWritings,
                     message: canLevelUp ? 
                         '✅ Semua syarat terpenuhi! Ajukan naik level sekarang.' : 
-                        `📋 ${onboardingCount || 0}/1 Onboarding • ${mandatoryMentoringCount || 0}/2 Mentoring Admin • ${writingsCount || 0}/5 Karya`
+                        `📋 ${finalOnboarding}/1 Onboarding • ${finalMandatory}/2 Mentoring Admin • ${finalWritings}/5 Karya`
                 };
 
             } catch (err) {
@@ -1058,7 +1143,7 @@
                     onboardingCount: 0,
                     mandatoryMentoringCount: 0,
                     writingsCount: 0,
-                    message: '❌ Gagal mengecek syarat: ' + err.message
+                    message: '❌ Gagal mengecek syarat: ' + (err.message || 'Error tidak diketahui')
                 };
             }
         }
@@ -1116,6 +1201,14 @@
                     }
                 }
 
+                const loadingEl = document.getElementById('loadingState');
+                if (loadingEl) {
+                    loadingEl.innerHTML = `
+                        <i class="fa-solid fa-spinner fa-spin text-3xl text-emerald-600"></i>
+                        <p class="text-slate-500 text-sm mt-2">Memuat profil...</p>
+                    `;
+                }
+
                 const { data: profile, error } = await _supabase
                     .from('yata_profiles')
                     .select('*')
@@ -1124,8 +1217,15 @@
 
                 if (error) {
                     console.error('Profile error:', error);
-                    showError('Gagal memuat profil.', 'Error');
-                    window.location.href = 'penulis.html';
+                    if (loadingEl) {
+                        loadingEl.innerHTML = `
+                            <i class="fa-solid fa-circle-exclamation text-3xl text-red-500"></i>
+                            <p class="text-red-500 text-sm mt-2">Gagal memuat profil: ${error.message}</p>
+                            <button onclick="loadProfile()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                                <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                            </button>
+                        `;
+                    }
                     return;
                 }
 
@@ -1220,10 +1320,15 @@
                     }
                 }
 
-                renderProfile(profile, session?.user);
+                await renderProfile(profile, session?.user);
 
-                document.getElementById('loadingState').classList.add('hidden');
-                document.getElementById('profileContent').classList.remove('hidden');
+                const contentEl = document.getElementById('profileContent');
+                if (contentEl) {
+                    contentEl.classList.remove('hidden');
+                }
+                if (loadingEl) {
+                    loadingEl.classList.add('hidden');
+                }
 
                 if (isOwnProfile) {
                     await loadUserCampaigns();
@@ -1231,44 +1336,51 @@
 
             } catch (err) {
                 console.error('Load profile error:', err);
-                document.getElementById('loadingState').innerHTML = `
-                    <i class="fa-solid fa-circle-exclamation text-3xl text-red-500"></i>
-                    <p class="text-red-500 text-sm mt-2">Gagal memuat profil: ${err.message}</p>
-                    <button onclick="loadProfile()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
-                        <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
-                    </button>
-                `;
+                const loadingEl = document.getElementById('loadingState');
+                if (loadingEl) {
+                    loadingEl.innerHTML = `
+                        <i class="fa-solid fa-circle-exclamation text-3xl text-red-500"></i>
+                        <p class="text-red-500 text-sm mt-2">Gagal memuat profil: ${err.message}</p>
+                        <button onclick="loadProfile()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                        </button>
+                    `;
+                }
             }
         }
 
         // ============================================
-        // RENDER PROFILE - DENGAN REPUTASI
+        // RENDER PROFILE
         // ============================================
-        function renderProfile(profile, user) {
-            // Avatar
+        async function renderProfile(profile, user) {
+            // === AVATAR ===
             const avatarEl = document.getElementById('profileAvatar');
-            if (profile.avatar_url) {
-                avatarEl.innerHTML = `<img src="${profile.avatar_url}" alt="Avatar" />`;
-            } else {
-                avatarEl.innerHTML = profile.full_name ? profile.full_name.charAt(0).toUpperCase() : '?';
-                avatarEl.className = 'avatar-large bg-emerald-100 text-emerald-700 flex items-center justify-center';
+            if (avatarEl) {
+                if (profile.avatar_url) {
+                    avatarEl.innerHTML = `<img src="${profile.avatar_url}" alt="Avatar" />`;
+                } else {
+                    avatarEl.textContent = profile.full_name ? profile.full_name.charAt(0).toUpperCase() : '?';
+                    avatarEl.className = 'avatar-large bg-emerald-100 text-emerald-700 flex items-center justify-center';
+                }
             }
 
-            // Nama
-            document.getElementById('profileName').textContent = profile.full_name || 'Pengguna';
-            document.getElementById('profileBio').textContent = profile.bio || 'Belum ada bio.';
-            document.getElementById('profileUsername').textContent = '@' + (profile.username || 'username');
-            
-            // Email
+            // === NAMA ===
+            setText('profileName', profile.full_name, 'Pengguna');
+            setText('profileBio', profile.bio, 'Belum ada bio.');
+            setText('profileUsername', '@' + (profile.username || 'username'));
+
+            // === EMAIL ===
             const emailEl = document.getElementById('profileEmail');
-            if (isOwnProfile && user) {
-                emailEl.textContent = user.email || 'email@domain.com';
-                emailEl.parentElement.style.display = 'flex';
-            } else {
-                emailEl.parentElement.style.display = 'none';
+            if (emailEl) {
+                if (isOwnProfile && user) {
+                    emailEl.textContent = user.email || 'email@domain.com';
+                    emailEl.parentElement.style.display = 'flex';
+                } else {
+                    emailEl.parentElement.style.display = 'none';
+                }
             }
 
-            // Level
+            // === LEVEL ===
             const levelMap = {
                 'Tamu': { icon: '🌱', class: 'level-tamu' },
                 'Penulis': { icon: '✍️', class: 'level-penulis' },
@@ -1279,68 +1391,100 @@
             let levelName = profile.member_level || 'Tamu';
             const lv = levelMap[levelName] || levelMap['Tamu'];
 
-            document.getElementById('profileLevelIcon').textContent = lv.icon;
-            document.getElementById('profileLevelName').textContent = levelName;
-            document.getElementById('profileLevel').className = `level-badge ${lv.class}`;
+            const levelIcon = document.getElementById('profileLevelIcon');
+            const levelNameEl = document.getElementById('profileLevelName');
+            const levelBadge = document.getElementById('profileLevel');
 
-            // 🔥 STATUS LEVEL
+            if (levelIcon) levelIcon.textContent = lv.icon;
+            if (levelNameEl) levelNameEl.textContent = levelName;
+            if (levelBadge) {
+                levelBadge.className = `level-badge ${lv.class}`;
+            }
+
+            // === STATUS LEVEL ===
             const statusEl = document.getElementById('profileLevelStatus');
             const rejectContainer = document.getElementById('rejectionReasonContainer');
             const rejectText = document.getElementById('rejectionReasonText');
 
             if (profile.level_status === 'pending') {
-                statusEl.textContent = '⏳ Menunggu Verifikasi';
-                statusEl.className = 'level-status-badge level-status-pending';
-                statusEl.classList.remove('hidden');
-                rejectContainer.classList.add('hidden');
+                if (statusEl) {
+                    statusEl.textContent = '⏳ Menunggu Verifikasi Admin';
+                    statusEl.className = 'level-status-badge level-status-pending';
+                    statusEl.classList.remove('hidden');
+                }
+                if (rejectContainer) rejectContainer.classList.add('hidden');
             } else if (profile.level_status === 'approved') {
-                statusEl.textContent = '✅ Level Disetujui';
-                statusEl.className = 'level-status-badge level-status-approved';
-                statusEl.classList.remove('hidden');
-                rejectContainer.classList.add('hidden');
+                if (statusEl) {
+                    statusEl.textContent = '✅ Level Disetujui!';
+                    statusEl.className = 'level-status-badge level-status-approved';
+                    statusEl.classList.remove('hidden');
+                }
+                if (rejectContainer) rejectContainer.classList.add('hidden');
             } else if (profile.level_status === 'rejected') {
-                statusEl.textContent = '❌ Ditolak';
-                statusEl.className = 'level-status-badge level-status-rejected';
-                statusEl.classList.remove('hidden');
-                rejectContainer.classList.remove('hidden');
-                rejectText.textContent = profile.rejection_reason || 'Tidak ada alasan yang diberikan.';
+                if (statusEl) {
+                    statusEl.textContent = '❌ Ditolak';
+                    statusEl.className = 'level-status-badge level-status-rejected';
+                    statusEl.classList.remove('hidden');
+                }
+                if (rejectContainer) {
+                    rejectContainer.classList.remove('hidden');
+                    if (rejectText) {
+                        rejectText.textContent = profile.rejection_reason || 'Belum memenuhi syarat publikasi.';
+                    }
+                }
             } else {
-                statusEl.classList.add('hidden');
-                rejectContainer.classList.add('hidden');
+                // STATUS DEFAULT: Tampilkan apakah syarat terpenuhi atau belum
+                const requirements = await checkLevelUpRequirements(profile.id);
+                if (statusEl) {
+                    if (requirements.canLevelUp) {
+                        statusEl.textContent = '✅ Syarat Terpenuhi!';
+                        statusEl.className = 'level-status-badge level-status-approved';
+                    } else {
+                        statusEl.textContent = '⏳ Syarat Belum Terpenuhi';
+                        statusEl.className = 'level-status-badge level-status-pending';
+                    }
+                    statusEl.classList.remove('hidden');
+                }
+                if (rejectContainer) rejectContainer.classList.add('hidden');
             }
 
-            // 🔥 REPUTASI - BARU
-            if (profile.reputation !== undefined) {
-                document.getElementById('profileReputation').textContent = profile.reputation || 100;
-            } else {
-                // Jika reputasi belum ada, set default 100
-                document.getElementById('profileReputation').textContent = '100';
-                if (isOwnProfile) {
-                    _supabase
-                        .from('yata_profiles')
-                        .update({ reputation: 100 })
-                        .eq('id', user.id)
-                        .then(() => console.log('✅ Reputasi default 100 diset'));
+            // === REPUTASI ===
+            const repEl = document.getElementById('profileReputation');
+            if (repEl) {
+                if (profile.reputation !== undefined) {
+                    repEl.textContent = profile.reputation || 100;
+                } else {
+                    repEl.textContent = '100';
+                    if (isOwnProfile && user) {
+                        _supabase
+                            .from('yata_profiles')
+                            .update({ reputation: 100 })
+                            .eq('id', user.id)
+                            .then(() => console.log('✅ Reputasi default 100 diset'));
+                    }
                 }
             }
 
-            // Member ID
-            const memberId = profile.member_id || formatMemberId();
-            document.getElementById('profileMemberId').textContent = memberId;
+            // === MEMBER ID ===
+            const memberIdEl = document.getElementById('profileMemberId');
+            if (memberIdEl) {
+                const memberId = profile.member_id || formatMemberId();
+                memberIdEl.textContent = memberId;
+            }
 
-            // KTA
-            updateKTA(profile, memberId, levelName);
+            // === KTA ===
+            updateKTA(profile, memberIdEl?.textContent || formatMemberId(), levelName);
 
-            // Statistik
+            // === STATISTIK ===
             const totalWritings = allWritings.length;
             const totalViews = allWritings.reduce((sum, w) => sum + (w.views || 0), 0);
             const totalLikes = allWritings.reduce((sum, w) => sum + (w.likes || 0), 0);
 
-            document.getElementById('statTotalWritings').textContent = totalWritings;
-            document.getElementById('statTotalReads').textContent = totalViews;
-            document.getElementById('statTotalLikes').textContent = totalLikes;
+            setText('statTotalWritings', totalWritings);
+            setText('statTotalReads', totalViews);
+            setText('statTotalLikes', totalLikes);
 
-            // Peringkat
+            // === PERINGKAT ===
             let rank = '-';
             if (totalViews > 0 && allWritersData.length > 0) {
                 const viewsMap = {};
@@ -1353,79 +1497,141 @@
                     rank = userRank;
                 }
             }
-            document.getElementById('statRank').textContent = rank !== '-' ? `#${rank}` : '#-';
+            const rankEl = document.getElementById('statRank');
+            if (rankEl) {
+                rankEl.textContent = rank !== '-' ? `#${rank}` : '#-';
+            }
 
-            // Edit form
-            document.getElementById('editFullName').value = profile.full_name || '';
-            document.getElementById('editUsername').value = profile.username || '';
-            document.getElementById('editBio').value = profile.bio || '';
+            // === EDIT FORM ===
+            const editName = document.getElementById('editFullName');
+            const editUsername = document.getElementById('editUsername');
+            const editBio = document.getElementById('editBio');
 
-            // 🔥 UPDATE PROGRESS NAIK LEVEL
-            updateLevelProgress(profile.id);
+            if (editName) editName.value = profile.full_name || '';
+            if (editUsername) editUsername.value = profile.username || '';
+            if (editBio) editBio.value = profile.bio || '';
+
+            // === PROGRESS NAIK LEVEL ===
+            await updateLevelProgress(profile.id);
         }
 
         // ============================================
-        // 🔥 UPDATE PROGRESS NAIK LEVEL
+        // 🔥 UPDATE PROGRESS NAIK LEVEL (DIPERBAIKI)
         // ============================================
         async function updateLevelProgress(userId) {
             try {
+                console.log('🔄 [updateLevelProgress] Updating for user:', userId);
+                
                 const requirements = await checkLevelUpRequirements(userId);
                 
-                const totalRequired = 8;
+                console.log('📊 Requirements result:', requirements);
+                
+                const totalRequired = 8; // 1 + 2 + 5
                 const achieved = requirements.onboardingCount + requirements.mandatoryMentoringCount + requirements.writingsCount;
-                const progress = Math.min((achieved / totalRequired) * 100, 100);
+                const progress = Math.min(Math.round((achieved / totalRequired) * 100), 100);
 
-                document.getElementById('levelProgressBar').style.width = progress + '%';
-                document.getElementById('levelProgressLabel').textContent = Math.round(progress) + '%';
+                console.log('📈 Progress:', { achieved, totalRequired, progress });
+
+                const progressBar = document.getElementById('levelProgressBar');
+                const progressLabel = document.getElementById('levelProgressLabel');
+                
+                if (progressBar) {
+                    progressBar.style.width = progress + '%';
+                    if (progress >= 100) {
+                        progressBar.className = 'bg-emerald-600 h-2.5 rounded-full transition-all duration-500';
+                    } else if (progress >= 50) {
+                        progressBar.className = 'bg-yellow-500 h-2.5 rounded-full transition-all duration-500';
+                    } else {
+                        progressBar.className = 'bg-amber-500 h-2.5 rounded-full transition-all duration-500';
+                    }
+                }
+                if (progressLabel) {
+                    progressLabel.textContent = progress + '%';
+                }
 
                 const detailsContainer = document.getElementById('progressDetails');
-                const items = [
-                    { 
-                        icon: '🎓', 
-                        label: 'Onboarding', 
-                        current: requirements.onboardingCount, 
-                        target: 1,
-                        done: requirements.onboardingCount >= 1
-                    },
-                    { 
-                        icon: '📖', 
-                        label: 'Mentoring Admin', 
-                        current: requirements.mandatoryMentoringCount, 
-                        target: 2,
-                        done: requirements.mandatoryMentoringCount >= 2
-                    },
-                    { 
-                        icon: '✍️', 
-                        label: 'Karya Dipublikasikan', 
-                        current: requirements.writingsCount, 
-                        target: 5,
-                        done: requirements.writingsCount >= 5
-                    }
-                ];
+                if (detailsContainer) {
+                    const items = [
+                        { 
+                            icon: '🎓', 
+                            label: 'Onboarding', 
+                            current: requirements.onboardingCount, 
+                            target: 1,
+                            done: requirements.onboardingCount >= 1
+                        },
+                        { 
+                            icon: '📖', 
+                            label: 'Mentoring Admin', 
+                            current: requirements.mandatoryMentoringCount, 
+                            target: 2,
+                            done: requirements.mandatoryMentoringCount >= 2
+                        },
+                        { 
+                            icon: '✍️', 
+                            label: 'Karya Dipublikasikan', 
+                            current: requirements.writingsCount, 
+                            target: 5,
+                            done: requirements.writingsCount >= 5
+                        }
+                    ];
 
-                detailsContainer.innerHTML = items.map(item => `
-                    <div class="progress-item">
-                        <span class="icon">${item.icon}</span>
-                        <span class="label">${item.label}</span>
-                        <span class="text-xs font-medium text-slate-500">${item.current}/${item.target}</span>
-                        <span class="status ${item.done ? 'done' : 'incomplete'}">${item.done ? '✅ Selesai' : '⏳ Belum'}</span>
-                    </div>
-                `).join('');
+                    detailsContainer.innerHTML = items.map(item => `
+                        <div class="progress-item">
+                            <span class="icon">${item.icon}</span>
+                            <span class="label">${item.label}</span>
+                            <span class="text-xs font-medium text-slate-500">${item.current}/${item.target}</span>
+                            <span class="status ${item.done ? 'done' : 'incomplete'}">${item.done ? '✅ Selesai' : '⏳ Belum'}</span>
+                        </div>
+                    `).join('');
+                }
 
+                // Update tombol level up
                 const btnLevelUp = document.getElementById('btnLevelUp');
                 const statusEl = document.getElementById('levelUpStatus');
 
-                if (requirements.canLevelUp) {
-                    btnLevelUp.disabled = false;
-                    btnLevelUp.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
-                    btnLevelUp.className = 'w-full bg-yellow-400 hover:bg-yellow-300 text-emerald-900 font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2';
-                    statusEl.className = 'text-xs text-slate-500 mt-1 text-center hidden';
-                } else {
-                    btnLevelUp.disabled = true;
-                    btnLevelUp.innerHTML = '🔒 Syarat Belum Terpenuhi';
-                    btnLevelUp.className = 'w-full bg-slate-300 text-slate-500 font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2 cursor-not-allowed';
-                    statusEl.textContent = requirements.message;
-                    statusEl.className = 'text-xs text-amber-600 mt-1 text-center block';
+                if (btnLevelUp && statusEl) {
+                    // Cek status dari profile
+                    const { data: profile, error } = await _supabase
+                        .from('yata_profiles')
+                        .select('level_status, rejection_reason')
+                        .eq('id', userId)
+                        .single();
+
+                    console.log('📋 Profile status:', profile);
+
+                    const levelStatus = profile?.level_status || '';
+
+                    if (levelStatus === 'pending') {
+                        btnLevelUp.disabled = true;
+                        btnLevelUp.innerHTML = '⏳ Menunggu Verifikasi';
+                        btnLevelUp.className = 'w-full bg-yellow-400 text-emerald-900 font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2 cursor-not-allowed';
+                        statusEl.textContent = '⏳ Pengajuan Anda sedang diproses admin.';
+                        statusEl.className = 'text-xs text-yellow-600 mt-1 text-center block';
+                    } else if (levelStatus === 'approved') {
+                        btnLevelUp.disabled = true;
+                        btnLevelUp.innerHTML = '✅ Level Disetujui!';
+                        btnLevelUp.className = 'w-full bg-emerald-400 text-white font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2 cursor-not-allowed';
+                        statusEl.textContent = '✅ Selamat! Level Anda sudah naik.';
+                        statusEl.className = 'text-xs text-emerald-600 mt-1 text-center block';
+                    } else if (levelStatus === 'rejected') {
+                        btnLevelUp.disabled = false;
+                        btnLevelUp.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
+                        btnLevelUp.className = 'w-full bg-yellow-400 hover:bg-yellow-300 text-emerald-900 font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2';
+                        const reason = profile?.rejection_reason || 'Belum memenuhi syarat.';
+                        statusEl.textContent = `❌ Pengajuan ditolak. ${reason}`;
+                        statusEl.className = 'text-xs text-red-600 mt-1 text-center block';
+                    } else if (requirements.canLevelUp) {
+                        btnLevelUp.disabled = false;
+                        btnLevelUp.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
+                        btnLevelUp.className = 'w-full bg-yellow-400 hover:bg-yellow-300 text-emerald-900 font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2';
+                        statusEl.className = 'text-xs text-slate-500 mt-1 text-center hidden';
+                    } else {
+                        btnLevelUp.disabled = true;
+                        btnLevelUp.innerHTML = '🔒 Syarat Belum Terpenuhi';
+                        btnLevelUp.className = 'w-full bg-slate-300 text-slate-500 font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2 cursor-not-allowed';
+                        statusEl.textContent = requirements.message;
+                        statusEl.className = 'text-xs text-amber-600 mt-1 text-center block';
+                    }
                 }
 
             } catch (err) {
@@ -1434,25 +1640,31 @@
         }
 
         // ============================================
-        // 🔥 AJUKAN NAIK LEVEL - DARI PROFIL
+        // AJUKAN NAIK LEVEL
         // ============================================
         async function submitLevelUpRequest() {
             const btn = document.getElementById('btnLevelUp');
             const statusEl = document.getElementById('levelUpStatus');
             
-            statusEl.className = 'text-xs text-slate-500 mt-1 text-center hidden';
+            if (statusEl) {
+                statusEl.className = 'text-xs text-slate-500 mt-1 text-center hidden';
+            }
             
             try {
                 const session = await checkAuth();
                 if (!session) {
-                    statusEl.textContent = 'Silakan login terlebih dahulu.';
-                    statusEl.className = 'text-xs text-red-500 mt-1 text-center block';
+                    if (statusEl) {
+                        statusEl.textContent = 'Silakan login terlebih dahulu.';
+                        statusEl.className = 'text-xs text-red-500 mt-1 text-center block';
+                    }
                     return;
                 }
 
                 if (!isOwnProfile) {
-                    statusEl.textContent = 'Anda tidak memiliki akses untuk mengajukan naik level dari profil ini.';
-                    statusEl.className = 'text-xs text-red-500 mt-1 text-center block';
+                    if (statusEl) {
+                        statusEl.textContent = 'Anda tidak memiliki akses untuk mengajukan naik level dari profil ini.';
+                        statusEl.className = 'text-xs text-red-500 mt-1 text-center block';
+                    }
                     return;
                 }
 
@@ -1463,33 +1675,43 @@
                     .single();
 
                 if (profileError) {
-                    statusEl.textContent = 'Gagal memuat data profil.';
-                    statusEl.className = 'text-xs text-red-400 mt-1 text-center block';
+                    if (statusEl) {
+                        statusEl.textContent = 'Gagal memuat data profil.';
+                        statusEl.className = 'text-xs text-red-400 mt-1 text-center block';
+                    }
                     return;
                 }
 
                 if (profile.level_status === 'pending') {
-                    statusEl.textContent = '⏳ Pengajuan Anda sedang diproses oleh admin.';
-                    statusEl.className = 'text-xs text-yellow-300 mt-1 text-center block';
+                    if (statusEl) {
+                        statusEl.textContent = '⏳ Pengajuan Anda sedang diproses oleh admin.';
+                        statusEl.className = 'text-xs text-yellow-600 mt-1 text-center block';
+                    }
                     return;
                 }
 
                 if (profile.level_status === 'approved') {
-                    statusEl.textContent = '✅ Pengajuan Anda sudah disetujui!';
-                    statusEl.className = 'text-xs text-emerald-300 mt-1 text-center block';
+                    if (statusEl) {
+                        statusEl.textContent = '✅ Pengajuan Anda sudah disetujui!';
+                        statusEl.className = 'text-xs text-emerald-600 mt-1 text-center block';
+                    }
                     return;
                 }
 
                 const requirements = await checkLevelUpRequirements(session.user.id);
                 
                 if (!requirements.canLevelUp) {
-                    statusEl.textContent = `⚠️ Syarat belum terpenuhi. ${requirements.message}`;
-                    statusEl.className = 'text-xs text-yellow-300 mt-1 text-center block';
+                    if (statusEl) {
+                        statusEl.textContent = `⚠️ Syarat belum terpenuhi. ${requirements.message}`;
+                        statusEl.className = 'text-xs text-amber-600 mt-1 text-center block';
+                    }
                     return;
                 }
 
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+                }
 
                 const { data: admins, error: adminError } = await _supabase
                     .from('yata_profiles')
@@ -1526,9 +1748,13 @@
                     .update({ level_status: 'pending' })
                     .eq('id', session.user.id);
 
-                statusEl.textContent = '✅ Pengajuan naik level telah dikirim ke admin!';
-                statusEl.className = 'text-xs text-emerald-600 mt-1 text-center block';
-                btn.innerHTML = '✅ Terkirim!';
+                if (statusEl) {
+                    statusEl.textContent = '✅ Pengajuan naik level telah dikirim ke admin!';
+                    statusEl.className = 'text-xs text-emerald-600 mt-1 text-center block';
+                }
+                if (btn) {
+                    btn.innerHTML = '✅ Terkirim!';
+                }
 
                 await sendNotification(
                     session.user.id,
@@ -1538,17 +1764,23 @@
                 );
 
                 setTimeout(() => {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
+                    }
                     loadProfile();
                 }, 3000);
 
             } catch (err) {
                 console.error('Submit level up error:', err);
-                statusEl.textContent = '❌ Gagal mengajukan: ' + err.message;
-                statusEl.className = 'text-xs text-red-400 mt-1 text-center block';
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
+                if (statusEl) {
+                    statusEl.textContent = '❌ Gagal mengajukan: ' + err.message;
+                    statusEl.className = 'text-xs text-red-400 mt-1 text-center block';
+                }
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
+                }
             }
         }
 
@@ -1575,12 +1807,21 @@
             const validDate = getKTAValidDate();
 
             const preview = document.getElementById('ktaPreview');
-            preview.className = `kta-small ${ktaClasses[level] || 'kta-tamu'}`;
-            document.getElementById('ktaIcon').textContent = levelIcons[level] || '🌱';
-            document.getElementById('ktaName').textContent = name;
-            document.getElementById('ktaLevel').textContent = level;
-            document.getElementById('ktaId').textContent = finalMemberId;
-            document.getElementById('ktaValid').textContent = validDate;
+            if (preview) {
+                preview.className = `kta-small ${ktaClasses[level] || 'kta-tamu'}`;
+            }
+            
+            const iconEl = document.getElementById('ktaIcon');
+            const nameEl = document.getElementById('ktaName');
+            const levelEl = document.getElementById('ktaLevel');
+            const idEl = document.getElementById('ktaId');
+            const validEl = document.getElementById('ktaValid');
+
+            if (iconEl) iconEl.textContent = levelIcons[level] || '🌱';
+            if (nameEl) nameEl.textContent = name;
+            if (levelEl) levelEl.textContent = level;
+            if (idEl) idEl.textContent = finalMemberId;
+            if (validEl) validEl.textContent = validDate;
 
             currentKtaData = {
                 level: level,
@@ -1603,30 +1844,54 @@
             const { level, icon, ktaClasses, name, memberId, validDate } = data;
 
             const container = document.getElementById('ktaFullPreview');
-            container.className = `kta-card ${ktaClasses[level] || 'kta-tamu'}`;
-            container.style.maxWidth = '360px';
-            container.style.width = '100%';
+            if (container) {
+                container.className = `kta-card ${ktaClasses[level] || 'kta-tamu'}`;
+                container.style.maxWidth = '360px';
+                container.style.width = '100%';
+            }
 
-            document.getElementById('ktaFullIcon').textContent = icon;
-            document.getElementById('ktaFullName').textContent = name;
-            document.getElementById('ktaFullLevel').textContent = level;
-            document.getElementById('ktaFullId').textContent = memberId;
-            document.getElementById('ktaFullValid').textContent = validDate || getKTAValidDate();
+            const iconEl = document.getElementById('ktaFullIcon');
+            const nameEl = document.getElementById('ktaFullName');
+            const levelEl = document.getElementById('ktaFullLevel');
+            const idEl = document.getElementById('ktaFullId');
+            const validEl = document.getElementById('ktaFullValid');
 
-            document.getElementById('ktaMessage').className = 'text-sm text-center hidden';
-            document.getElementById('downloadKtaBtn').disabled = false;
-            document.getElementById('downloadKtaBtn').innerHTML = '<i class="fa-solid fa-download"></i> Unduh KTA (PNG)';
-            document.getElementById('sendKtaEmailBtn').disabled = false;
-            document.getElementById('sendKtaEmailBtn').innerHTML = '<i class="fa-regular fa-envelope"></i> Kirim ke Email';
+            if (iconEl) iconEl.textContent = icon;
+            if (nameEl) nameEl.textContent = name;
+            if (levelEl) levelEl.textContent = level;
+            if (idEl) idEl.textContent = memberId;
+            if (validEl) validEl.textContent = validDate || getKTAValidDate();
 
-            document.getElementById('ktaModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
+            const msgEl = document.getElementById('ktaMessage');
+            if (msgEl) msgEl.className = 'text-sm text-center hidden';
+            
+            const downloadBtn = document.getElementById('downloadKtaBtn');
+            if (downloadBtn) {
+                downloadBtn.disabled = false;
+                downloadBtn.innerHTML = '<i class="fa-solid fa-download"></i> Unduh KTA (PNG)';
+            }
+            
+            const emailBtn = document.getElementById('sendKtaEmailBtn');
+            if (emailBtn) {
+                emailBtn.disabled = false;
+                emailBtn.innerHTML = '<i class="fa-regular fa-envelope"></i> Kirim ke Email';
+            }
+
+            const modal = document.getElementById('ktaModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
         }
 
         function closeKtaModal() {
-            document.getElementById('ktaModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-            document.getElementById('ktaMessage').className = 'text-sm text-center hidden';
+            const modal = document.getElementById('ktaModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
+            const msgEl = document.getElementById('ktaMessage');
+            if (msgEl) msgEl.className = 'text-sm text-center hidden';
         }
 
         // ============================================
@@ -1653,8 +1918,10 @@
 
             const btn = document.getElementById('downloadKtaBtn');
             isDownloadingKTA = true;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memproses...';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memproses...';
+            }
             showKtaMessage('', '');
 
             try {
@@ -1698,8 +1965,10 @@
                 showKtaMessage('❌ Gagal mengunduh KTA. Silakan coba screenshot manual.', 'error');
             } finally {
                 isDownloadingKTA = false;
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-download"></i> Unduh KTA (PNG)';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-download"></i> Unduh KTA (PNG)';
+                }
             }
         }
 
@@ -1713,8 +1982,10 @@
             }
 
             const btn = document.getElementById('sendKtaEmailBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+            }
             showKtaMessage('', '');
 
             try {
@@ -1768,13 +2039,17 @@
                 console.error('Send KTA email error:', err);
                 showKtaMessage('❌ Gagal mengirim KTA ke email: ' + err.message, 'error');
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-regular fa-envelope"></i> Kirim ke Email';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-regular fa-envelope"></i> Kirim ke Email';
+                }
             }
         }
 
         function showKtaMessage(text, type) {
             const msg = document.getElementById('ktaMessage');
+            if (!msg) return;
+            
             msg.textContent = text;
             msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
                 type === 'success' ? 'text-emerald-600' :
@@ -1791,23 +2066,33 @@
                 showError('Anda tidak memiliki akses untuk mengubah foto profil ini.', 'Akses Ditolak');
                 return;
             }
-            document.getElementById('avatarModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            const preview = document.getElementById('avatarPreview');
-            if (currentAvatarUrl) {
-                preview.innerHTML = `<img src="${currentAvatarUrl}" class="w-full h-full object-cover" />`;
-            } else {
-                preview.innerHTML = '<i class="fa-regular fa-user text-4xl"></i>';
-                preview.className = 'w-32 h-32 rounded-full bg-slate-200 flex items-center justify-center text-4xl text-slate-400 overflow-hidden border-4 border-emerald-200';
+            const modal = document.getElementById('avatarModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
             }
-            document.getElementById('avatarInput').value = '';
+            const preview = document.getElementById('avatarPreview');
+            if (preview) {
+                if (currentAvatarUrl) {
+                    preview.innerHTML = `<img src="${currentAvatarUrl}" class="w-full h-full object-cover" />`;
+                } else {
+                    preview.innerHTML = '<i class="fa-regular fa-user text-4xl"></i>';
+                    preview.className = 'w-32 h-32 rounded-full bg-slate-200 flex items-center justify-center text-4xl text-slate-400 overflow-hidden border-4 border-emerald-200';
+                }
+            }
+            const input = document.getElementById('avatarInput');
+            if (input) input.value = '';
             selectedFile = null;
-            document.getElementById('uploadAvatarBtn').disabled = true;
+            const uploadBtn = document.getElementById('uploadAvatarBtn');
+            if (uploadBtn) uploadBtn.disabled = true;
         }
 
         function closeAvatarUpload() {
-            document.getElementById('avatarModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
+            const modal = document.getElementById('avatarModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
         }
 
         function previewAvatar(event) {
@@ -1834,8 +2119,11 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 const preview = document.getElementById('avatarPreview');
-                preview.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-full" />`;
-                document.getElementById('uploadAvatarBtn').disabled = false;
+                if (preview) {
+                    preview.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-full" />`;
+                }
+                const uploadBtn = document.getElementById('uploadAvatarBtn');
+                if (uploadBtn) uploadBtn.disabled = false;
             };
             reader.readAsDataURL(file);
         }
@@ -1852,8 +2140,10 @@
             }
 
             const btn = document.getElementById('uploadAvatarBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengupload...';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengupload...';
+            }
 
             try {
                 const session = await checkAuth();
@@ -1893,8 +2183,10 @@
             } catch (err) {
                 handleSupabaseError(err, 'Upload foto profil');
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Simpan Foto';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Simpan Foto';
+                }
             }
         }
 
@@ -1935,13 +2227,19 @@
                 showError('Anda tidak memiliki akses untuk mengedit profil ini.', 'Akses Ditolak');
                 return;
             }
-            document.getElementById('editProfileModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
+            const modal = document.getElementById('editProfileModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
         }
 
         function closeEditProfile() {
-            document.getElementById('editProfileModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
+            const modal = document.getElementById('editProfileModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
         }
 
         document.getElementById('editProfileForm').addEventListener('submit', async function(e) {
@@ -1967,8 +2265,10 @@
             }
 
             const submitBtn = this.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...';
+            }
 
             try {
                 const session = await checkAuth();
@@ -1996,8 +2296,10 @@
             } catch (err) {
                 handleSupabaseError(err, 'Menyimpan profil');
             } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> Simpan Perubahan';
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fa-regular fa-floppy-disk mr-1"></i> Simpan Perubahan';
+                }
             }
         });
 
@@ -2009,13 +2311,19 @@
                 showError('Anda tidak memiliki akses untuk mengubah password.', 'Akses Ditolak');
                 return;
             }
-            document.getElementById('passwordModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
+            const modal = document.getElementById('passwordModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
         }
 
         function closePasswordModal() {
-            document.getElementById('passwordModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
+            const modal = document.getElementById('passwordModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
         }
 
         document.getElementById('passwordForm').addEventListener('submit', async function(e) {
@@ -2041,8 +2349,10 @@
             }
 
             const submitBtn = this.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memproses...';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memproses...';
+            }
 
             try {
                 const session = await checkAuth();
@@ -2068,8 +2378,10 @@
             } catch (err) {
                 handleSupabaseError(err, 'Mengubah password');
             } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fa-solid fa-key mr-1"></i> Ganti Password';
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-key mr-1"></i> Ganti Password';
+                }
             }
         });
 
@@ -2080,6 +2392,7 @@
             if (!isOwnProfile) return;
             
             const container = document.getElementById('userCampaigns');
+            if (!container) return;
             
             try {
                 const session = await checkAuth();
