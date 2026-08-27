@@ -359,7 +359,7 @@
         }
 
         // ============================================
-        // 4. LOAD KARYA
+        // 4. LOAD KARYA - DENGAN RPC VIEWS
         // ============================================
         async function loadWriting() {
             writingId = getWritingId();
@@ -392,11 +392,32 @@
 
                 currentWriting = writing;
 
-                // Update views
-                await _supabase
-                    .from('yata_writings')
-                    .update({ views: (writing.views || 0) + 1 })
-                    .eq('id', writingId);
+                // ✅ UPDATE VIEWS PAKAI RPC
+                console.log('📊 Updating views via RPC for:', writingId);
+                console.log('📊 Current views:', writing.views || 0);
+
+                const { data: newViews, error: rpcError } = await _supabase.rpc('increment_views', {
+                    writing_id: writingId
+                });
+
+                if (rpcError) {
+                    console.error('❌ RPC Error:', rpcError);
+                    // Fallback: update langsung
+                    const { error: updateError } = await _supabase
+                        .from('yata_writings')
+                        .update({ views: (writing.views || 0) + 1 })
+                        .eq('id', writingId);
+                    
+                    if (updateError) {
+                        console.error('❌ Fallback error:', updateError);
+                    } else {
+                        writing.views = (writing.views || 0) + 1;
+                        console.log('✅ Views updated via fallback to:', writing.views);
+                    }
+                } else {
+                    console.log('✅ Views updated via RPC to:', newViews);
+                    writing.views = newViews;
+                }
 
                 // Cek like status
                 await checkLikeStatus(writingId);
