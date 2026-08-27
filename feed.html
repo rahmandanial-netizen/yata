@@ -178,7 +178,6 @@
             box-shadow: 0 12px 32px rgba(6, 95, 70, 0.45);
         }
 
-        /* Pagination */
         .load-more-btn {
             transition: all 0.3s ease;
         }
@@ -412,56 +411,6 @@
     </section>
 
     <!-- ============================================ -->
-    <!-- MENTORING - SECTION BARU -->
-    <!-- ============================================ -->
-    <section id="mentoring" class="py-16 bg-slate-50/50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center max-w-3xl mx-auto mb-12">
-                <span class="text-emerald-600 text-sm font-bold uppercase tracking-wider">Mentoring</span>
-                <h2 class="text-3xl font-black text-emerald-900 mt-2">Kelas & Mentoring</h2>
-                <p class="text-slate-500 mt-4">Belajar langsung dari mentor berpengalaman.</p>
-            </div>
-            <div class="grid md:grid-cols-3 gap-6">
-                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm card-hover">
-                    <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 text-xl mb-4">📝</div>
-                    <h3 class="font-bold text-slate-800">Menulis Cerpen Pemula</h3>
-                    <p class="text-sm text-slate-500 mt-1">Belajar dasar-dasar menulis cerpen dari mentor berpengalaman.</p>
-                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
-                        <span class="text-xs font-semibold text-emerald-600">🆓 Gratis</span>
-                        <span class="text-xs text-slate-400">Mulai 15 Agu 2026</span>
-                    </div>
-                    <a href="register.html" class="block w-full text-center mt-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold py-2 rounded-xl text-xs transition">Daftar Kelas (Member)</a>
-                </div>
-                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm card-hover">
-                    <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 text-xl mb-4">📖</div>
-                    <h3 class="font-bold text-slate-800">Teknik Menulis Puisi</h3>
-                    <p class="text-sm text-slate-500 mt-1">Eksplorasi gaya bahasa dan rima untuk menulis puisi yang memukau.</p>
-                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
-                        <span class="text-xs font-semibold text-purple-600">💎 Berbayar</span>
-                        <span class="text-xs text-slate-400">Mulai 20 Agu 2026</span>
-                    </div>
-                    <a href="register.html" class="block w-full text-center mt-3 bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold py-2 rounded-xl text-xs transition">Daftar Kelas (Member)</a>
-                </div>
-                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm card-hover">
-                    <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600 text-xl mb-4">✍️</div>
-                    <h3 class="font-bold text-slate-800">Mengatasi Writer's Block</h3>
-                    <p class="text-sm text-slate-500 mt-1">Tips dan trik mengatasi kebuntuan menulis bersama mentor profesional.</p>
-                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
-                        <span class="text-xs font-semibold text-orange-600">🆓 Gratis</span>
-                        <span class="text-xs text-slate-400">Mulai 25 Agu 2026</span>
-                    </div>
-                    <a href="register.html" class="block w-full text-center mt-3 bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold py-2 rounded-xl text-xs transition">Daftar Kelas (Member)</a>
-                </div>
-            </div>
-            <div class="text-center mt-8">
-                <a href="mentoring.html" class="text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition">
-                    Lihat semua kelas <i class="fa-solid fa-arrow-right ml-1"></i>
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- ============================================ -->
     <!-- FOOTER -->
     <!-- ============================================ -->
     <footer class="bg-emerald-950 border-t border-emerald-800 py-10">
@@ -493,8 +442,21 @@
     <!-- JAVASCRIPT -->
     <!-- ============================================ -->
     <script>
+        // ============================================
+        // INISIALISASI SUPABASE
+        // ============================================
         const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
+        // ============================================
+        // REGISTRASI SUPABASE CLIENT GLOBAL UNTUK UTILS.JS
+        // ============================================
+        window._supabase = _supabase;
+        window.supabase = _supabase;
+        console.log('✅ Supabase client registered globally');
+
+        // ============================================
+        // VARIABEL GLOBAL
+        // ============================================
         let allBooks = [];
         let currentFilter = 'all';
         let currentSearch = '';
@@ -504,6 +466,109 @@
         let isLoading = false;
 
         const coverColors = ['#D1FAE5', '#DBEAFE', '#FEF3C7', '#FCE7F3', '#E0E7FF', '#FFE4E6', '#CCFBF1', '#F3E8FF', '#FCE7F3', '#E0E7FF'];
+
+        // ============================================
+        // CEK AKSES PROYEK BUKU (HARUS ADA!)
+        // ============================================
+        async function checkProjectAccess(e) {
+            if (e) e.preventDefault();
+            
+            try {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const { data: profile, error } = await _supabase
+                    .from('yata_profiles')
+                    .select('member_level')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error) {
+                    console.error('Error checking level:', error);
+                    window.location.href = 'projects.html';
+                    return;
+                }
+
+                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
+                if (allowedLevels.includes(profile.member_level)) {
+                    window.location.href = 'projects.html';
+                } else {
+                    showProjectAccessDenied(profile.member_level || 'Tamu');
+                }
+            } catch (err) {
+                console.error('Error checking access:', err);
+                window.location.href = 'projects.html';
+            }
+        }
+
+        function showProjectAccessDenied(currentLevel) {
+            let modal = document.getElementById('projectAccessModal');
+            if (modal) modal.remove();
+
+            const modalHtml = `
+                <div id="projectAccessModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
+                        <button onclick="closeProjectAccessModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        <div class="text-center mb-4">
+                            <span class="text-amber-500 text-4xl block mb-2">🔒</span>
+                            <h3 class="text-xl font-black text-slate-800">Akses Dibatasi</h3>
+                            <p class="text-sm text-slate-500 mt-1">Fitur Proyek Buku hanya untuk member level tertentu.</p>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-4 border border-amber-200 mb-4">
+                            <p class="text-sm text-slate-600">Level Anda saat ini: <strong class="text-amber-700">${currentLevel || 'Tamu'}</strong></p>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">Anda perlu mencapai level:</p>
+                        <ul class="space-y-2 text-sm mb-4">
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">✍️</span>
+                                <div>
+                                    <strong>Penulis</strong>
+                                    <p class="text-xs text-slate-500">5+ karya dipublikasikan • 3+ kali mentoring</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">📚</span>
+                                <div>
+                                    <strong>Penulis Profesional</strong>
+                                    <p class="text-xs text-slate-500">20+ karya • 1+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center gap-3 p-2 bg-slate-50 rounded-xl">
+                                <span class="text-xl">🌟</span>
+                                <div>
+                                    <strong>Mentor</strong>
+                                    <p class="text-xs text-slate-500">50+ karya • 3+ buku diterbitkan</p>
+                                </div>
+                            </li>
+                        </ul>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button onclick="closeProjectAccessModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition text-sm">
+                                Tutup
+                            </button>
+                            <button onclick="closeProjectAccessModal(); window.location.href='dashboard.html'" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
+                                <i class="fa-regular fa-circle-question mr-1"></i> Lihat Syarat Level
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeProjectAccessModal() {
+            const modal = document.getElementById('projectAccessModal');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = 'auto';
+            }
+        }
 
         // ============================================
         // 1. CEK SESSION
@@ -520,7 +585,7 @@
         }
 
         // ============================================
-        // 2. LOAD FEED (Pagination)
+        // 2. LOAD FEED (Pagination) - DENGAN COMMENTS_COUNT
         // ============================================
         async function loadFeed(reset = true) {
             if (reset) {
@@ -595,6 +660,7 @@
                 if (books && books.length > 0) {
                     const bookIds = books.map(b => b.id);
                     
+                    // Ambil jumlah chapter
                     const { data: chapters, error: chapterError } = await _supabase
                         .from('yata_book_chapters')
                         .select('book_project_id')
@@ -608,6 +674,22 @@
                         
                         books.forEach(b => {
                             b.chapter_count = chapterCount[b.id] || 0;
+                        });
+                    }
+
+                    // ✅ AMBIL JUMLAH KOMENTAR UNTUK BUKU
+                    const { data: comments, error: commentError } = await _supabase
+                        .from('yata_book_comments')
+                        .select('book_project_id')
+                        .in('book_project_id', bookIds);
+
+                    if (!commentError && comments) {
+                        const commentCount = {};
+                        comments.forEach(c => {
+                            commentCount[c.book_project_id] = (commentCount[c.book_project_id] || 0) + 1;
+                        });
+                        books.forEach(b => {
+                            b.comments_count = commentCount[b.id] || 0;
                         });
                     }
                 }
@@ -659,7 +741,7 @@
         }
 
         // ============================================
-        // 4. RENDER FEED (GRID COVER) - DENGAN AVATAR
+        // 4. RENDER FEED (GRID COVER) - DENGAN LIKE, KOMENTAR, VIEWS
         // ============================================
         function renderFeed() {
             const container = document.getElementById('feedGrid');
@@ -692,10 +774,14 @@
                 const categoryLabel = b.category || 'Umum';
                 const statusInfo = statusBadgeMap[b.status] || { label: b.status, class: 'badge-review' };
                 
-                // ✅ PERBAIKAN: Avatar author dengan avatar_url
                 const authorName = b.author?.full_name || 'Penulis';
                 const avatarUrl = b.author?.avatar_url || null;
                 const initial = authorName.charAt(0).toUpperCase();
+
+                // ✅ AMBIL DATA STATISTIK
+                const likesCount = b.likes || 0;
+                const commentsCount = b.comments_count || 0;
+                const viewsCount = b.views || 0;
                 
                 return `
                     <div class="book-card" onclick="window.location.href='book-read.html?id=${b.id}'">
@@ -715,8 +801,12 @@
                                 ${authorName}
                             </p>
                             <div class="flex items-center justify-between mt-2">
+                                <!-- ✅ TAMPILKAN CHAPTER, LIKES, KOMENTAR, VIEWS -->
                                 <div class="flex items-center gap-2 text-[10px] text-slate-400">
-                                    <span><i class="fa-regular fa-file-lines mr-1"></i> ${b.chapter_count || 0} chapter</span>
+                                    <span><i class="fa-regular fa-file-lines mr-1"></i> ${b.chapter_count || 0}</span>
+                                    <span><i class="fa-regular fa-heart mr-1"></i> ${likesCount}</span>
+                                    <span><i class="fa-regular fa-comment mr-1"></i> ${commentsCount}</span>
+                                    <span><i class="fa-regular fa-eye mr-1"></i> ${viewsCount}</span>
                                 </div>
                                 <span class="text-[10px] text-slate-400">${new Date(b.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
                             </div>
