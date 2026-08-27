@@ -28,7 +28,7 @@ function getReputationLevel(reputation) {
 
 async function calculateReputation(userId) {
     try {
-        const supabase = window._supabase;
+        const supabase = getSupabaseClient();
         if (!supabase) {
             console.error('❌ Supabase client not available');
             return { reputation: 100, totalWritings: 0, totalViews: 0, totalLikes: 0 };
@@ -94,7 +94,7 @@ async function calculateReputation(userId) {
 
 async function checkPublishEligibility(userId) {
     try {
-        const supabase = window._supabase;
+        const supabase = getSupabaseClient();
         if (!supabase) {
             return {
                 allowed: true,
@@ -159,6 +159,25 @@ async function checkPublishEligibility(userId) {
             message: '⚠️ Gagal mengecek reputasi'
         };
     }
+}
+
+// ============================================
+// FUNGSI GET SUPABASE CLIENT
+// ============================================
+
+function getSupabaseClient() {
+    // Coba dari berbagai sumber
+    if (typeof _supabase !== 'undefined') {
+        return _supabase;
+    }
+    if (typeof window !== 'undefined' && window._supabase) {
+        return window._supabase;
+    }
+    if (typeof window !== 'undefined' && window.supabase) {
+        return window.supabase;
+    }
+    console.warn('⚠️ Supabase client not available');
+    return null;
 }
 
 // ============================================
@@ -317,7 +336,7 @@ function getGuestId() {
 
 async function ensureGuestProfile(userId) {
     try {
-        const supabase = window._supabase;
+        const supabase = getSupabaseClient();
         if (!supabase) {
             console.warn('⚠️ Supabase client not available');
             return false;
@@ -348,16 +367,18 @@ async function ensureGuestProfile(userId) {
 }
 
 // ============================================
-// FUNGSI FAVORIT
+// 🔥 FUNGSI FAVORIT (DIPERBAIKI)
 // ============================================
 
 async function toggleFavorite(writingId, userId) {
     try {
-        const supabase = window._supabase;
+        const supabase = getSupabaseClient();
         if (!supabase) {
+            console.error('❌ Supabase client not available');
             throw new Error('Supabase client not available');
         }
         
+        // Cek apakah sudah difavorit
         const { data: existing, error: checkError } = await supabase
             .from('yata_favorites')
             .select('id')
@@ -365,44 +386,63 @@ async function toggleFavorite(writingId, userId) {
             .eq('writing_id', writingId)
             .maybeSingle();
 
-        if (checkError) throw checkError;
+        if (checkError) {
+            console.error('❌ Check favorite error:', checkError);
+            throw checkError;
+        }
 
         if (existing) {
+            // Hapus favorit
             const { error: deleteError } = await supabase
                 .from('yata_favorites')
                 .delete()
                 .eq('id', existing.id);
 
-            if (deleteError) throw deleteError;
+            if (deleteError) {
+                console.error('❌ Delete favorite error:', deleteError);
+                throw deleteError;
+            }
             return { action: 'removed', message: '✅ Dihapus dari favorit' };
         } else {
+            // Tambah favorit
             const { error: insertError } = await supabase
                 .from('yata_favorites')
                 .insert([{ user_id: userId, writing_id: writingId }]);
 
-            if (insertError) throw insertError;
+            if (insertError) {
+                console.error('❌ Insert favorite error:', insertError);
+                throw insertError;
+            }
             return { action: 'added', message: '✅ Ditambahkan ke favorit' };
         }
+
     } catch (err) {
-        console.error('Toggle favorite error:', err);
+        console.error('❌ Toggle favorite error:', err);
         throw err;
     }
 }
 
 async function getFavoriteIds(userId) {
     try {
-        const supabase = window._supabase;
-        if (!supabase) return new Set();
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            console.warn('⚠️ Supabase client not available');
+            return new Set();
+        }
         
         const { data, error } = await supabase
             .from('yata_favorites')
             .select('writing_id')
             .eq('user_id', userId);
 
-        if (error) throw error;
+        if (error) {
+            console.error('❌ Get favorites error:', error);
+            return new Set();
+        }
+        
         return new Set(data.map(f => f.writing_id));
     } catch (err) {
-        console.error('Get favorites error:', err);
+        console.error('❌ Get favorites error:', err);
         return new Set();
     }
 }

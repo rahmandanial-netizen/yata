@@ -299,9 +299,21 @@
     <!-- JAVASCRIPT -->
     <!-- ============================================ -->
     <script>
-        // ✅ Gunakan _supabase konsisten
+        // ============================================
+        // INISIALISASI SUPABASE
+        // ============================================
         const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
+        // ============================================
+        // REGISTRASI SUPABASE CLIENT GLOBAL UNTUK UTILS.JS
+        // ============================================
+        window._supabase = _supabase;
+        window.supabase = _supabase;
+        console.log('✅ Supabase client registered globally');
+
+        // ============================================
+        // VARIABEL GLOBAL
+        // ============================================
         let currentWriting = null;
         let currentUser = null;
         let hasLiked = false;
@@ -421,12 +433,18 @@
 
                 if (!error && data) {
                     hasLiked = true;
-                    document.getElementById('likeBtn').classList.add('liked');
-                    document.getElementById('likeBtn').innerHTML = '<i class="fa-solid fa-heart"></i>';
+                    const likeBtn = document.getElementById('likeBtn');
+                    if (likeBtn) {
+                        likeBtn.classList.add('liked');
+                        likeBtn.innerHTML = '<i class="fa-solid fa-heart"></i>';
+                    }
                 } else {
                     hasLiked = false;
-                    document.getElementById('likeBtn').classList.remove('liked');
-                    document.getElementById('likeBtn').innerHTML = '<i class="fa-regular fa-heart"></i>';
+                    const likeBtn = document.getElementById('likeBtn');
+                    if (likeBtn) {
+                        likeBtn.classList.remove('liked');
+                        likeBtn.innerHTML = '<i class="fa-regular fa-heart"></i>';
+                    }
                 }
             } catch (err) {
                 console.error('Check like error:', err);
@@ -454,37 +472,60 @@
         // 7. RENDER KARYA
         // ============================================
         function renderWriting(writing) {
-            document.getElementById('writingTitle').textContent = writing.title;
-            document.getElementById('writingAuthor').textContent = writing.profiles?.full_name || 'Penulis';
-            document.getElementById('writingDate').textContent = new Date(writing.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-            document.getElementById('writingWordCount').textContent = writing.word_count || 0;
-            document.getElementById('writingStatus').textContent = writing.status === 'published' ? '📖 Published' : '✏️ Draft';
-            document.getElementById('writingStatus').className = `text-xs px-2.5 py-0.5 rounded-full font-semibold ${writing.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`;
-            document.getElementById('writingCategory').textContent = writing.category || 'Umum';
-            document.getElementById('viewCount').textContent = writing.views || 0;
-            document.getElementById('likeCount').textContent = writing.likes || 0;
-            document.getElementById('footerLikeCount').textContent = writing.likes || 0;
-            document.getElementById('favoriteCount').textContent = writing.favorites_count || 0;
-            document.getElementById('footerFavoriteCount').textContent = writing.favorites_count || 0;
+            const titleEl = document.getElementById('writingTitle');
+            const authorEl = document.getElementById('writingAuthor');
+            const dateEl = document.getElementById('writingDate');
+            const wordCountEl = document.getElementById('writingWordCount');
+            const statusEl = document.getElementById('writingStatus');
+            const categoryEl = document.getElementById('writingCategory');
+            const viewCountEl = document.getElementById('viewCount');
+            const likeCountEl = document.getElementById('likeCount');
+            const footerLikeEl = document.getElementById('footerLikeCount');
+            const favoriteCountEl = document.getElementById('favoriteCount');
+            const footerFavoriteEl = document.getElementById('footerFavoriteCount');
+
+            if (titleEl) titleEl.textContent = writing.title;
+            if (authorEl) authorEl.textContent = writing.profiles?.full_name || 'Penulis';
+            if (dateEl) dateEl.textContent = new Date(writing.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            if (wordCountEl) wordCountEl.textContent = writing.word_count || 0;
+            
+            if (statusEl) {
+                statusEl.textContent = writing.status === 'published' ? '📖 Published' : '✏️ Draft';
+                statusEl.className = `text-xs px-2.5 py-0.5 rounded-full font-semibold ${writing.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`;
+            }
+            
+            if (categoryEl) categoryEl.textContent = writing.category || 'Umum';
+            if (viewCountEl) viewCountEl.textContent = writing.views || 0;
+            if (likeCountEl) likeCountEl.textContent = writing.likes || 0;
+            if (footerLikeEl) footerLikeEl.textContent = writing.likes || 0;
+            if (favoriteCountEl) favoriteCountEl.textContent = writing.favorites_count || 0;
+            if (footerFavoriteEl) footerFavoriteEl.textContent = writing.favorites_count || 0;
 
             const content = writing.content || 'Tidak ada konten.';
             const paragraphs = content.split('\n').filter(p => p.trim() !== '');
-            document.getElementById('writingContent').innerHTML = paragraphs.map(p => `<p>${p}</p>`).join('');
+            const contentEl = document.getElementById('writingContent');
+            if (contentEl) {
+                contentEl.innerHTML = paragraphs.map(p => `<p>${p}</p>`).join('');
+            }
 
             const authorName = writing.profiles?.full_name || 'Penulis';
             const authorLevel = writing.profiles?.member_level || 'Tamu';
             const avatarUrl = writing.profiles?.avatar_url || null;
             const avatarEl = document.getElementById('authorAvatar');
             
-            if (avatarUrl) {
-                avatarEl.innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover rounded-full" />`;
-            } else {
-                avatarEl.textContent = authorName.charAt(0).toUpperCase();
-                avatarEl.className = 'w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-lg';
+            if (avatarEl) {
+                if (avatarUrl) {
+                    avatarEl.innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover rounded-full" />`;
+                } else {
+                    avatarEl.textContent = authorName.charAt(0).toUpperCase();
+                    avatarEl.className = 'w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-lg';
+                }
             }
             
-            document.getElementById('authorName').textContent = authorName;
-            document.getElementById('authorLevel').textContent = getLevelIcon(authorLevel) + ' ' + authorLevel;
+            const authorNameEl = document.getElementById('authorName');
+            const authorLevelEl = document.getElementById('authorLevel');
+            if (authorNameEl) authorNameEl.textContent = authorName;
+            if (authorLevelEl) authorLevelEl.textContent = getLevelIcon(authorLevel) + ' ' + authorLevel;
 
             loadAuthorStats(writing.author_id);
         }
@@ -513,7 +554,8 @@
                     .eq('author_id', authorId);
 
                 if (!error) {
-                    document.getElementById('authorTotalWritings').textContent = (count || 0) + ' karya';
+                    const totalWritingsEl = document.getElementById('authorTotalWritings');
+                    if (totalWritingsEl) totalWritingsEl.textContent = (count || 0) + ' karya';
                 }
 
                 const { data, error: viewsError } = await _supabase
@@ -523,7 +565,8 @@
 
                 if (!viewsError && data) {
                     const totalViews = data.reduce((sum, w) => sum + (w.views || 0), 0);
-                    document.getElementById('authorTotalViews').textContent = totalViews + ' pembaca';
+                    const totalViewsEl = document.getElementById('authorTotalViews');
+                    if (totalViewsEl) totalViewsEl.textContent = totalViews + ' pembaca';
                 }
             } catch (err) {
                 console.error('Author stats error:', err);
@@ -662,8 +705,10 @@
 
                 if (updateError) throw updateError;
 
-                document.getElementById('likeCount').textContent = newLikes;
-                document.getElementById('footerLikeCount').textContent = newLikes;
+                const likeCountEl = document.getElementById('likeCount');
+                const footerLikeEl = document.getElementById('footerLikeCount');
+                if (likeCountEl) likeCountEl.textContent = newLikes;
+                if (footerLikeEl) footerLikeEl.textContent = newLikes;
 
             } catch (err) {
                 handleSupabaseError(err, 'Menyukai karya');
@@ -699,65 +744,73 @@
 
                 if (error) {
                     console.error('Load comments error:', error);
-                    container.innerHTML = `
-                        <div class="text-center py-6 text-red-400 text-sm">
-                            Gagal memuat komentar: ${error.message}
-                        </div>
-                    `;
+                    if (container) {
+                        container.innerHTML = `
+                            <div class="text-center py-6 text-red-400 text-sm">
+                                Gagal memuat komentar: ${error.message}
+                            </div>
+                        `;
+                    }
                     return;
                 }
 
-                countEl.textContent = comments?.length || 0;
+                if (countEl) countEl.textContent = comments?.length || 0;
 
                 if (!comments || comments.length === 0) {
-                    container.innerHTML = `
-                        <div class="text-center py-6 text-slate-400 text-sm">
-                            <i class="fa-regular fa-comment-dots text-2xl block mb-2"></i>
-                            Belum ada komentar. Jadilah yang pertama!
-                        </div>
-                    `;
+                    if (container) {
+                        container.innerHTML = `
+                            <div class="text-center py-6 text-slate-400 text-sm">
+                                <i class="fa-regular fa-comment-dots text-2xl block mb-2"></i>
+                                Belum ada komentar. Jadilah yang pertama!
+                            </div>
+                        `;
+                    }
                     return;
                 }
 
-                container.innerHTML = comments.map(c => {
-                    const name = c.profiles?.full_name || 'User';
-                    const level = c.profiles?.member_level || 'Tamu';
-                    const avatarUrl = c.profiles?.avatar_url || null;
-                    const avatar = name.charAt(0).toUpperCase();
-                    const isOwner = currentUser && c.user_id === currentUser.id;
+                if (container) {
+                    container.innerHTML = comments.map(c => {
+                        const name = c.profiles?.full_name || 'User';
+                        const level = c.profiles?.member_level || 'Tamu';
+                        const avatarUrl = c.profiles?.avatar_url || null;
+                        const avatar = name.charAt(0).toUpperCase();
+                        const isOwner = currentUser && c.user_id === currentUser.id;
 
-                    return `
-                        <div class="comment-item py-4 first:pt-0 last:pb-0">
-                            <div class="flex items-start gap-3">
-                                <div class="comment-avatar bg-emerald-100 text-emerald-700 flex-shrink-0 overflow-hidden">
-                                    ${avatarUrl ? `<img src="${avatarUrl}" class="w-full h-full object-cover" />` : avatar}
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <span class="font-bold text-slate-800 text-sm">${name}</span>
-                                        <span class="text-xs text-slate-400">${getLevelIcon(level)} ${level}</span>
-                                        <span class="text-xs text-slate-400">•</span>
-                                        <span class="text-xs text-slate-400">${timeAgo(c.created_at)}</span>
+                        return `
+                            <div class="comment-item py-4 first:pt-0 last:pb-0">
+                                <div class="flex items-start gap-3">
+                                    <div class="comment-avatar bg-emerald-100 text-emerald-700 flex-shrink-0 overflow-hidden">
+                                        ${avatarUrl ? `<img src="${avatarUrl}" class="w-full h-full object-cover" />` : avatar}
                                     </div>
-                                    <p class="text-sm text-slate-700 mt-1">${c.content}</p>
-                                    ${isOwner ? `
-                                        <button onclick="deleteComment('${c.id}')" class="text-xs text-red-400 hover:text-red-600 transition mt-1">
-                                            <i class="fa-regular fa-trash-can mr-1"></i> Hapus
-                                        </button>
-                                    ` : ''}
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="font-bold text-slate-800 text-sm">${name}</span>
+                                            <span class="text-xs text-slate-400">${getLevelIcon(level)} ${level}</span>
+                                            <span class="text-xs text-slate-400">•</span>
+                                            <span class="text-xs text-slate-400">${timeAgo(c.created_at)}</span>
+                                        </div>
+                                        <p class="text-sm text-slate-700 mt-1">${c.content}</p>
+                                        ${isOwner ? `
+                                            <button onclick="deleteComment('${c.id}')" class="text-xs text-red-400 hover:text-red-600 transition mt-1">
+                                                <i class="fa-regular fa-trash-can mr-1"></i> Hapus
+                                            </button>
+                                        ` : ''}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    `;
-                }).join('');
+                        `;
+                    }).join('');
+                }
 
             } catch (err) {
                 console.error('Load comments error:', err);
-                container.innerHTML = `
-                    <div class="text-center py-6 text-red-400 text-sm">
-                        Gagal memuat komentar: ${err.message}
-                    </div>
-                `;
+                if (container) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-red-400 text-sm">
+                            Gagal memuat komentar: ${err.message}
+                        </div>
+                    `;
+                }
             }
         }
 
@@ -882,14 +935,24 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadWriting();
 
-            document.getElementById('btnLogout').addEventListener('click', handleLogout);
+            const logoutBtn = document.getElementById('btnLogout');
+            if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
 
-            document.getElementById('mobileMenuButton').addEventListener('click', function() {
-                document.getElementById('mobileMenu').classList.toggle('hidden');
-            });
+            const mobileMenuBtn = document.getElementById('mobileMenuButton');
+            if (mobileMenuBtn) {
+                mobileMenuBtn.addEventListener('click', function() {
+                    const menu = document.getElementById('mobileMenu');
+                    if (menu) menu.classList.toggle('hidden');
+                });
+            }
 
-            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(el => {
-                el.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
+            // Tutup mobile menu saat klik link
+            const mobileLinks = document.querySelectorAll('#mobileMenu a, #mobileMenu button');
+            mobileLinks.forEach(el => {
+                el.addEventListener('click', () => {
+                    const menu = document.getElementById('mobileMenu');
+                    if (menu) menu.classList.add('hidden');
+                });
             });
         });
     </script>
