@@ -342,7 +342,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- JAVASCRIPT - LENGKAP TANPA FORCE RANKING -->
+    <!-- JAVASCRIPT - LENGKAP DIPERBAIKI -->
     <!-- ============================================ -->
     <script>
         // ============================================
@@ -371,32 +371,43 @@
         let currentPopupAuthorId = null;
 
         // ============================================
-        // 1. LOAD RANKINGS
+        // 1. LOAD RANKINGS - DIPERBAIKI
         // ============================================
         async function loadRankings() {
             try {
+                console.log('🔄 Memuat ranking...');
+                
                 const { data: rankings, error } = await _supabase
                     .from('yata_rankings')
                     .select('user_id, total_score, rank_position, rank_category')
                     .order('rank_position', { ascending: true });
 
-                if (!error && rankings) {
+                if (error) {
+                    console.error('❌ Load rankings error:', error);
+                    return;
+                }
+
+                if (rankings && rankings.length > 0) {
                     rankings.forEach(r => {
                         authorRankings[r.user_id] = {
-                            score: r.total_score,
-                            rank: r.rank_position,
-                            category: r.rank_category
+                            score: r.total_score || 0,
+                            rank: r.rank_position || '-',
+                            category: r.rank_category || 'active'
                         };
                     });
-                    console.log('✅ Rankings loaded:', Object.keys(authorRankings).length);
+                    console.log('✅ Rankings loaded:', Object.keys(authorRankings).length, 'users');
+                    console.log('📊 Sample ranking:', Object.values(authorRankings).slice(0, 3));
+                } else {
+                    console.log('ℹ️ Tidak ada data ranking');
                 }
             } catch (err) {
-                console.error('Load rankings error:', err);
+                console.error('❌ Load rankings error:', err);
+                authorRankings = {};
             }
         }
 
         // ============================================
-        // 2. LOAD AUTHORS
+        // 2. LOAD AUTHORS - DIPERBAIKI
         // ============================================
         async function loadAuthors(reset = true) {
             if (reset) {
@@ -463,13 +474,13 @@
                         });
                     }
 
-                    // Ambil ranking
+                    // 🔥 AMBIL RANKING DARI authorRankings
                     authors.forEach(a => {
                         const rank = authorRankings[a.id];
                         if (rank) {
-                            a.rank_score = rank.score;
-                            a.rank_position = rank.rank;
-                            a.rank_category = rank.category;
+                            a.rank_score = rank.score || 0;
+                            a.rank_position = rank.rank || '-';
+                            a.rank_category = rank.category || 'active';
                         } else {
                             a.rank_score = 0;
                             a.rank_position = '-';
@@ -525,7 +536,7 @@
         }
 
         // ============================================
-        // 3. RENDER AUTHORS (KLIK KARTU UNTUK POPUP)
+        // 3. RENDER AUTHORS - DIPERBAIKI
         // ============================================
         function renderAuthors() {
             const container = document.getElementById('authorGrid');
@@ -569,8 +580,12 @@
                 const avatarUrl = a.avatar_url || null;
                 const levelEmoji = levelEmojis[a.member_level] || '🌱';
                 const levelClass = levelClasses[a.member_level] || 'level-tamu';
-                const rankEmoji = rankEmojis[a.rank_category] || '';
-                const rankDisplay = a.rank_position && a.rank_position !== '-' ? `#${a.rank_position}` : '-';
+                
+                // 🔥 AMBIL DATA RANKING DARI authorRankings
+                const rankData = authorRankings[a.id] || null;
+                const rankDisplay = rankData?.rank && rankData.rank !== '-' ? `#${rankData.rank}` : '-';
+                const scoreDisplay = rankData?.score ? Math.round(rankData.score) : 0;
+                const rankEmoji = rankEmojis[rankData?.category] || '';
 
                 return `
                     <div class="author-card bg-white rounded-2xl p-5 border border-emerald-100/60 shadow-sm hover:shadow-md" onclick="openAuthorPopup('${a.id}')">
@@ -584,7 +599,7 @@
                             ${rankEmoji ? `<span class="text-xs mt-1">${rankEmoji} ${rankDisplay}</span>` : ''}
                             <div class="flex items-center gap-4 mt-3 text-xs text-slate-400">
                                 <span><i class="fa-regular fa-file-lines"></i> ${a.total_writings || 0} karya</span>
-                                ${a.rank_score > 0 ? `<span><i class="fa-regular fa-star text-amber-500"></i> ${Math.round(a.rank_score)} pts</span>` : ''}
+                                ${scoreDisplay > 0 ? `<span><i class="fa-regular fa-star text-amber-500"></i> ${scoreDisplay} pts</span>` : ''}
                             </div>
                             ${a.bio ? `<p class="text-xs text-slate-500 mt-2 line-clamp-2">${a.bio}</p>` : ''}
                             <div class="mt-3 pt-3 border-t border-slate-100 w-full">
@@ -644,7 +659,7 @@
         }
 
         // ============================================
-        // 5. POPUP PROFIL PENULIS - TANPA FORCE
+        // 5. POPUP PROFIL PENULIS - DIPERBAIKI UNTUK RANK & POIN
         // ============================================
         async function openAuthorPopup(authorId) {
             currentPopupAuthorId = authorId;
@@ -714,13 +729,15 @@
                 }
 
                 // ============================================
-                // 5. ✅ AMBIL RANKING DARI DATABASE
+                // 5. ✅ AMBIL RANKING DARI DATABASE (DIPERBAIKI)
                 // ============================================
                 let rankDisplay = '-';
                 let scoreDisplay = 0;
                 let rankCategory = '';
 
                 try {
+                    console.log('🔍 Mencari ranking untuk user:', authorId);
+                    
                     const { data: ranking, error: rankingError } = await _supabase
                         .from('yata_rankings')
                         .select('rank_position, total_score, rank_category')
@@ -769,7 +786,7 @@
                 const totalCommunities = communities?.length || 0;
 
                 // ============================================
-                // 8. Render Popup (AMAN)
+                // 8. Render Popup (DIPERBAIKI - RANK & POIN)
                 // ============================================
                 const levelEmojis = {
                     'Tamu': '🌱',
@@ -796,6 +813,10 @@
                 const safeLevel = profile.member_level || 'Tamu';
                 const safeBio = profile.bio || '';
 
+                // 🔥 PASTIKAN RANK DAN POIN TAMPIL
+                const displayRank = rankDisplay !== '-' ? rankDisplay : '-';
+                const displayScore = scoreDisplay > 0 ? scoreDisplay : 0;
+
                 content.innerHTML = `
                     <div class="text-center">
                         <!-- Avatar -->
@@ -809,7 +830,7 @@
                         <span class="level-badge ${levelClass} mt-2 inline-block">${levelEmoji} ${safeLevel}</span>
                         ${safeRankCategory ? `<span class="text-xs block mt-1">${safeRankCategory}</span>` : ''}
 
-                        <!-- ✅ STATISTIK LENGKAP -->
+                        <!-- ✅ STATISTIK LENGKAP - RANK & POIN SUDAH TERISI -->
                         <div class="stat-grid mt-4">
                             <div class="stat-item">
                                 <p class="number">${totalWritings}</p>
@@ -824,7 +845,7 @@
                                 <p class="label">👁️ Views</p>
                             </div>
                             <div class="stat-item">
-                                <p class="number">${rankDisplay}</p>
+                                <p class="number">${displayRank}</p>
                                 <p class="label">🏆 Rank</p>
                             </div>
                             <div class="stat-item">
@@ -832,7 +853,7 @@
                                 <p class="label">📚 Buku</p>
                             </div>
                             <div class="stat-item">
-                                <p class="number">${scoreDisplay}</p>
+                                <p class="number">${displayScore}</p>
                                 <p class="label">⭐ Poin</p>
                             </div>
                             <div class="stat-item col-span-3">
