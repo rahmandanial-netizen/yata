@@ -644,7 +644,7 @@
         }
 
         // ============================================
-        // 5. POPUP PROFIL PENULIS (DIPERBAIKI - LENGKAP)
+        // 5. POPUP PROFIL PENULIS (DIPERBAIKI - RANK & POIN)
         // ============================================
         async function openAuthorPopup(authorId) {
             currentPopupAuthorId = authorId;
@@ -685,7 +685,7 @@
                 const totalWritings = writings?.length || 0;
 
                 // ============================================
-                // 3. AMBIL TOTAL LIKES (DIPERBAIKI)
+                // 3. AMBIL TOTAL LIKES
                 // ============================================
                 const { data: likesData, error: likesError } = await _supabase
                     .from('yata_writings')
@@ -714,7 +714,7 @@
                 }
 
                 // ============================================
-                // 5. AMBIL RANKING (DIPERBAIKI)
+                // 5. ✅ AMBIL RANKING (DIPERBAIKI - PAKAI .single())
                 // ============================================
                 let rankDisplay = '-';
                 let scoreDisplay = 0;
@@ -732,6 +732,8 @@
                         scoreDisplay = ranking.total_score ? Math.round(ranking.total_score) : 0;
                         rankCategory = ranking.rank_category || '';
                         console.log('✅ Ranking found:', ranking);
+                    } else {
+                        console.log('ℹ️ Ranking error or not found:', rankingError);
                     }
                 } catch (err) {
                     console.log('ℹ️ No ranking for user:', authorId);
@@ -793,7 +795,7 @@
                         <span class="level-badge ${levelClass} mt-2 inline-block">${levelEmoji} ${profile.member_level || 'Tamu'}</span>
                         ${rankCategory ? `<span class="text-xs block mt-1">${rankCategory.replace('_', ' ').toUpperCase()}</span>` : ''}
 
-                        <!-- ✅ STATISTIK LENGKAP -->
+                        <!-- ✅ STATISTIK LENGKAP DENGAN RANK & POIN -->
                         <div class="stat-grid mt-4">
                             <div class="stat-item">
                                 <p class="number">${totalWritings}</p>
