@@ -342,7 +342,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- JAVASCRIPT - LENGKAP DIPERBAIKI (AMAN) -->
+    <!-- JAVASCRIPT - LENGKAP DIPERBAIKI -->
     <!-- ============================================ -->
     <script>
         // ============================================
@@ -644,7 +644,7 @@
         }
 
         // ============================================
-        // 5. POPUP PROFIL PENULIS (DIPERBAIKI - AMAN)
+        // 5. POPUP PROFIL PENULIS (DIPERBAIKI - RANKING LANGSUNG)
         // ============================================
         async function openAuthorPopup(authorId) {
             currentPopupAuthorId = authorId;
@@ -714,7 +714,7 @@
                 }
 
                 // ============================================
-                // 5. ✅ AMBIL RANKING (DIPERBAIKI - AMAN)
+                // 5. ✅ AMBIL RANKING (LANGSUNG DARI DATABASE)
                 // ============================================
                 let rankDisplay = '-';
                 let scoreDisplay = 0;
@@ -730,20 +730,19 @@
                     if (rankingError) {
                         console.error('❌ Ranking error:', rankingError);
                     } else if (ranking) {
-                        // ✅ AMANKAN DARI KARAKTER ANEH
-                        const rankNum = parseInt(String(ranking.rank_position).replace(/[^0-9]/g, '')) || 0;
-                        const scoreNum = parseFloat(String(ranking.total_score).replace(/[^0-9.]/g, '')) || 0;
+                        const rankNum = parseInt(ranking.rank_position) || 0;
+                        const scoreNum = parseFloat(ranking.total_score) || 0;
                         
                         rankDisplay = rankNum > 0 ? `#${rankNum}` : '-';
                         scoreDisplay = Math.round(scoreNum);
-                        rankCategory = String(ranking.rank_category || '').replace(/[^a-zA-Z0-9_]/g, '').trim();
+                        rankCategory = ranking.rank_category || '';
                         
-                        console.log('✅ Ranking ditemukan:', { rankDisplay, scoreDisplay, rankCategory });
+                        console.log('✅ Ranking ditemukan LANGSUNG:', { rankDisplay, scoreDisplay, rankCategory });
                     } else {
                         console.log('ℹ️ Tidak ada ranking untuk user:', authorId);
                     }
                 } catch (err) {
-                    console.error('❌ Error fetching ranking:', err.message);
+                    console.error('❌ Error:', err.message);
                     rankDisplay = '-';
                     scoreDisplay = 0;
                 }
