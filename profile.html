@@ -865,51 +865,58 @@
     <!-- JAVASCRIPT -->
     <!-- ============================================ -->
     <script>
-        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        // ============================================
+        // INISIALISASI SUPABASE
+        // ============================================
+        var _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
-        let currentUser = null;
-        let currentProfile = null;
-        let allWritings = [];
-        let allWritersData = [];
-        let selectedFile = null;
-        let currentAvatarUrl = null;
-        let isDownloadingKTA = false;
-        let currentKtaData = null;
-        let isOwnProfile = false;
-        let profileUserId = null;
+        // ============================================
+        // VARIABEL GLOBAL
+        // ============================================
+        var currentUser = null;
+        var currentProfile = null;
+        var allWritings = [];
+        var allWritersData = [];
+        var selectedFile = null;
+        var currentAvatarUrl = null;
+        var isDownloadingKTA = false;
+        var currentKtaData = null;
+        var isOwnProfile = false;
+        var profileUserId = null;
 
         // ============================================
         // HELPER FUNCTIONS UNTUK CEK ELEMENT
         // ============================================
-        function setText(id, value, defaultValue = '') {
-            const el = document.getElementById(id);
+        function setText(id, value, defaultValue) {
+            if (defaultValue === undefined) defaultValue = '';
+            var el = document.getElementById(id);
             if (el) {
                 el.textContent = value || defaultValue;
                 return true;
             } else {
-                console.warn(`⚠️ Element #${id} tidak ditemukan di DOM`);
+                console.warn('⚠️ Element #' + id + ' tidak ditemukan di DOM');
                 return false;
             }
         }
         
         function setHTML(id, html) {
-            const el = document.getElementById(id);
+            var el = document.getElementById(id);
             if (el) {
                 el.innerHTML = html;
                 return true;
             } else {
-                console.warn(`⚠️ Element #${id} tidak ditemukan di DOM`);
+                console.warn('⚠️ Element #' + id + ' tidak ditemukan di DOM');
                 return false;
             }
         }
         
         function setClass(id, className) {
-            const el = document.getElementById(id);
+            var el = document.getElementById(id);
             if (el) {
                 el.className = className;
                 return true;
             } else {
-                console.warn(`⚠️ Element #${id} tidak ditemukan di DOM`);
+                console.warn('⚠️ Element #' + id + ' tidak ditemukan di DOM');
                 return false;
             }
         }
@@ -919,11 +926,11 @@
         // ============================================
         async function checkAuth() {
             try {
-                const { data: { session } } = await _supabase.auth.getSession();
-                if (session) {
-                    currentUser = session.user;
+                var sessionResult = await _supabase.auth.getSession();
+                if (sessionResult.data.session) {
+                    currentUser = sessionResult.data.session.user;
                 }
-                return session;
+                return sessionResult.data.session;
             } catch (err) {
                 console.error('Auth check error:', err);
                 return null;
@@ -937,29 +944,29 @@
             if (e) e.preventDefault();
             
             try {
-                const { data: { session } } = await _supabase.auth.getSession();
+                var session = await checkAuth();
                 if (!session) {
                     window.location.href = 'login.html';
                     return;
                 }
 
-                const { data: profile, error } = await _supabase
+                var profileResult = await _supabase
                     .from('yata_profiles')
                     .select('member_level')
                     .eq('id', session.user.id)
                     .single();
 
-                if (error) {
-                    console.error('Error checking level:', error);
+                if (profileResult.error) {
+                    console.error('Error checking level:', profileResult.error);
                     window.location.href = 'projects.html';
                     return;
                 }
 
-                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
-                if (allowedLevels.includes(profile.member_level)) {
+                var allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
+                if (allowedLevels.includes(profileResult.data.member_level)) {
                     window.location.href = 'projects.html';
                 } else {
-                    showProjectAccessDenied(profile.member_level || 'Tamu');
+                    showProjectAccessDenied(profileResult.data.member_level || 'Tamu');
                 }
             } catch (err) {
                 console.error('Error checking access:', err);
@@ -968,10 +975,10 @@
         }
 
         function showProjectAccessDenied(currentLevel) {
-            let modal = document.getElementById('projectAccessModal');
+            var modal = document.getElementById('projectAccessModal');
             if (modal) modal.remove();
 
-            const modalHtml = `
+            var modalHtml = `
                 <div id="projectAccessModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 relative shadow-2xl modal-enter">
                         <button onclick="closeProjectAccessModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
@@ -1026,7 +1033,7 @@
         }
 
         function closeProjectAccessModal() {
-            const modal = document.getElementById('projectAccessModal');
+            var modal = document.getElementById('projectAccessModal');
             if (modal) {
                 modal.remove();
                 document.body.style.overflow = 'auto';
@@ -1034,86 +1041,85 @@
         }
 
         // ============================================
-        // 🔥 CEK SYARAT NAIK LEVEL (DIPERBAIKI)
+        // 🔥 CEK SYARAT NAIK LEVEL
         // ============================================
         async function checkLevelUpRequirements(userId) {
             try {
                 console.log('🔍 [checkLevelUpRequirements] Checking for user:', userId);
                 
-                // ============================================
-                // 1. CEK ONBOARDING (is_onboarding = true)
-                // ============================================
-                const { data: participants, error: partError } = await _supabase
+                var partResult = await _supabase
                     .from('yata_mentoring_participants')
                     .select('session_id, attended')
                     .eq('user_id', userId)
                     .eq('attended', true);
 
-                if (partError) {
-                    console.error('❌ Error get participants:', partError);
+                if (partResult.error) {
+                    console.error('❌ Error get participants:', partResult.error);
+                    return {
+                        canLevelUp: false,
+                        onboardingCount: 0,
+                        mandatoryMentoringCount: 0,
+                        writingsCount: 0,
+                        message: '❌ Gagal mengecek data partisipasi: ' + partResult.error.message
+                    };
                 }
 
-                const attendedSessionIds = participants?.map(p => p.session_id) || [];
+                var participants = partResult.data || [];
+                var attendedSessionIds = [];
+                for (var i = 0; i < participants.length; i++) {
+                    attendedSessionIds.push(participants[i].session_id);
+                }
                 console.log('📊 Attended session IDs:', attendedSessionIds);
 
-                let onboardingCount = 0;
+                var onboardingCount = 0;
                 if (attendedSessionIds.length > 0) {
-                    const { data: onboardingSessions, error: onError } = await _supabase
+                    var onResult = await _supabase
                         .from('yata_mentoring_sessions')
                         .select('id')
                         .in('id', attendedSessionIds)
                         .eq('is_onboarding', true);
 
-                    if (!onError && onboardingSessions) {
-                        onboardingCount = onboardingSessions.length;
+                    if (onResult.error) {
+                        console.error('❌ Error check onboarding:', onResult.error);
+                    } else {
+                        onboardingCount = (onResult.data || []).length;
                         console.log('🎓 Onboarding count:', onboardingCount);
-                    } else if (onError) {
-                        console.error('❌ Error check onboarding:', onError);
                     }
                 }
 
-                // ============================================
-                // 2. CEK MENTORING ADMIN (is_mandatory = true, is_onboarding = false)
-                // ============================================
-                let mandatoryMentoringCount = 0;
+                var mandatoryMentoringCount = 0;
                 if (attendedSessionIds.length > 0) {
-                    const { data: mandatorySessions, error: manError } = await _supabase
+                    var manResult = await _supabase
                         .from('yata_mentoring_sessions')
                         .select('id')
                         .in('id', attendedSessionIds)
-                        .eq('is_onboarding', false)
-                        .eq('is_mandatory', true);
+                        .eq('is_mandatory', true)
+                        .eq('is_onboarding', false);
 
-                    if (!manError && mandatorySessions) {
-                        mandatoryMentoringCount = mandatorySessions.length;
+                    if (manResult.error) {
+                        console.error('❌ Error check mandatory mentoring:', manResult.error);
+                    } else {
+                        mandatoryMentoringCount = (manResult.data || []).length;
                         console.log('📖 Mandatory mentoring count:', mandatoryMentoringCount);
-                    } else if (manError) {
-                        console.error('❌ Error check mandatory mentoring:', manError);
                     }
                 }
 
-                // ============================================
-                // 3. CEK KARYA PUBLISHED
-                // ============================================
-                const { count: writingsCount, error: wError } = await _supabase
+                var writingsResult = await _supabase
                     .from('yata_writings')
                     .select('*', { count: 'exact', head: true })
                     .eq('author_id', userId)
                     .eq('status', 'published');
 
-                if (wError) {
-                    console.error('❌ Error count writings:', wError);
+                if (writingsResult.error) {
+                    console.error('❌ Error count writings:', writingsResult.error);
                 }
-                console.log('✍️ Writings count:', writingsCount || 0);
+                var finalWritings = writingsResult.count || 0;
+                console.log('✍️ Writings count:', finalWritings);
 
-                // ============================================
-                // 4. HITUNG SYARAT
-                // ============================================
-                const finalOnboarding = onboardingCount || 0;
-                const finalMandatory = mandatoryMentoringCount || 0;
-                const finalWritings = writingsCount || 0;
+                var finalOnboarding = onboardingCount || 0;
+                var finalMandatory = mandatoryMentoringCount || 0;
 
-                const canLevelUp = (
+                var canLevelUp = (
                     finalOnboarding >= 1 &&
                     finalMandatory >= 2 &&
                     finalWritings >= 5
@@ -1133,7 +1139,7 @@
                     writingsCount: finalWritings,
                     message: canLevelUp ? 
                         '✅ Semua syarat terpenuhi! Ajukan naik level sekarang.' : 
-                        `📋 ${finalOnboarding}/1 Onboarding • ${finalMandatory}/2 Mentoring Admin • ${finalWritings}/5 Karya`
+                        '📋 ' + finalOnboarding + '/1 Onboarding • ' + finalMandatory + '/2 Mentoring Admin • ' + finalWritings + '/5 Karya'
                 };
 
             } catch (err) {
@@ -1151,9 +1157,10 @@
         // ============================================
         // KIRIM NOTIFIKASI
         // ============================================
-        async function sendNotification(userId, title, content, type = 'info') {
+        async function sendNotification(userId, title, content, type) {
+            if (type === undefined) type = 'info';
             try {
-                const { data: notifData, error } = await _supabase
+                var notifResult = await _supabase
                     .from('yata_notifications')
                     .insert([{
                         title: title,
@@ -1163,13 +1170,13 @@
                     .select()
                     .single();
 
-                if (error) throw error;
+                if (notifResult.error) throw notifResult.error;
 
-                if (notifData) {
+                if (notifResult.data) {
                     await _supabase
                         .from('yata_user_notifications')
                         .insert([{
-                            notification_id: notifData.id,
+                            notification_id: notifResult.data.id,
                             user_id: userId,
                             is_read: false
                         }]);
@@ -1186,14 +1193,14 @@
         // ============================================
         async function loadProfile() {
             try {
-                const session = await checkAuth();
+                var session = await checkAuth();
                 
-                const params = new URLSearchParams(window.location.search);
+                var params = new URLSearchParams(window.location.search);
                 profileUserId = params.get('id');
 
                 if (!profileUserId) {
                     if (session) {
-                        window.location.href = `profile.html?id=${session.user.id}`;
+                        window.location.href = 'profile.html?id=' + session.user.id;
                         return;
                     } else {
                         window.location.href = 'explore.html';
@@ -1201,7 +1208,7 @@
                     }
                 }
 
-                const loadingEl = document.getElementById('loadingState');
+                var loadingEl = document.getElementById('loadingState');
                 if (loadingEl) {
                     loadingEl.innerHTML = `
                         <i class="fa-solid fa-spinner fa-spin text-3xl text-emerald-600"></i>
@@ -1209,18 +1216,18 @@
                     `;
                 }
 
-                const { data: profile, error } = await _supabase
+                var profileResult = await _supabase
                     .from('yata_profiles')
                     .select('*')
                     .eq('id', profileUserId)
                     .single();
 
-                if (error) {
-                    console.error('Profile error:', error);
+                if (profileResult.error) {
+                    console.error('Profile error:', profileResult.error);
                     if (loadingEl) {
                         loadingEl.innerHTML = `
                             <i class="fa-solid fa-circle-exclamation text-3xl text-red-500"></i>
-                            <p class="text-red-500 text-sm mt-2">Gagal memuat profil: ${error.message}</p>
+                            <p class="text-red-500 text-sm mt-2">Gagal memuat profil: ${profileResult.error.message}</p>
                             <button onclick="loadProfile()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
                                 <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
                             </button>
@@ -1229,12 +1236,15 @@
                     return;
                 }
 
+                var profile = profileResult.data;
                 currentProfile = profile;
                 currentAvatarUrl = profile.avatar_url || null;
 
                 isOwnProfile = session && profileUserId === session.user.id;
 
-                document.querySelectorAll('.owner-only').forEach(el => {
+                var ownerElements = document.querySelectorAll('.owner-only');
+                for (var i = 0; i < ownerElements.length; i++) {
+                    var el = ownerElements[i];
                     if (isOwnProfile) {
                         el.classList.add('visible');
                         if (el.tagName === 'BUTTON' || el.tagName === 'DIV') {
@@ -1246,83 +1256,65 @@
                         el.classList.remove('visible');
                         el.style.display = 'none';
                     }
-                });
+                }
 
                 if (!isOwnProfile) {
-                    const editBtn = document.getElementById('editProfileBtn');
+                    var editBtn = document.getElementById('editProfileBtn');
                     if (editBtn) editBtn.style.display = 'none';
-                    const avatarBtn = document.getElementById('avatarUploadBtn');
+                    var avatarBtn = document.getElementById('avatarUploadBtn');
                     if (avatarBtn) avatarBtn.style.display = 'none';
                 }
 
-                const { data: writings, error: writingsError } = await _supabase
+                var writingsResult = await _supabase
                     .from('yata_writings')
                     .select('*')
                     .eq('author_id', profileUserId);
 
-                if (!writingsError) {
-                    allWritings = writings || [];
+                if (!writingsResult.error) {
+                    allWritings = writingsResult.data || [];
                 }
 
-                const { data: allWriters, error: writersError } = await _supabase
+                var writersResult = await _supabase
                     .from('yata_writings')
                     .select('author_id, views');
 
-                if (!writersError) {
-                    allWritersData = allWriters || [];
+                if (!writersResult.error) {
+                    allWritersData = writersResult.data || [];
                 }
 
-                // Generate member_id jika belum ada
-                if (!profile.member_id) {
-                    try {
-                        const levelMap = {
-                            'Tamu': 'tamu',
-                            'Penulis': 'penulis',
-                            'Penulis Profesional': 'penulis_profesional',
-                            'Mentor': 'mentor'
-                        };
-                        let levelKey = levelMap[profile.member_level] || 'tamu';
+                // 🔥 PERBAIKI MEMBER_ID JIKA TIDAK SESUAI LEVEL
+                if (profile.member_id) {
+                    var level = profile.member_level || 'Tamu';
+                    var prefixMap = {
+                        'Tamu': 'Yatta-T',
+                        'Penulis': 'Yatta-P',
+                        'Penulis Profesional': 'Yatta-PP',
+                        'Mentor': 'Yatta-M'
+                    };
+                    var expectedPrefix = prefixMap[level] || 'Yatta-T';
+                    
+                    if (!profile.member_id.startsWith(expectedPrefix)) {
+                        var parts = profile.member_id.split('-');
+                        var numberPart = parts.slice(2).join('-') || parts[1] || '0001';
+                        var newMemberId = expectedPrefix + '-' + numberPart;
+                        console.log('🆔 ID profil diperbaiki:', newMemberId);
                         
-                        const now = new Date();
-                        const tanggal = String(now.getDate()).padStart(2, '0');
-                        const bulan = String(now.getMonth() + 1).padStart(2, '0');
-                        const tahun = String(now.getFullYear()).slice(-2);
-                        const timestamp = String(Date.now()).slice(-4);
-                        
-                        const prefixMap = {
-                            'tamu': 'Yatta-T',
-                            'penulis': 'Yatta-P',
-                            'penulis_profesional': 'Yatta-PP',
-                            'mentor': 'Yatta-M'
-                        };
-                        const prefix = prefixMap[levelKey] || 'Yatta-T';
-                        const newMemberId = `${prefix}-${timestamp}${tanggal}${bulan}${tahun}`;
-                        
-                        if (isOwnProfile) {
-                            const { error: updateError } = await _supabase
+                        // Update di database jika pemilik profil
+                        if (isOwnProfile && session) {
+                            await _supabase
                                 .from('yata_profiles')
                                 .update({ member_id: newMemberId })
                                 .eq('id', session.user.id);
-                            
-                            if (!updateError) {
-                                profile.member_id = newMemberId;
-                            } else {
-                                profile.member_id = `${prefix}-${timestamp}${tanggal}${bulan}${tahun}`;
-                            }
+                            profile.member_id = newMemberId;
                         } else {
-                            profile.member_id = `${prefix}-${timestamp}${tanggal}${bulan}${tahun}`;
+                            profile.member_id = newMemberId;
                         }
-                    } catch (err) {
-                        console.error('Generate member_id error:', err);
-                        const now = new Date();
-                        const timestamp = String(Date.now()).slice(-4);
-                        profile.member_id = `Yatta-T-${timestamp}`;
                     }
                 }
 
                 await renderProfile(profile, session?.user);
 
-                const contentEl = document.getElementById('profileContent');
+                var contentEl = document.getElementById('profileContent');
                 if (contentEl) {
                     contentEl.classList.remove('hidden');
                 }
@@ -1336,7 +1328,7 @@
 
             } catch (err) {
                 console.error('Load profile error:', err);
-                const loadingEl = document.getElementById('loadingState');
+                var loadingEl = document.getElementById('loadingState');
                 if (loadingEl) {
                     loadingEl.innerHTML = `
                         <i class="fa-solid fa-circle-exclamation text-3xl text-red-500"></i>
@@ -1354,10 +1346,10 @@
         // ============================================
         async function renderProfile(profile, user) {
             // === AVATAR ===
-            const avatarEl = document.getElementById('profileAvatar');
+            var avatarEl = document.getElementById('profileAvatar');
             if (avatarEl) {
                 if (profile.avatar_url) {
-                    avatarEl.innerHTML = `<img src="${profile.avatar_url}" alt="Avatar" />`;
+                    avatarEl.innerHTML = '<img src="' + profile.avatar_url + '" alt="Avatar" />';
                 } else {
                     avatarEl.textContent = profile.full_name ? profile.full_name.charAt(0).toUpperCase() : '?';
                     avatarEl.className = 'avatar-large bg-emerald-100 text-emerald-700 flex items-center justify-center';
@@ -1370,7 +1362,7 @@
             setText('profileUsername', '@' + (profile.username || 'username'));
 
             // === EMAIL ===
-            const emailEl = document.getElementById('profileEmail');
+            var emailEl = document.getElementById('profileEmail');
             if (emailEl) {
                 if (isOwnProfile && user) {
                     emailEl.textContent = user.email || 'email@domain.com';
@@ -1381,30 +1373,30 @@
             }
 
             // === LEVEL ===
-            const levelMap = {
+            var levelMap = {
                 'Tamu': { icon: '🌱', class: 'level-tamu' },
                 'Penulis': { icon: '✍️', class: 'level-penulis' },
                 'Penulis Profesional': { icon: '📚', class: 'level-profesional' },
                 'Mentor': { icon: '🌟', class: 'level-mentor' }
             };
 
-            let levelName = profile.member_level || 'Tamu';
-            const lv = levelMap[levelName] || levelMap['Tamu'];
+            var levelName = profile.member_level || 'Tamu';
+            var lv = levelMap[levelName] || levelMap['Tamu'];
 
-            const levelIcon = document.getElementById('profileLevelIcon');
-            const levelNameEl = document.getElementById('profileLevelName');
-            const levelBadge = document.getElementById('profileLevel');
+            var levelIcon = document.getElementById('profileLevelIcon');
+            var levelNameEl = document.getElementById('profileLevelName');
+            var levelBadge = document.getElementById('profileLevel');
 
             if (levelIcon) levelIcon.textContent = lv.icon;
             if (levelNameEl) levelNameEl.textContent = levelName;
             if (levelBadge) {
-                levelBadge.className = `level-badge ${lv.class}`;
+                levelBadge.className = 'level-badge ' + lv.class;
             }
 
             // === STATUS LEVEL ===
-            const statusEl = document.getElementById('profileLevelStatus');
-            const rejectContainer = document.getElementById('rejectionReasonContainer');
-            const rejectText = document.getElementById('rejectionReasonText');
+            var statusEl = document.getElementById('profileLevelStatus');
+            var rejectContainer = document.getElementById('rejectionReasonContainer');
+            var rejectText = document.getElementById('rejectionReasonText');
 
             if (profile.level_status === 'pending') {
                 if (statusEl) {
@@ -1433,8 +1425,7 @@
                     }
                 }
             } else {
-                // STATUS DEFAULT: Tampilkan apakah syarat terpenuhi atau belum
-                const requirements = await checkLevelUpRequirements(profile.id);
+                var requirements = await checkLevelUpRequirements(profile.id);
                 if (statusEl) {
                     if (requirements.canLevelUp) {
                         statusEl.textContent = '✅ Syarat Terpenuhi!';
@@ -1449,7 +1440,7 @@
             }
 
             // === REPUTASI ===
-            const repEl = document.getElementById('profileReputation');
+            var repEl = document.getElementById('profileReputation');
             if (repEl) {
                 if (profile.reputation !== undefined) {
                     repEl.textContent = profile.reputation || 100;
@@ -1460,15 +1451,28 @@
                             .from('yata_profiles')
                             .update({ reputation: 100 })
                             .eq('id', user.id)
-                            .then(() => console.log('✅ Reputasi default 100 diset'));
+                            .then(function() { console.log('✅ Reputasi default 100 diset'); });
                     }
                 }
             }
 
             // === MEMBER ID ===
-            const memberIdEl = document.getElementById('profileMemberId');
+            var memberIdEl = document.getElementById('profileMemberId');
             if (memberIdEl) {
-                const memberId = profile.member_id || formatMemberId();
+                var memberId = profile.member_id || formatMemberId();
+                // 🔥 PASTIKAN ID SESUAI LEVEL
+                var prefixMap = {
+                    'Tamu': 'Yatta-T',
+                    'Penulis': 'Yatta-P',
+                    'Penulis Profesional': 'Yatta-PP',
+                    'Mentor': 'Yatta-M'
+                };
+                var expectedPrefix = prefixMap[levelName] || 'Yatta-T';
+                if (memberId && !memberId.startsWith(expectedPrefix)) {
+                    var parts = memberId.split('-');
+                    var numberPart = parts.slice(2).join('-') || parts[1] || '0001';
+                    memberId = expectedPrefix + '-' + numberPart;
+                }
                 memberIdEl.textContent = memberId;
             }
 
@@ -1476,36 +1480,49 @@
             updateKTA(profile, memberIdEl?.textContent || formatMemberId(), levelName);
 
             // === STATISTIK ===
-            const totalWritings = allWritings.length;
-            const totalViews = allWritings.reduce((sum, w) => sum + (w.views || 0), 0);
-            const totalLikes = allWritings.reduce((sum, w) => sum + (w.likes || 0), 0);
+            var totalWritings = allWritings.length;
+            var totalViews = 0;
+            for (var i = 0; i < allWritings.length; i++) {
+                totalViews += (allWritings[i].views || 0);
+            }
+            var totalLikes = 0;
+            for (var j = 0; j < allWritings.length; j++) {
+                totalLikes += (allWritings[j].likes || 0);
+            }
 
             setText('statTotalWritings', totalWritings);
             setText('statTotalReads', totalViews);
             setText('statTotalLikes', totalLikes);
 
             // === PERINGKAT ===
-            let rank = '-';
+            var rank = '-';
             if (totalViews > 0 && allWritersData.length > 0) {
-                const viewsMap = {};
-                allWritersData.forEach(w => {
+                var viewsMap = {};
+                for (var k = 0; k < allWritersData.length; k++) {
+                    var w = allWritersData[k];
                     viewsMap[w.author_id] = (viewsMap[w.author_id] || 0) + (w.views || 0);
-                });
-                const sorted = Object.entries(viewsMap).sort((a, b) => b[1] - a[1]);
-                const userRank = sorted.findIndex(([id]) => id === profile.id) + 1;
+                }
+                var sorted = Object.entries(viewsMap).sort(function(a, b) { return b[1] - a[1]; });
+                var userRank = -1;
+                for (var l = 0; l < sorted.length; l++) {
+                    if (sorted[l][0] === profile.id) {
+                        userRank = l + 1;
+                        break;
+                    }
+                }
                 if (userRank > 0) {
                     rank = userRank;
                 }
             }
-            const rankEl = document.getElementById('statRank');
+            var rankEl = document.getElementById('statRank');
             if (rankEl) {
-                rankEl.textContent = rank !== '-' ? `#${rank}` : '#-';
+                rankEl.textContent = rank !== '-' ? '#' + rank : '#-';
             }
 
             // === EDIT FORM ===
-            const editName = document.getElementById('editFullName');
-            const editUsername = document.getElementById('editUsername');
-            const editBio = document.getElementById('editBio');
+            var editName = document.getElementById('editFullName');
+            var editUsername = document.getElementById('editUsername');
+            var editBio = document.getElementById('editBio');
 
             if (editName) editName.value = profile.full_name || '';
             if (editUsername) editUsername.value = profile.username || '';
@@ -1516,24 +1533,24 @@
         }
 
         // ============================================
-        // 🔥 UPDATE PROGRESS NAIK LEVEL (DIPERBAIKI)
+        // 🔥 UPDATE PROGRESS NAIK LEVEL
         // ============================================
         async function updateLevelProgress(userId) {
             try {
                 console.log('🔄 [updateLevelProgress] Updating for user:', userId);
                 
-                const requirements = await checkLevelUpRequirements(userId);
+                var requirements = await checkLevelUpRequirements(userId);
                 
                 console.log('📊 Requirements result:', requirements);
                 
-                const totalRequired = 8; // 1 + 2 + 5
-                const achieved = requirements.onboardingCount + requirements.mandatoryMentoringCount + requirements.writingsCount;
-                const progress = Math.min(Math.round((achieved / totalRequired) * 100), 100);
+                var totalRequired = 8;
+                var achieved = requirements.onboardingCount + requirements.mandatoryMentoringCount + requirements.writingsCount;
+                var progress = Math.min(Math.round((achieved / totalRequired) * 100), 100);
 
-                console.log('📈 Progress:', { achieved, totalRequired, progress });
+                console.log('📈 Progress:', { achieved: achieved, totalRequired: totalRequired, progress: progress });
 
-                const progressBar = document.getElementById('levelProgressBar');
-                const progressLabel = document.getElementById('levelProgressLabel');
+                var progressBar = document.getElementById('levelProgressBar');
+                var progressLabel = document.getElementById('levelProgressLabel');
                 
                 if (progressBar) {
                     progressBar.style.width = progress + '%';
@@ -1549,9 +1566,9 @@
                     progressLabel.textContent = progress + '%';
                 }
 
-                const detailsContainer = document.getElementById('progressDetails');
+                var detailsContainer = document.getElementById('progressDetails');
                 if (detailsContainer) {
-                    const items = [
+                    var items = [
                         { 
                             icon: '🎓', 
                             label: 'Onboarding', 
@@ -1575,31 +1592,35 @@
                         }
                     ];
 
-                    detailsContainer.innerHTML = items.map(item => `
-                        <div class="progress-item">
-                            <span class="icon">${item.icon}</span>
-                            <span class="label">${item.label}</span>
-                            <span class="text-xs font-medium text-slate-500">${item.current}/${item.target}</span>
-                            <span class="status ${item.done ? 'done' : 'incomplete'}">${item.done ? '✅ Selesai' : '⏳ Belum'}</span>
-                        </div>
-                    `).join('');
+                    var html = '';
+                    for (var i = 0; i < items.length; i++) {
+                        var item = items[i];
+                        html += `
+                            <div class="progress-item">
+                                <span class="icon">${item.icon}</span>
+                                <span class="label">${item.label}</span>
+                                <span class="text-xs font-medium text-slate-500">${item.current}/${item.target}</span>
+                                <span class="status ${item.done ? 'done' : 'incomplete'}">${item.done ? '✅ Selesai' : '⏳ Belum'}</span>
+                            </div>
+                        `;
+                    }
+                    detailsContainer.innerHTML = html;
                 }
 
                 // Update tombol level up
-                const btnLevelUp = document.getElementById('btnLevelUp');
-                const statusEl = document.getElementById('levelUpStatus');
+                var btnLevelUp = document.getElementById('btnLevelUp');
+                var statusEl = document.getElementById('levelUpStatus');
 
                 if (btnLevelUp && statusEl) {
-                    // Cek status dari profile
-                    const { data: profile, error } = await _supabase
+                    var profileResult = await _supabase
                         .from('yata_profiles')
                         .select('level_status, rejection_reason')
                         .eq('id', userId)
                         .single();
 
-                    console.log('📋 Profile status:', profile);
+                    console.log('📋 Profile status:', profileResult.data);
 
-                    const levelStatus = profile?.level_status || '';
+                    var levelStatus = profileResult.data?.level_status || '';
 
                     if (levelStatus === 'pending') {
                         btnLevelUp.disabled = true;
@@ -1617,8 +1638,8 @@
                         btnLevelUp.disabled = false;
                         btnLevelUp.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
                         btnLevelUp.className = 'w-full bg-yellow-400 hover:bg-yellow-300 text-emerald-900 font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2';
-                        const reason = profile?.rejection_reason || 'Belum memenuhi syarat.';
-                        statusEl.textContent = `❌ Pengajuan ditolak. ${reason}`;
+                        var reason = profileResult.data?.rejection_reason || 'Belum memenuhi syarat.';
+                        statusEl.textContent = '❌ Pengajuan ditolak. ' + reason;
                         statusEl.className = 'text-xs text-red-600 mt-1 text-center block';
                     } else if (requirements.canLevelUp) {
                         btnLevelUp.disabled = false;
@@ -1643,15 +1664,15 @@
         // AJUKAN NAIK LEVEL
         // ============================================
         async function submitLevelUpRequest() {
-            const btn = document.getElementById('btnLevelUp');
-            const statusEl = document.getElementById('levelUpStatus');
+            var btn = document.getElementById('btnLevelUp');
+            var statusEl = document.getElementById('levelUpStatus');
             
             if (statusEl) {
                 statusEl.className = 'text-xs text-slate-500 mt-1 text-center hidden';
             }
             
             try {
-                const session = await checkAuth();
+                var session = await checkAuth();
                 if (!session) {
                     if (statusEl) {
                         statusEl.textContent = 'Silakan login terlebih dahulu.';
@@ -1668,19 +1689,21 @@
                     return;
                 }
 
-                const { data: profile, error: profileError } = await _supabase
+                var profileResult = await _supabase
                     .from('yata_profiles')
                     .select('member_level, level_status, rejection_reason')
                     .eq('id', session.user.id)
                     .single();
 
-                if (profileError) {
+                if (profileResult.error) {
                     if (statusEl) {
                         statusEl.textContent = 'Gagal memuat data profil.';
                         statusEl.className = 'text-xs text-red-400 mt-1 text-center block';
                     }
                     return;
                 }
+
+                var profile = profileResult.data;
 
                 if (profile.level_status === 'pending') {
                     if (statusEl) {
@@ -1698,11 +1721,11 @@
                     return;
                 }
 
-                const requirements = await checkLevelUpRequirements(session.user.id);
+                var requirements = await checkLevelUpRequirements(session.user.id);
                 
                 if (!requirements.canLevelUp) {
                     if (statusEl) {
-                        statusEl.textContent = `⚠️ Syarat belum terpenuhi. ${requirements.message}`;
+                        statusEl.textContent = '⚠️ Syarat belum terpenuhi. ' + requirements.message;
                         statusEl.className = 'text-xs text-amber-600 mt-1 text-center block';
                     }
                     return;
@@ -1713,15 +1736,15 @@
                     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
                 }
 
-                const { data: admins, error: adminError } = await _supabase
+                var adminsResult = await _supabase
                     .from('yata_profiles')
                     .select('id')
                     .eq('role', 'admin');
 
-                if (admins && admins.length > 0) {
-                    const notifContent = `📢 Member mengajukan naik level ke "Penulis".\n\n📊 Data:\n- Level saat ini: ${profile.member_level}\n- Target: Penulis\n- Onboarding: ${requirements.onboardingCount}/1\n- Mentoring Admin: ${requirements.mandatoryMentoringCount}/2\n- Karya: ${requirements.writingsCount}/5\n- User: ${session.user.email}`;
+                if (adminsResult.data && adminsResult.data.length > 0) {
+                    var notifContent = '📢 Member mengajukan naik level ke "Penulis".\n\n📊 Data:\n- Level saat ini: ' + profile.member_level + '\n- Target: Penulis\n- Onboarding: ' + requirements.onboardingCount + '/1\n- Mentoring Admin: ' + requirements.mandatoryMentoringCount + '/2\n- Karya: ' + requirements.writingsCount + '/5\n- User: ' + session.user.email;
 
-                    const { data: notifData, error: notifError } = await _supabase
+                    var notifResult = await _supabase
                         .from('yata_notifications')
                         .insert([{
                             title: '📢 Pengajuan Naik Level',
@@ -1731,12 +1754,15 @@
                         .select()
                         .single();
 
-                    if (notifData) {
-                        const entries = admins.map(admin => ({
-                            notification_id: notifData.id,
-                            user_id: admin.id,
-                            is_read: false
-                        }));
+                    if (notifResult.data) {
+                        var entries = [];
+                        for (var i = 0; i < adminsResult.data.length; i++) {
+                            entries.push({
+                                notification_id: notifResult.data.id,
+                                user_id: adminsResult.data[i].id,
+                                is_read: false
+                            });
+                        }
                         await _supabase
                             .from('yata_user_notifications')
                             .insert(entries);
@@ -1759,11 +1785,11 @@
                 await sendNotification(
                     session.user.id,
                     '⭐ Pengajuan Naik Level Dikirim!',
-                    `Pengajuan naik level ke "Penulis" telah dikirim ke admin. Mohon tunggu verifikasi.`,
+                    'Pengajuan naik level ke "Penulis" telah dikirim ke admin. Mohon tunggu verifikasi.',
                     'campaign'
                 );
 
-                setTimeout(() => {
+                setTimeout(function() {
                     if (btn) {
                         btn.disabled = false;
                         btn.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
@@ -1785,37 +1811,54 @@
         }
 
         // ============================================
-        // UPDATE KTA
+        // 🔥 UPDATE KTA - DIPERBAIKI (ID SESUAI LEVEL)
         // ============================================
         function updateKTA(profile, memberId, levelName) {
-            const level = levelName || 'Tamu';
-            const levelIcons = {
+            var level = levelName || 'Tamu';
+            var levelIcons = {
                 'Tamu': '🌱',
                 'Penulis': '✍️',
                 'Penulis Profesional': '📚',
                 'Mentor': '🌟'
             };
-            const ktaClasses = {
+            var ktaClasses = {
                 'Tamu': 'kta-tamu',
                 'Penulis': 'kta-penulis',
                 'Penulis Profesional': 'kta-profesional',
                 'Mentor': 'kta-mentor'
             };
 
-            const name = profile.full_name || 'Member';
-            const finalMemberId = memberId || formatMemberId();
-            const validDate = getKTAValidDate();
-
-            const preview = document.getElementById('ktaPreview');
-            if (preview) {
-                preview.className = `kta-small ${ktaClasses[level] || 'kta-tamu'}`;
+            var name = profile.full_name || 'Member';
+            var finalMemberId = memberId || formatMemberId();
+            
+            // 🔥 PASTIKAN ID SESUAI LEVEL
+            var prefixMap = {
+                'Tamu': 'Yatta-T',
+                'Penulis': 'Yatta-P',
+                'Penulis Profesional': 'Yatta-PP',
+                'Mentor': 'Yatta-M'
+            };
+            var expectedPrefix = prefixMap[level] || 'Yatta-T';
+            
+            if (finalMemberId && !finalMemberId.startsWith(expectedPrefix)) {
+                var parts = finalMemberId.split('-');
+                var numberPart = parts.slice(2).join('-') || parts[1] || '0001';
+                finalMemberId = expectedPrefix + '-' + numberPart;
+                console.log('🆔 ID KTA di profile diperbaiki menjadi:', finalMemberId);
             }
             
-            const iconEl = document.getElementById('ktaIcon');
-            const nameEl = document.getElementById('ktaName');
-            const levelEl = document.getElementById('ktaLevel');
-            const idEl = document.getElementById('ktaId');
-            const validEl = document.getElementById('ktaValid');
+            var validDate = getKTAValidDate();
+
+            var preview = document.getElementById('ktaPreview');
+            if (preview) {
+                preview.className = 'kta-small ' + (ktaClasses[level] || 'kta-tamu');
+            }
+            
+            var iconEl = document.getElementById('ktaIcon');
+            var nameEl = document.getElementById('ktaName');
+            var levelEl = document.getElementById('ktaLevel');
+            var idEl = document.getElementById('ktaId');
+            var validEl = document.getElementById('ktaValid');
 
             if (iconEl) iconEl.textContent = levelIcons[level] || '🌱';
             if (nameEl) nameEl.textContent = name;
@@ -1835,26 +1878,51 @@
         }
 
         // ============================================
-        // VIEW FULL KTA
+        // 🔥 VIEW FULL KTA - DIPERBAIKI (ID SESUAI LEVEL)
         // ============================================
         function viewFullKTA() {
-            const data = currentKtaData;
+            var data = currentKtaData;
             if (!data) return;
 
-            const { level, icon, ktaClasses, name, memberId, validDate } = data;
+            var level = data.level || 'Tamu';
+            var icon = data.icon || '🌱';
+            var ktaClasses = data.ktaClasses || {
+                'Tamu': 'kta-tamu',
+                'Penulis': 'kta-penulis',
+                'Penulis Profesional': 'kta-profesional',
+                'Mentor': 'kta-mentor'
+            };
+            var name = data.name || 'Member';
+            var memberId = data.memberId || formatMemberId();
+            var validDate = data.validDate || getKTAValidDate();
+            
+            // 🔥 PASTIKAN ID SESUAI LEVEL
+            var prefixMap = {
+                'Tamu': 'Yatta-T',
+                'Penulis': 'Yatta-P',
+                'Penulis Profesional': 'Yatta-PP',
+                'Mentor': 'Yatta-M'
+            };
+            var expectedPrefix = prefixMap[level] || 'Yatta-T';
+            
+            if (memberId && !memberId.startsWith(expectedPrefix)) {
+                var parts = memberId.split('-');
+                var numberPart = parts.slice(2).join('-') || parts[1] || '0001';
+                memberId = expectedPrefix + '-' + numberPart;
+            }
 
-            const container = document.getElementById('ktaFullPreview');
+            var container = document.getElementById('ktaFullPreview');
             if (container) {
-                container.className = `kta-card ${ktaClasses[level] || 'kta-tamu'}`;
+                container.className = 'kta-card ' + (ktaClasses[level] || 'kta-tamu');
                 container.style.maxWidth = '360px';
                 container.style.width = '100%';
             }
 
-            const iconEl = document.getElementById('ktaFullIcon');
-            const nameEl = document.getElementById('ktaFullName');
-            const levelEl = document.getElementById('ktaFullLevel');
-            const idEl = document.getElementById('ktaFullId');
-            const validEl = document.getElementById('ktaFullValid');
+            var iconEl = document.getElementById('ktaFullIcon');
+            var nameEl = document.getElementById('ktaFullName');
+            var levelEl = document.getElementById('ktaFullLevel');
+            var idEl = document.getElementById('ktaFullId');
+            var validEl = document.getElementById('ktaFullValid');
 
             if (iconEl) iconEl.textContent = icon;
             if (nameEl) nameEl.textContent = name;
@@ -1862,22 +1930,22 @@
             if (idEl) idEl.textContent = memberId;
             if (validEl) validEl.textContent = validDate || getKTAValidDate();
 
-            const msgEl = document.getElementById('ktaMessage');
+            var msgEl = document.getElementById('ktaMessage');
             if (msgEl) msgEl.className = 'text-sm text-center hidden';
             
-            const downloadBtn = document.getElementById('downloadKtaBtn');
+            var downloadBtn = document.getElementById('downloadKtaBtn');
             if (downloadBtn) {
                 downloadBtn.disabled = false;
                 downloadBtn.innerHTML = '<i class="fa-solid fa-download"></i> Unduh KTA (PNG)';
             }
             
-            const emailBtn = document.getElementById('sendKtaEmailBtn');
+            var emailBtn = document.getElementById('sendKtaEmailBtn');
             if (emailBtn) {
                 emailBtn.disabled = false;
                 emailBtn.innerHTML = '<i class="fa-regular fa-envelope"></i> Kirim ke Email';
             }
 
-            const modal = document.getElementById('ktaModal');
+            var modal = document.getElementById('ktaModal');
             if (modal) {
                 modal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
@@ -1885,12 +1953,12 @@
         }
 
         function closeKtaModal() {
-            const modal = document.getElementById('ktaModal');
+            var modal = document.getElementById('ktaModal');
             if (modal) {
                 modal.classList.add('hidden');
                 document.body.style.overflow = 'auto';
             }
-            const msgEl = document.getElementById('ktaMessage');
+            var msgEl = document.getElementById('ktaMessage');
             if (msgEl) msgEl.className = 'text-sm text-center hidden';
         }
 
@@ -1899,8 +1967,8 @@
         // ============================================
         function shareKTA() {
             if (!currentKtaData) return;
-            const url = window.location.origin + '/profile.html?id=' + (currentProfile?.id || '');
-            const title = `KTA Yatta - ${currentKtaData.name || 'Member'}`;
+            var url = window.location.origin + '/profile.html?id=' + (currentProfile?.id || '');
+            var title = 'KTA Yatta - ' + (currentKtaData.name || 'Member');
             openShareDialog(title, url, 'KTA');
         }
 
@@ -1910,13 +1978,13 @@
         async function downloadKTA() {
             if (isDownloadingKTA) return;
             
-            const element = document.getElementById('ktaFullPreview');
+            var element = document.getElementById('ktaFullPreview');
             if (!element) {
                 showKtaMessage('KTA tidak ditemukan.', 'error');
                 return;
             }
 
-            const btn = document.getElementById('downloadKtaBtn');
+            var btn = document.getElementById('downloadKtaBtn');
             isDownloadingKTA = true;
             if (btn) {
                 btn.disabled = true;
@@ -1925,7 +1993,7 @@
             showKtaMessage('', '');
 
             try {
-                const canvas = await html2canvas(element, {
+                var canvas = await html2canvas(element, {
                     scale: 3,
                     backgroundColor: null,
                     allowTaint: true,
@@ -1937,16 +2005,16 @@
                     windowHeight: element.scrollHeight,
                 });
 
-                const link = document.createElement('a');
-                const name = currentKtaData?.name || 'Member';
-                link.download = `KTA_Yatta_${name.replace(/\s/g, '_')}.png`;
+                var link = document.createElement('a');
+                var name = currentKtaData?.name || 'Member';
+                link.download = 'KTA_Yatta_' + name.replace(/\s/g, '_') + '.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
 
                 showKtaMessage('✅ KTA berhasil diunduh!', 'success');
                 
                 try {
-                    const session = await checkAuth();
+                    var session = await checkAuth();
                     if (session) {
                         await _supabase
                             .from('yata_activity_logs')
@@ -1981,7 +2049,7 @@
                 return;
             }
 
-            const btn = document.getElementById('sendKtaEmailBtn');
+            var btn = document.getElementById('sendKtaEmailBtn');
             if (btn) {
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
@@ -1989,23 +2057,23 @@
             showKtaMessage('', '');
 
             try {
-                const session = await checkAuth();
+                var session = await checkAuth();
                 if (!session) {
                     showKtaMessage('Silakan login terlebih dahulu.', 'error');
                     return;
                 }
 
-                const { data: profile, error } = await _supabase
+                var profileResult = await _supabase
                     .from('yata_profiles')
                     .select('email')
                     .eq('id', session.user.id)
                     .single();
 
-                if (error) throw error;
+                if (profileResult.error) throw profileResult.error;
 
-                const notifContent = `📧 KTA Anda telah dikirim ke email ${profile.email || 'Anda'}. Silakan cek kotak masuk (termasuk spam).`;
+                var notifContent = '📧 KTA Anda telah dikirim ke email ' + (profileResult.data.email || 'Anda') + '. Silakan cek kotak masuk (termasuk spam).';
 
-                const { data: notifData } = await _supabase
+                var notifResult = await _supabase
                     .from('yata_notifications')
                     .insert([{
                         title: '📧 KTA Dikirim ke Email',
@@ -2015,11 +2083,11 @@
                     .select()
                     .single();
 
-                if (notifData) {
+                if (notifResult.data) {
                     await _supabase
                         .from('yata_user_notifications')
                         .insert([{
-                            notification_id: notifData.id,
+                            notification_id: notifResult.data.id,
                             user_id: session.user.id,
                             is_read: false
                         }]);
@@ -2030,10 +2098,10 @@
                     .insert([{
                         user_id: session.user.id,
                         action: 'send_kta_email',
-                        details: { email: profile.email, timestamp: new Date().toISOString() }
+                        details: { email: profileResult.data.email, timestamp: new Date().toISOString() }
                     }]);
 
-                showKtaMessage(`✅ KTA telah dikirim ke email ${profile.email || 'Anda'}! Cek kotak masuk (termasuk spam).`, 'success');
+                showKtaMessage('✅ KTA telah dikirim ke email ' + (profileResult.data.email || 'Anda') + '! Cek kotak masuk (termasuk spam).', 'success');
 
             } catch (err) {
                 console.error('Send KTA email error:', err);
@@ -2047,15 +2115,14 @@
         }
 
         function showKtaMessage(text, type) {
-            const msg = document.getElementById('ktaMessage');
+            var msg = document.getElementById('ktaMessage');
             if (!msg) return;
             
             msg.textContent = text;
-            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
-                type === 'success' ? 'text-emerald-600' :
-                type === 'error' ? 'text-red-600' :
-                ''
-            }`;
+            var className = 'text-sm text-center ' + (type ? 'block' : 'hidden');
+            if (type === 'success') className += ' text-emerald-600';
+            else if (type === 'error') className += ' text-red-600';
+            msg.className = className;
         }
 
         // ============================================
@@ -2066,29 +2133,29 @@
                 showError('Anda tidak memiliki akses untuk mengubah foto profil ini.', 'Akses Ditolak');
                 return;
             }
-            const modal = document.getElementById('avatarModal');
+            var modal = document.getElementById('avatarModal');
             if (modal) {
                 modal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
             }
-            const preview = document.getElementById('avatarPreview');
+            var preview = document.getElementById('avatarPreview');
             if (preview) {
                 if (currentAvatarUrl) {
-                    preview.innerHTML = `<img src="${currentAvatarUrl}" class="w-full h-full object-cover" />`;
+                    preview.innerHTML = '<img src="' + currentAvatarUrl + '" class="w-full h-full object-cover" />';
                 } else {
                     preview.innerHTML = '<i class="fa-regular fa-user text-4xl"></i>';
                     preview.className = 'w-32 h-32 rounded-full bg-slate-200 flex items-center justify-center text-4xl text-slate-400 overflow-hidden border-4 border-emerald-200';
                 }
             }
-            const input = document.getElementById('avatarInput');
+            var input = document.getElementById('avatarInput');
             if (input) input.value = '';
             selectedFile = null;
-            const uploadBtn = document.getElementById('uploadAvatarBtn');
+            var uploadBtn = document.getElementById('uploadAvatarBtn');
             if (uploadBtn) uploadBtn.disabled = true;
         }
 
         function closeAvatarUpload() {
-            const modal = document.getElementById('avatarModal');
+            var modal = document.getElementById('avatarModal');
             if (modal) {
                 modal.classList.add('hidden');
                 document.body.style.overflow = 'auto';
@@ -2096,7 +2163,7 @@
         }
 
         function previewAvatar(event) {
-            const file = event.target.files[0];
+            var file = event.target.files[0];
             if (!file) {
                 showError('Silakan pilih file gambar.', 'Info');
                 return;
@@ -2108,21 +2175,21 @@
                 return;
             }
 
-            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            if (!allowedTypes.includes(file.type)) {
+            var allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (allowedTypes.indexOf(file.type) === -1) {
                 showError('Format file tidak didukung. Gunakan JPG, PNG, GIF, atau WEBP.', 'Validasi Gagal');
                 event.target.value = '';
                 return;
             }
 
             selectedFile = file;
-            const reader = new FileReader();
+            var reader = new FileReader();
             reader.onload = function(e) {
-                const preview = document.getElementById('avatarPreview');
+                var preview = document.getElementById('avatarPreview');
                 if (preview) {
-                    preview.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover rounded-full" />`;
+                    preview.innerHTML = '<img src="' + e.target.result + '" class="w-full h-full object-cover rounded-full" />';
                 }
-                const uploadBtn = document.getElementById('uploadAvatarBtn');
+                var uploadBtn = document.getElementById('uploadAvatarBtn');
                 if (uploadBtn) uploadBtn.disabled = false;
             };
             reader.readAsDataURL(file);
@@ -2139,41 +2206,41 @@
                 return;
             }
 
-            const btn = document.getElementById('uploadAvatarBtn');
+            var btn = document.getElementById('uploadAvatarBtn');
             if (btn) {
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengupload...';
             }
 
             try {
-                const session = await checkAuth();
+                var session = await checkAuth();
                 if (!session) {
                     showError('Silakan login terlebih dahulu.', 'Info');
                     return;
                 }
 
-                const fileExt = selectedFile.name.split('.').pop();
-                const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
-                const filePath = `avatars/${fileName}`;
+                var fileExt = selectedFile.name.split('.').pop();
+                var fileName = currentUser.id + '-' + Date.now() + '.' + fileExt;
+                var filePath = 'avatars/' + fileName;
 
-                const { data: uploadData, error: uploadError } = await _supabase.storage
+                var uploadResult = await _supabase.storage
                     .from('avatars')
                     .upload(filePath, selectedFile);
 
-                if (uploadError) throw uploadError;
+                if (uploadResult.error) throw uploadResult.error;
 
-                const { data: urlData } = _supabase.storage
+                var urlResult = _supabase.storage
                     .from('avatars')
                     .getPublicUrl(filePath);
 
-                const avatarUrl = urlData.publicUrl;
+                var avatarUrl = urlResult.data.publicUrl;
 
-                const { error: updateError } = await _supabase
+                var updateResult = await _supabase
                     .from('yata_profiles')
                     .update({ avatar_url: avatarUrl })
                     .eq('id', currentUser.id);
 
-                if (updateError) throw updateError;
+                if (updateResult.error) throw updateResult.error;
 
                 currentAvatarUrl = avatarUrl;
                 showError('✅ Foto profil berhasil diupload!', 'Sukses');
@@ -2199,15 +2266,15 @@
             if (!confirm('Yakin ingin menghapus foto profil?')) return;
 
             try {
-                const session = await checkAuth();
+                var session = await checkAuth();
                 if (!session) return;
 
-                const { error } = await _supabase
+                var updateResult = await _supabase
                     .from('yata_profiles')
                     .update({ avatar_url: null })
                     .eq('id', session.user.id);
 
-                if (error) throw error;
+                if (updateResult.error) throw updateResult.error;
 
                 currentAvatarUrl = null;
                 showError('✅ Foto profil dihapus.', 'Sukses');
@@ -2227,7 +2294,7 @@
                 showError('Anda tidak memiliki akses untuk mengedit profil ini.', 'Akses Ditolak');
                 return;
             }
-            const modal = document.getElementById('editProfileModal');
+            var modal = document.getElementById('editProfileModal');
             if (modal) {
                 modal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
@@ -2235,7 +2302,7 @@
         }
 
         function closeEditProfile() {
-            const modal = document.getElementById('editProfileModal');
+            var modal = document.getElementById('editProfileModal');
             if (modal) {
                 modal.classList.add('hidden');
                 document.body.style.overflow = 'auto';
@@ -2250,9 +2317,9 @@
                 return;
             }
 
-            const fullName = document.getElementById('editFullName').value.trim();
-            const username = document.getElementById('editUsername').value.trim().toLowerCase().replace(/\s/g, '');
-            const bio = document.getElementById('editBio').value.trim().slice(0, 160);
+            var fullName = document.getElementById('editFullName').value.trim();
+            var username = document.getElementById('editUsername').value.trim().toLowerCase().replace(/\s/g, '');
+            var bio = document.getElementById('editBio').value.trim().slice(0, 160);
 
             if (!fullName) {
                 showError('Nama lengkap wajib diisi.', 'Validasi Gagal');
@@ -2264,20 +2331,20 @@
                 return;
             }
 
-            const submitBtn = this.querySelector('button[type="submit"]');
+            var submitBtn = this.querySelector('button[type="submit"]');
             if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...';
             }
 
             try {
-                const session = await checkAuth();
+                var session = await checkAuth();
                 if (!session) {
                     showError('Silakan login terlebih dahulu.', 'Info');
                     return;
                 }
 
-                const { error } = await _supabase
+                var updateResult = await _supabase
                     .from('yata_profiles')
                     .update({
                         full_name: fullName,
@@ -2287,7 +2354,7 @@
                     })
                     .eq('id', session.user.id);
 
-                if (error) throw error;
+                if (updateResult.error) throw updateResult.error;
 
                 showError('✅ Profil berhasil diperbarui!', 'Sukses');
                 closeEditProfile();
@@ -2311,7 +2378,7 @@
                 showError('Anda tidak memiliki akses untuk mengubah password.', 'Akses Ditolak');
                 return;
             }
-            const modal = document.getElementById('passwordModal');
+            var modal = document.getElementById('passwordModal');
             if (modal) {
                 modal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
@@ -2319,7 +2386,7 @@
         }
 
         function closePasswordModal() {
-            const modal = document.getElementById('passwordModal');
+            var modal = document.getElementById('passwordModal');
             if (modal) {
                 modal.classList.add('hidden');
                 document.body.style.overflow = 'auto';
@@ -2334,9 +2401,9 @@
                 return;
             }
 
-            const currentPass = document.getElementById('currentPassword').value;
-            const newPass = document.getElementById('newPassword').value;
-            const confirmPass = document.getElementById('confirmNewPassword').value;
+            var currentPass = document.getElementById('currentPassword').value;
+            var newPass = document.getElementById('newPassword').value;
+            var confirmPass = document.getElementById('confirmNewPassword').value;
 
             if (newPass.length < 6) {
                 showError('Password baru minimal 6 karakter.', 'Validasi Gagal');
@@ -2348,25 +2415,25 @@
                 return;
             }
 
-            const submitBtn = this.querySelector('button[type="submit"]');
+            var submitBtn = this.querySelector('button[type="submit"]');
             if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memproses...';
             }
 
             try {
-                const session = await checkAuth();
+                var session = await checkAuth();
                 if (!session) return;
 
-                const { error } = await _supabase.auth.updateUser({
+                var updateResult = await _supabase.auth.updateUser({
                     password: newPass
                 });
 
-                if (error) {
-                    if (error.message.includes('Invalid')) {
+                if (updateResult.error) {
+                    if (updateResult.error.message.indexOf('Invalid') !== -1) {
                         showError('Password saat ini salah. Silakan coba lagi.', 'Error');
                     } else {
-                        throw error;
+                        throw updateResult.error;
                     }
                     return;
                 }
@@ -2391,42 +2458,54 @@
         async function loadUserCampaigns() {
             if (!isOwnProfile) return;
             
-            const container = document.getElementById('userCampaigns');
+            var container = document.getElementById('userCampaigns');
             if (!container) return;
             
             try {
-                const session = await checkAuth();
+                var session = await checkAuth();
                 if (!session) return;
 
-                const { data: campaigns, error } = await _supabase
+                var campaignsResult = await _supabase
                     .from('yata_community_campaigns')
                     .select('*')
                     .eq('creator_id', session.user.id)
                     .order('created_at', { ascending: false })
                     .limit(5);
 
-                if (error) throw error;
+                if (campaignsResult.error) throw campaignsResult.error;
+
+                var campaigns = campaignsResult.data || [];
 
                 if (campaigns && campaigns.length > 0) {
-                    const communityIds = [...new Set(campaigns.map(c => c.community_id).filter(id => id))];
-                    
-                    let communityMap = {};
-                    if (communityIds.length > 0) {
-                        const { data: communities, error: commError } = await _supabase
-                            .from('yata_communities')
-                            .select('id, name')
-                            .in('id', communityIds);
-                        
-                        if (!commError && communities) {
-                            communities.forEach(c => {
-                                communityMap[c.id] = c;
-                            });
+                    var communityIds = [];
+                    for (var i = 0; i < campaigns.length; i++) {
+                        if (campaigns[i].community_id) communityIds.push(campaigns[i].community_id);
+                    }
+                    var uniqueCommunityIds = [];
+                    for (var j = 0; j < communityIds.length; j++) {
+                        if (uniqueCommunityIds.indexOf(communityIds[j]) === -1) {
+                            uniqueCommunityIds.push(communityIds[j]);
                         }
                     }
                     
-                    campaigns.forEach(c => {
-                        c.community = communityMap[c.community_id] || null;
-                    });
+                    var communityMap = {};
+                    if (uniqueCommunityIds.length > 0) {
+                        var communitiesResult = await _supabase
+                            .from('yata_communities')
+                            .select('id, name')
+                            .in('id', uniqueCommunityIds);
+                        
+                        if (!communitiesResult.error && communitiesResult.data) {
+                            for (var k = 0; k < communitiesResult.data.length; k++) {
+                                var c = communitiesResult.data[k];
+                                communityMap[c.id] = c;
+                            }
+                        }
+                    }
+                    
+                    for (var l = 0; l < campaigns.length; l++) {
+                        campaigns[l].community = communityMap[campaigns[l].community_id] || null;
+                    }
                 }
 
                 if (!campaigns || campaigns.length === 0) {
@@ -2442,43 +2521,49 @@
                     return;
                 }
 
-                const statusLabels = {
+                var statusLabels = {
                     pending: '⏳ Menunggu Verifikasi',
                     approved: '✅ Terverifikasi',
                     rejected: '❌ Ditolak'
                 };
 
-                const statusColors = {
+                var statusColors = {
                     pending: 'bg-yellow-100 text-yellow-700',
                     approved: 'bg-emerald-100 text-emerald-700',
                     rejected: 'bg-red-100 text-red-700'
                 };
 
-                container.innerHTML = campaigns.map(c => `
-                    <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 hover:shadow-sm transition">
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <h4 class="font-bold text-slate-800 text-sm truncate">${c.title}</h4>
-                                    <span class="text-xs px-2 py-0.5 rounded-full ${statusColors[c.verification_status] || 'bg-yellow-100 text-yellow-700'}">
-                                        ${statusLabels[c.verification_status] || '⏳ Menunggu'}
-                                    </span>
-                                </div>
-                                <p class="text-xs text-slate-500">Komunitas: ${c.community?.name || '-'}</p>
-                                <p class="text-xs text-slate-400 mt-1 line-clamp-1">${c.description || 'Tidak ada deskripsi'}</p>
-                                ${c.target_progress > 0 ? `
-                                    <div class="mt-1 flex items-center gap-2 text-[10px] text-slate-400">
-                                        <span>Progress: ${c.current_progress || 0}/${c.target_progress}</span>
+                var html = '';
+                for (var m = 0; m < campaigns.length; m++) {
+                    var c2 = campaigns[m];
+                    html += `
+                        <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 hover:shadow-sm transition">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <h4 class="font-bold text-slate-800 text-sm truncate">${c2.title}</h4>
+                                        <span class="text-xs px-2 py-0.5 rounded-full ${statusColors[c2.verification_status] || 'bg-yellow-100 text-yellow-700'}">
+                                            ${statusLabels[c2.verification_status] || '⏳ Menunggu'}
+                                        </span>
                                     </div>
-                                ` : ''}
+                                    <p class="text-xs text-slate-500">Komunitas: ${c2.community?.name || '-'}</p>
+                                    <p class="text-xs text-slate-400 mt-1 line-clamp-1">${c2.description || 'Tidak ada deskripsi'}</p>
+                                    ${c2.target_progress > 0 ? `
+                                        <div class="mt-1 flex items-center gap-2 text-[10px] text-slate-400">
+                                            <span>Progress: ${c2.current_progress || 0}/${c2.target_progress}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <span class="text-[10px] text-slate-400 flex-shrink-0">${new Date(c2.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
                             </div>
-                            <span class="text-[10px] text-slate-400 flex-shrink-0">${new Date(c.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
+                            ${c2.rejection_reason ? `
+                                <p class="text-xs text-red-500 mt-1">❌ ${c2.rejection_reason}</p>
+                            ` : ''}
                         </div>
-                        ${c.rejection_reason ? `
-                            <p class="text-xs text-red-500 mt-1">❌ ${c.rejection_reason}</p>
-                        ` : ''}
-                    </div>
-                `).join('');
+                    `;
+                }
+
+                container.innerHTML = html;
 
             } catch (err) {
                 console.error('Load user campaigns error:', err);
@@ -2501,11 +2586,11 @@
 
             if (confirm('Yakin ingin keluar?')) {
                 try {
-                    const { error } = await _supabase.auth.signOut();
-                    if (!error) {
+                    var result = await _supabase.auth.signOut();
+                    if (!result.error) {
                         window.location.href = 'login.html';
                     } else {
-                        console.error('Logout error:', error);
+                        console.error('Logout error:', result.error);
                     }
                 } catch (err) {
                     console.error('Logout error:', err);
@@ -2516,7 +2601,7 @@
         // ============================================
         // EVENT LISTENERS
         // ============================================
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', function() {
             loadProfile();
 
             document.getElementById('btnLogout').addEventListener('click', handleLogout);
@@ -2526,9 +2611,12 @@
                 document.getElementById('mobileMenu').classList.toggle('hidden');
             });
 
-            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(el => {
-                el.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
-            });
+            var mobileLinks = document.querySelectorAll('#mobileMenu a, #mobileMenu button');
+            for (var i = 0; i < mobileLinks.length; i++) {
+                mobileLinks[i].addEventListener('click', function() {
+                    document.getElementById('mobileMenu').classList.add('hidden');
+                });
+            }
 
             document.getElementById('avatarModal').addEventListener('click', function(e) {
                 if (e.target === this) closeAvatarUpload();
@@ -2547,7 +2635,7 @@
             });
 
             document.addEventListener('click', function(e) {
-                const modal = document.getElementById('projectAccessModal');
+                var modal = document.getElementById('projectAccessModal');
                 if (modal && e.target === modal) {
                     closeProjectAccessModal();
                 }

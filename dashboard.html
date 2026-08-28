@@ -1263,16 +1263,12 @@
         }
 
         // ============================================
-        // 🔥 CEK SYARAT NAIK LEVEL - DIPERBAIKI
+        // 🔥 CEK SYARAT NAIK LEVEL
         // ============================================
         async function checkLevelUpRequirements(userId) {
             try {
                 console.log('🔍 [checkLevelUpRequirements] Checking for user:', userId);
                 
-                // ============================================
-                // 1. CEK ONBOARDING - QUERY SEDERHANA
-                // ============================================
-                // Ambil semua session yang diikuti user
                 var partResult = await _supabase
                     .from('yata_mentoring_participants')
                     .select('session_id, attended')
@@ -1294,7 +1290,6 @@
                 var attendedSessionIds = participants.map(function(p) { return p.session_id; });
                 console.log('📊 Attended session IDs:', attendedSessionIds);
 
-                // Cek onboarding
                 var onboardingCount = 0;
                 if (attendedSessionIds.length > 0) {
                     var onResult = await _supabase
@@ -1311,9 +1306,6 @@
                     }
                 }
 
-                // ============================================
-                // 2. CEK MENTORING ADMIN
-                // ============================================
                 var mandatoryMentoringCount = 0;
                 if (attendedSessionIds.length > 0) {
                     var manResult = await _supabase
@@ -1331,9 +1323,6 @@
                     }
                 }
 
-                // ============================================
-                // 3. CEK KARYA
-                // ============================================
                 var writingsResult = await _supabase
                     .from('yata_writings')
                     .select('*', { count: 'exact', head: true })
@@ -1346,9 +1335,6 @@
                 var finalWritings = writingsResult.count || 0;
                 console.log('✍️ Writings count:', finalWritings);
 
-                // ============================================
-                // 4. HITUNG SYARAT
-                // ============================================
                 var finalOnboarding = onboardingCount || 0;
                 var finalMandatory = mandatoryMentoringCount || 0;
 
@@ -1388,7 +1374,7 @@
         }
 
         // ============================================
-        // UPDATE TOMBOL NAIK LEVEL - DIPERBAIKI
+        // UPDATE TOMBOL NAIK LEVEL
         // ============================================
         async function updateLevelUpButton() {
             try {
@@ -1403,7 +1389,6 @@
                     return;
                 }
 
-                // Ambil data profil
                 var profileResult = await _supabase
                     .from('yata_profiles')
                     .select('member_level, level_status, rejection_reason')
@@ -1420,18 +1405,15 @@
                 var profile = profileResult.data;
                 console.log('📋 Profile data:', profile);
 
-                // Cek syarat
                 var requirements = await checkLevelUpRequirements(session.user.id);
                 console.log('📊 Requirements:', requirements);
 
-                // Reset state
                 if (statusEl) {
                     statusEl.className = 'text-xs text-slate-500 mt-1 text-center hidden';
                 }
                 btn.disabled = false;
                 btn.className = 'w-full bg-yellow-400 hover:bg-yellow-300 text-emerald-900 font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2';
 
-                // Cek status pengajuan
                 if (profile.level_status === 'pending') {
                     btn.disabled = true;
                     btn.innerHTML = '⏳ Menunggu Verifikasi';
@@ -1466,7 +1448,6 @@
                     return;
                 }
 
-                // 🔥 TAMPILKAN STATUS SYARAT
                 if (requirements.canLevelUp) {
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
@@ -1481,7 +1462,6 @@
                     btn.className = 'w-full bg-slate-300 text-slate-500 font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2 cursor-not-allowed';
                     
                     if (statusEl) {
-                        // 🔥 TAMPILKAN DETAIL SYARAT YANG BELUM TERPENUHI
                         var detail = [];
                         if (requirements.onboardingCount < 1) detail.push('Onboarding: ' + requirements.onboardingCount + '/1');
                         if (requirements.mandatoryMentoringCount < 2) detail.push('Mentoring Admin: ' + requirements.mandatoryMentoringCount + '/2');
@@ -1570,7 +1550,6 @@
                     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
                 }
 
-                // Kirim notifikasi ke admin
                 var adminsResult = await _supabase
                     .from('yata_profiles')
                     .select('id')
@@ -1616,7 +1595,6 @@
                     btn.innerHTML = '✅ Terkirim!';
                 }
 
-                // Kirim notifikasi ke user
                 await sendNotification(
                     session.user.id,
                     '⭐ Pengajuan Naik Level Dikirim!',
@@ -1767,7 +1745,6 @@
 
                 var mentoringData = mentoringResult.data || [];
                 
-                // Hitung onboarding (attended = true)
                 var onboardingCount = 0;
                 for (var i = 0; i < mentoringData.length; i++) {
                     var m = mentoringData[i];
@@ -1776,7 +1753,6 @@
                     }
                 }
 
-                // Hitung mentoring admin wajib (attended = true)
                 var mandatoryMentoringCount = 0;
                 for (var j = 0; j < mentoringData.length; j++) {
                     var m2 = mentoringData[j];
@@ -1785,7 +1761,6 @@
                     }
                 }
 
-                // Hitung buku
                 var booksResult = await _supabase
                     .from('yata_book_projects')
                     .select('id')
@@ -1824,7 +1799,6 @@
                 var levelKey = levelMap[displayLevel] || 'tamu';
                 var level = LEVELS[levelKey];
 
-                // Progress level
                 var progress = getLevelProgress(
                     levelKey,
                     totalPublished,
@@ -1835,7 +1809,6 @@
                 var displayIcon = getLevelIcon(displayLevel);
                 var displayDescription = getLevelDescription(displayLevel);
 
-                // Tampilkan data ke UI
                 document.getElementById('userFullName').textContent = profile.full_name || 'Pengguna';
                 document.getElementById('levelIcon').textContent = displayIcon;
                 document.getElementById('levelName').textContent = displayLevel;
@@ -1843,7 +1816,6 @@
                 document.getElementById('levelBigName').textContent = displayLevel;
                 document.getElementById('levelBigDesc').textContent = displayDescription;
 
-                // Avatar
                 var avatarEl = document.getElementById('avatarPlaceholder');
                 if (profile.avatar_url) {
                     avatarEl.innerHTML = '<img src="' + profile.avatar_url + '" class="w-full h-full object-cover rounded-full" />';
@@ -1856,15 +1828,12 @@
                 var joinDate = new Date(profile.created_at);
                 document.getElementById('userJoinDate').textContent = 'Bergabung ' + joinDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
-                // ✅ Progress Level
                 document.getElementById('levelProgressBar').style.width = progress.progress + '%';
                 document.getElementById('levelProgressText').textContent = progress.progress + '%';
                 document.getElementById('levelNextInfo').textContent = progress.text;
 
-                // Update tombol level up
                 await updateLevelUpButton();
 
-                // Statistik
                 document.getElementById('statTotalWritings').textContent = totalWritings;
                 document.getElementById('statWritingsDetail').textContent = totalPublished + ' Published, ' + totalDrafts + ' Draft';
                 document.getElementById('statTotalReads').textContent = totalViews;
@@ -1872,7 +1841,6 @@
                 document.getElementById('statTotalLikes').textContent = totalLikes;
                 document.getElementById('statLikesDetail').textContent = 'dari ' + totalWritings + ' karya';
 
-                // Peringkat
                 if (totalViews > 0) {
                     var allWritersResult = await _supabase
                         .from('yata_writings')
@@ -1899,9 +1867,7 @@
                     }
                 }
 
-                // 🔥 LOAD REPUTASI
                 await loadReputation();
-
                 renderKTA(profile);
                 await loadRecentWritings(session.user.id);
                 await loadRecentProjects(session.user.id);
@@ -2002,6 +1968,19 @@
         }
 
         // ============================================
+        // GET KTA CLASS
+        // ============================================
+        function getKTAClass(level) {
+            var classes = {
+                'Tamu': 'kta-tamu',
+                'Penulis': 'kta-penulis',
+                'Penulis Profesional': 'kta-profesional',
+                'Mentor': 'kta-mentor'
+            };
+            return classes[level] || 'kta-tamu';
+        }
+
+        // ============================================
         // LOAD REPUTASI
         // ============================================
         async function loadReputation() {
@@ -2020,20 +1999,16 @@
                 var reputation = profileResult.data?.reputation || 100;
                 var level = getReputationLevel(reputation);
 
-                // Update UI
                 document.getElementById('reputationScore').textContent = reputation;
                 document.getElementById('reputationBadge').textContent = level.label;
                 document.getElementById('reputationBadge').className = 'text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700';
 
-                // Progress bar (0-200)
                 var progress = Math.min((reputation / 200) * 100, 100);
                 document.getElementById('reputationBar').style.width = progress + '%';
                 document.getElementById('reputationProgressText').textContent = Math.round(progress) + '%';
 
-                // Update profile badge
                 document.getElementById('profileReputation').textContent = reputation;
 
-                // Cek sisa kuota hari ini
                 var eligibility = await checkPublishEligibility(session.user.id);
                 document.getElementById('publishRemaining').textContent = eligibility.remaining;
 
@@ -2043,7 +2018,7 @@
         }
 
         // ============================================
-        // RENDER KTA
+        // 🔥 RENDER KTA - DIPERBAIKI (ID SESUAI LEVEL)
         // ============================================
         function renderKTA(user) {
             var container = document.getElementById('ktaCardContainer');
@@ -2051,7 +2026,26 @@
             var displayLevel = user?.member_level || 'Tamu';
             var icon = getLevelIcon(displayLevel);
             var ktaClass = getKTAClass(displayLevel);
+            
+            // 🔥 PASTIKAN MEMBER ID SESUAI LEVEL
             var memberId = user?.member_id || formatMemberId();
+            
+            var prefixMap = {
+                'Tamu': 'Yatta-T',
+                'Penulis': 'Yatta-P',
+                'Penulis Profesional': 'Yatta-PP',
+                'Mentor': 'Yatta-M'
+            };
+            var expectedPrefix = prefixMap[displayLevel] || 'Yatta-T';
+            
+            // Jika prefix tidak sesuai, perbaiki
+            if (memberId && !memberId.startsWith(expectedPrefix)) {
+                var parts = memberId.split('-');
+                var numberPart = parts.slice(2).join('-') || parts[1] || '0001';
+                memberId = expectedPrefix + '-' + numberPart;
+                console.log('🆔 ID KTA diperbaiki menjadi:', memberId);
+            }
+            
             var validDate = getKTAValidDate();
 
             container.innerHTML = `
@@ -2093,19 +2087,6 @@
         }
 
         // ============================================
-        // GET KTA CLASS
-        // ============================================
-        function getKTAClass(level) {
-            var classes = {
-                'Tamu': 'kta-tamu',
-                'Penulis': 'kta-penulis',
-                'Penulis Profesional': 'kta-profesional',
-                'Mentor': 'kta-mentor'
-            };
-            return classes[level] || 'kta-tamu';
-        }
-
-        // ============================================
         // SHARE KTA
         // ============================================
         function shareKTA() {
@@ -2116,17 +2097,33 @@
         }
 
         // ============================================
-        // OPEN KTA MODAL
+        // 🔥 OPEN KTA MODAL - DIPERBAIKI (ID SESUAI LEVEL)
         // ============================================
         function openKtaModal() {
             if (!currentUserData) return;
             var data = currentUserData;
             var icon = getLevelIcon(data.displayLevel);
             var ktaClass = getKTAClass(data.displayLevel);
+            
+            // 🔥 PASTIKAN ID SESUAI LEVEL
+            var prefixMap = {
+                'Tamu': 'Yatta-T',
+                'Penulis': 'Yatta-P',
+                'Penulis Profesional': 'Yatta-PP',
+                'Mentor': 'Yatta-M'
+            };
+            var expectedPrefix = prefixMap[data.displayLevel] || 'Yatta-T';
+            var memberId = data.memberId;
+            
+            if (memberId && !memberId.startsWith(expectedPrefix)) {
+                var parts = memberId.split('-');
+                var numberPart = parts.slice(2).join('-') || parts[1] || '0001';
+                memberId = expectedPrefix + '-' + numberPart;
+            }
 
             document.getElementById('ktaMemberName').textContent = data.full_name || 'Member';
             document.getElementById('ktaLevelName').textContent = data.displayLevel;
-            document.getElementById('ktaMemberId').textContent = data.memberId;
+            document.getElementById('ktaMemberId').textContent = memberId;
             document.getElementById('ktaLevelIcon').textContent = icon;
 
             var preview = document.getElementById('ktaPreview');
@@ -2840,7 +2837,6 @@
                     return;
                 }
 
-                // Notifikasi ke admin
                 try {
                     var adminsResult = await _supabase
                         .from('yata_profiles')
@@ -2878,7 +2874,6 @@
                     console.error('❌ Error sending admin notification:', notifErr);
                 }
 
-                // Sembunyikan form, tampilkan success
                 document.getElementById('contactForm').classList.add('hidden');
                 document.getElementById('contactSuccess').classList.remove('hidden');
 

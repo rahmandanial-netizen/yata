@@ -1060,49 +1060,49 @@
         // ============================================
         // INISIALISASI SUPABASE
         // ============================================
-        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        var _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
         // ============================================
         // VARIABEL GLOBAL
         // ============================================
-        let currentTab = 'notifications';
-        let currentItemId = null;
-        let currentItemType = null;
-        let currentMessageId = null;
-        let selectedMembers = [];
-        let allMembers = [];
+        var currentTab = 'notifications';
+        var currentItemId = null;
+        var currentItemType = null;
+        var currentMessageId = null;
+        var selectedMembers = [];
+        var allMembers = [];
 
-        let messagesPage = 0;
-        let communitiesPage = 0;
-        let campaignsPage = 0;
-        let booksPage = 0;
-        const adminPageSize = 10;
-        let hasMoreMessages = true;
-        let hasMoreCommunities = true;
-        let hasMoreCampaigns = true;
-        let hasMoreBooks = true;
-        let isLoadingMessages = false;
-        let isLoadingCommunities = false;
-        let isLoadingCampaigns = false;
-        let isLoadingBooks = false;
+        var messagesPage = 0;
+        var communitiesPage = 0;
+        var campaignsPage = 0;
+        var booksPage = 0;
+        var adminPageSize = 10;
+        var hasMoreMessages = true;
+        var hasMoreCommunities = true;
+        var hasMoreCampaigns = true;
+        var hasMoreBooks = true;
+        var isLoadingMessages = false;
+        var isLoadingCommunities = false;
+        var isLoadingCampaigns = false;
+        var isLoadingBooks = false;
 
-        let allMessages = [];
-        let allCommunities = [];
-        let allCampaigns = [];
-        let allBooks = [];
+        var allMessages = [];
+        var allCommunities = [];
+        var allCampaigns = [];
+        var allBooks = [];
 
-        let deleteClassTargetId = null;
+        var deleteClassTargetId = null;
 
         // 🔥 REPUTATION DATA
-        let allReputationData = [];
-        let repFilter = 'all';
-        let repSearch = '';
+        var allReputationData = [];
+        var repFilter = 'all';
+        var repSearch = '';
 
         // ============================================
         // FUNGSI SHOW ONBOARDING MESSAGE
         // ============================================
         function showOnboardingMessage(text, type) {
-            const msg = document.getElementById('onboardingMessage');
+            var msg = document.getElementById('onboardingMessage');
             if (!msg) {
                 console.error('❌ Element onboardingMessage tidak ditemukan');
                 alert(text);
@@ -1111,7 +1111,7 @@
             
             msg.textContent = text;
             
-            let className = 'text-sm text-center';
+            var className = 'text-sm text-center';
             if (type) {
                 className += ' block';
                 if (type === 'success') {
@@ -1132,25 +1132,25 @@
         // ============================================
         async function checkAdmin() {
             try {
-                const { data: { session } } = await _supabase.auth.getSession();
-                if (!session) {
+                var sessionResult = await _supabase.auth.getSession();
+                if (!sessionResult.data.session) {
                     window.location.href = 'login.html';
                     return null;
                 }
 
-                const { data: profile, error } = await _supabase
+                var profileResult = await _supabase
                     .from('yata_profiles')
                     .select('role')
-                    .eq('id', session.user.id)
+                    .eq('id', sessionResult.data.session.user.id)
                     .single();
 
-                if (error || profile.role !== 'admin') {
+                if (profileResult.error || profileResult.data.role !== 'admin') {
                     alert('Akses ditolak. Hanya admin Yatta yang bisa mengakses halaman ini.');
                     window.location.href = 'dashboard.html';
                     return null;
                 }
 
-                return session;
+                return sessionResult.data.session;
 
             } catch (err) {
                 console.error('Admin check error:', err);
@@ -1162,9 +1162,10 @@
         // ============================================
         // 2. KIRIM NOTIFIKASI KE USER
         // ============================================
-        async function sendNotificationToUser(userId, title, content, type = 'info') {
+        async function sendNotificationToUser(userId, title, content, type) {
+            if (type === undefined) type = 'info';
             try {
-                const { data: notifData, error } = await _supabase
+                var notifResult = await _supabase
                     .from('yata_notifications')
                     .insert([{
                         title: title,
@@ -1174,22 +1175,22 @@
                     .select()
                     .single();
 
-                if (error) {
-                    console.error('❌ Send notification error:', error);
+                if (notifResult.error) {
+                    console.error('❌ Send notification error:', notifResult.error);
                     return false;
                 }
 
-                if (notifData) {
-                    const { error: linkError } = await _supabase
+                if (notifResult.data) {
+                    var linkResult = await _supabase
                         .from('yata_user_notifications')
                         .insert([{
-                            notification_id: notifData.id,
+                            notification_id: notifResult.data.id,
                             user_id: userId,
                             is_read: false
                         }]);
 
-                    if (linkError) {
-                        console.error('❌ Link notification error:', linkError);
+                    if (linkResult.error) {
+                        console.error('❌ Link notification error:', linkResult.error);
                         return false;
                     }
                 }
@@ -1205,7 +1206,7 @@
         // 3. LOAD ALL DATA
         // ============================================
         async function loadAdminData() {
-            const session = await checkAdmin();
+            var session = await checkAdmin();
             if (!session) return;
 
             await Promise.all([
@@ -1226,33 +1227,33 @@
         // ============================================
         async function loadStats() {
             try {
-                const { count: totalCommunities } = await _supabase
+                var totalCommunitiesResult = await _supabase
                     .from('yata_communities')
                     .select('*', { count: 'exact', head: true });
 
-                const { count: pendingCommunities } = await _supabase
+                var pendingCommunitiesResult = await _supabase
                     .from('yata_communities')
                     .select('*', { count: 'exact', head: true })
                     .in('status', ['pending', 'pre_active']);
 
-                const { count: totalCampaigns } = await _supabase
+                var totalCampaignsResult = await _supabase
                     .from('yata_community_campaigns')
                     .select('*', { count: 'exact', head: true });
 
-                const { count: pendingCampaigns } = await _supabase
+                var pendingCampaignsResult = await _supabase
                     .from('yata_community_campaigns')
                     .select('*', { count: 'exact', head: true })
                     .eq('verification_status', 'pending');
 
-                const totalCommunitiesEl = document.getElementById('statTotalCommunities');
-                const pendingCommunitiesEl = document.getElementById('statPendingCommunities');
-                const totalCampaignsEl = document.getElementById('statTotalCampaigns');
-                const pendingCampaignsEl = document.getElementById('statPendingCampaigns');
+                var totalCommunitiesEl = document.getElementById('statTotalCommunities');
+                var pendingCommunitiesEl = document.getElementById('statPendingCommunities');
+                var totalCampaignsEl = document.getElementById('statTotalCampaigns');
+                var pendingCampaignsEl = document.getElementById('statPendingCampaigns');
 
-                if (totalCommunitiesEl) totalCommunitiesEl.textContent = totalCommunities || 0;
-                if (pendingCommunitiesEl) pendingCommunitiesEl.textContent = pendingCommunities || 0;
-                if (totalCampaignsEl) totalCampaignsEl.textContent = totalCampaigns || 0;
-                if (pendingCampaignsEl) pendingCampaignsEl.textContent = pendingCampaigns || 0;
+                if (totalCommunitiesEl) totalCommunitiesEl.textContent = totalCommunitiesResult.count || 0;
+                if (pendingCommunitiesEl) pendingCommunitiesEl.textContent = pendingCommunitiesResult.count || 0;
+                if (totalCampaignsEl) totalCampaignsEl.textContent = totalCampaignsResult.count || 0;
+                if (pendingCampaignsEl) pendingCampaignsEl.textContent = pendingCampaignsResult.count || 0;
 
             } catch (err) {
                 console.error('Load stats error:', err);
@@ -1263,7 +1264,7 @@
         // 5. RENDER COMMUNITIES (ADMIN)
         // ============================================
         function renderCommunities() {
-            const container = document.getElementById('communityList');
+            var container = document.getElementById('communityList');
 
             if (allCommunities.length === 0) {
                 container.innerHTML = `
@@ -1275,49 +1276,55 @@
                 return;
             }
 
-            const statusLabels = {
+            var statusLabels = {
                 pending: '⏳ Menunggu Verifikasi',
                 pre_active: '📋 Pre-Active',
                 active: '✅ Aktif',
                 rejected: '❌ Ditolak'
             };
-            const statusClasses = {
+            var statusClasses = {
                 pending: 'status-pending',
                 pre_active: 'status-pre-active',
                 active: 'status-active',
                 rejected: 'status-rejected'
             };
 
-            container.innerHTML = allCommunities.map(c => `
-                <div class="p-4 hover:bg-slate-50 transition flex items-center justify-between">
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <h4 class="font-bold text-slate-800 text-sm">${c.name}</h4>
-                            <span class="status-badge ${statusClasses[c.status] || 'status-pending'}">
-                                ${statusLabels[c.status] || '⏳ Menunggu'}
-                            </span>
+            var html = '';
+            for (var i = 0; i < allCommunities.length; i++) {
+                var c = allCommunities[i];
+                html += `
+                    <div class="p-4 hover:bg-slate-50 transition flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h4 class="font-bold text-slate-800 text-sm">${c.name}</h4>
+                                <span class="status-badge ${statusClasses[c.status] || 'status-pending'}">
+                                    ${statusLabels[c.status] || '⏳ Menunggu'}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-500">Dipimpin oleh ${c.leader?.full_name || 'User'}</p>
+                            <p class="text-xs text-slate-400 mt-1 line-clamp-1">${c.description || 'Tidak ada deskripsi'}</p>
+                            <div class="flex items-center gap-3 mt-1 text-xs text-slate-400">
+                                <span><i class="fa-regular fa-user mr-1"></i> ${c.member_count || 0} anggota</span>
+                                <span><i class="fa-regular fa-calendar mr-1"></i> ${new Date(c.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                            </div>
                         </div>
-                        <p class="text-xs text-slate-500">Dipimpin oleh ${c.leader?.full_name || 'User'}</p>
-                        <p class="text-xs text-slate-400 mt-1 line-clamp-1">${c.description || 'Tidak ada deskripsi'}</p>
-                        <div class="flex items-center gap-3 mt-1 text-xs text-slate-400">
-                            <span><i class="fa-regular fa-user mr-1"></i> ${c.member_count || 0} anggota</span>
-                            <span><i class="fa-regular fa-calendar mr-1"></i> ${new Date(c.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <button onclick="openVerify('community', '${c.id}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition">
+                                <i class="fa-regular fa-eye mr-1"></i> Verifikasi
+                            </button>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                        <button onclick="openVerify('community', '${c.id}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition">
-                            <i class="fa-regular fa-eye mr-1"></i> Verifikasi
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }
+
+            container.innerHTML = html;
         }
 
         // ============================================
         // 6. RENDER CAMPAIGNS (ADMIN)
         // ============================================
         function renderCampaigns() {
-            const container = document.getElementById('campaignList');
+            var container = document.getElementById('campaignList');
 
             if (allCampaigns.length === 0) {
                 container.innerHTML = `
@@ -1329,33 +1336,41 @@
                 return;
             }
 
-            container.innerHTML = allCampaigns.map(c => `
-                <div class="p-4 hover:bg-slate-50 transition flex items-center justify-between">
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <h4 class="font-bold text-slate-800 text-sm">${c.title}</h4>
-                            <span class="text-xs px-2 py-0.5 rounded-full status-pending">⏳ Menunggu</span>
+            var html = '';
+            for (var i = 0; i < allCampaigns.length; i++) {
+                var c = allCampaigns[i];
+                html += `
+                    <div class="p-4 hover:bg-slate-50 transition flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h4 class="font-bold text-slate-800 text-sm">${c.title}</h4>
+                                <span class="text-xs px-2 py-0.5 rounded-full status-pending">⏳ Menunggu</span>
+                            </div>
+                            <p class="text-xs text-slate-500">Dibuat oleh ${c.creator?.full_name || 'User'} • Komunitas: ${c.community?.name || '-'}</p>
+                            <p class="text-xs text-slate-400 mt-1 line-clamp-1">${c.description || 'Tidak ada deskripsi'}</p>
+                            <div class="flex items-center gap-3 mt-1 text-xs text-slate-400">
+                                <span><i class="fa-regular fa-flag mr-1"></i> ${c.goal || 'Tidak ada target'}</span>
+                                <span><i class="fa-regular fa-calendar mr-1"></i> ${new Date(c.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                            </div>
                         </div>
-                        <p class="text-xs text-slate-500">Dibuat oleh ${c.creator?.full_name || 'User'} • Komunitas: ${c.community?.name || '-'}</p>
-                        <p class="text-xs text-slate-400 mt-1 line-clamp-1">${c.description || 'Tidak ada deskripsi'}</p>
-                        <div class="flex items-center gap-3 mt-1 text-xs text-slate-400">
-                            <span><i class="fa-regular fa-flag mr-1"></i> ${c.goal || 'Tidak ada target'}</span>
-                            <span><i class="fa-regular fa-calendar mr-1"></i> ${new Date(c.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <button onclick="openVerify('campaign', '${c.id}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition">
+                                <i class="fa-regular fa-eye mr-1"></i> Verifikasi
+                            </button>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                        <button onclick="openVerify('campaign', '${c.id}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition">
-                            <i class="fa-regular fa-eye mr-1"></i> Verifikasi
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }
+
+            container.innerHTML = html;
         }
 
         // ============================================
         // 7. LOAD PENDING COMMUNITIES
         // ============================================
-        async function loadPendingCommunities(reset = true) {
+        async function loadPendingCommunities(reset) {
+            if (reset === undefined) reset = true;
+            
             if (reset) {
                 communitiesPage = 0;
                 hasMoreCommunities = true;
@@ -1367,10 +1382,10 @@
             if (isLoadingCommunities || !hasMoreCommunities) return;
             isLoadingCommunities = true;
 
-            const container = document.getElementById('communityList');
-            const loadMoreContainer = document.getElementById('loadMoreCommunitiesContainer');
-            const loadMoreBtn = document.getElementById('loadMoreCommunitiesBtn');
-            const skeleton = document.getElementById('loadingSkeletonCommunities');
+            var container = document.getElementById('communityList');
+            var loadMoreContainer = document.getElementById('loadMoreCommunitiesContainer');
+            var loadMoreBtn = document.getElementById('loadMoreCommunitiesBtn');
+            var skeleton = document.getElementById('loadingSkeletonCommunities');
 
             if (!reset) {
                 skeleton.classList.remove('hidden');
@@ -1379,27 +1394,29 @@
             }
 
             try {
-                const from = communitiesPage * adminPageSize;
-                const to = from + adminPageSize - 1;
+                var from = communitiesPage * adminPageSize;
+                var to = from + adminPageSize - 1;
 
-                const { data: communities, error } = await _supabase
+                var result = await _supabase
                     .from('yata_communities')
                     .select('*, leader:leader_id(full_name)')
                     .in('status', ['pending', 'pre_active'])
                     .order('created_at', { ascending: true })
                     .range(from, to);
 
-                if (error) throw error;
+                if (result.error) throw result.error;
 
-                if (communities && communities.length > 0) {
-                    allCommunities = reset ? communities : [...allCommunities, ...communities];
+                var communities = result.data || [];
+
+                if (communities.length > 0) {
+                    allCommunities = reset ? communities : allCommunities.concat(communities);
                     communitiesPage++;
                     hasMoreCommunities = communities.length === adminPageSize;
                 } else {
                     hasMoreCommunities = false;
                 }
 
-                const countEl = document.getElementById('pendingCommunityCount');
+                var countEl = document.getElementById('pendingCommunityCount');
                 if (countEl) countEl.textContent = allCommunities.length;
 
                 renderCommunities();
@@ -1444,7 +1461,9 @@
         // ============================================
         // 8. LOAD PENDING CAMPAIGNS
         // ============================================
-        async function loadPendingCampaigns(reset = true) {
+        async function loadPendingCampaigns(reset) {
+            if (reset === undefined) reset = true;
+            
             if (reset) {
                 campaignsPage = 0;
                 hasMoreCampaigns = true;
@@ -1456,10 +1475,10 @@
             if (isLoadingCampaigns || !hasMoreCampaigns) return;
             isLoadingCampaigns = true;
 
-            const container = document.getElementById('campaignList');
-            const loadMoreContainer = document.getElementById('loadMoreCampaignsContainer');
-            const loadMoreBtn = document.getElementById('loadMoreCampaignsBtn');
-            const skeleton = document.getElementById('loadingSkeletonCampaigns');
+            var container = document.getElementById('campaignList');
+            var loadMoreContainer = document.getElementById('loadMoreCampaignsContainer');
+            var loadMoreBtn = document.getElementById('loadMoreCampaignsBtn');
+            var skeleton = document.getElementById('loadingSkeletonCampaigns');
 
             if (!reset) {
                 skeleton.classList.remove('hidden');
@@ -1468,27 +1487,29 @@
             }
 
             try {
-                const from = campaignsPage * adminPageSize;
-                const to = from + adminPageSize - 1;
+                var from = campaignsPage * adminPageSize;
+                var to = from + adminPageSize - 1;
 
-                const { data: campaigns, error } = await _supabase
+                var result = await _supabase
                     .from('yata_community_campaigns')
                     .select('*, creator:creator_id(full_name), community:community_id(name)')
                     .eq('verification_status', 'pending')
                     .order('created_at', { ascending: true })
                     .range(from, to);
 
-                if (error) throw error;
+                if (result.error) throw result.error;
 
-                if (campaigns && campaigns.length > 0) {
-                    allCampaigns = reset ? campaigns : [...allCampaigns, ...campaigns];
+                var campaigns = result.data || [];
+
+                if (campaigns.length > 0) {
+                    allCampaigns = reset ? campaigns : allCampaigns.concat(campaigns);
                     campaignsPage++;
                     hasMoreCampaigns = campaigns.length === adminPageSize;
                 } else {
                     hasMoreCampaigns = false;
                 }
 
-                const countEl = document.getElementById('pendingCampaignCount');
+                var countEl = document.getElementById('pendingCampaignCount');
                 if (countEl) countEl.textContent = allCampaigns.length;
 
                 renderCampaigns();
@@ -1533,7 +1554,9 @@
         // ============================================
         // 9. LOAD MESSAGES
         // ============================================
-        async function loadMessages(reset = true) {
+        async function loadMessages(reset) {
+            if (reset === undefined) reset = true;
+            
             if (reset) {
                 messagesPage = 0;
                 hasMoreMessages = true;
@@ -1545,10 +1568,10 @@
             if (isLoadingMessages || !hasMoreMessages) return;
             isLoadingMessages = true;
 
-            const container = document.getElementById('messageList');
-            const loadMoreContainer = document.getElementById('loadMoreMessagesContainer');
-            const loadMoreBtn = document.getElementById('loadMoreMessagesBtn');
-            const skeleton = document.getElementById('loadingSkeletonMessages');
+            var container = document.getElementById('messageList');
+            var loadMoreContainer = document.getElementById('loadMoreMessagesContainer');
+            var loadMoreBtn = document.getElementById('loadMoreMessagesBtn');
+            var skeleton = document.getElementById('loadingSkeletonMessages');
 
             if (!reset) {
                 skeleton.classList.remove('hidden');
@@ -1557,43 +1580,53 @@
             }
 
             try {
-                const from = messagesPage * adminPageSize;
-                const to = from + adminPageSize - 1;
+                var from = messagesPage * adminPageSize;
+                var to = from + adminPageSize - 1;
 
-                const { data: messages, error } = await _supabase
+                var result = await _supabase
                     .from('yata_messages')
                     .select('*')
                     .order('created_at', { ascending: false })
                     .range(from, to);
 
-                if (error) throw error;
+                if (result.error) throw result.error;
 
-                let messagesWithUser = [];
-                if (messages && messages.length > 0) {
-                    const userIds = [...new Set(messages.map(m => m.user_id).filter(id => id))];
+                var messages = result.data || [];
+                var messagesWithUser = [];
+
+                if (messages.length > 0) {
+                    var userIds = [];
+                    for (var i = 0; i < messages.length; i++) {
+                        if (messages[i].user_id) userIds.push(messages[i].user_id);
+                    }
+                    var uniqueUserIds = [...new Set(userIds)];
                     
-                    let userMap = {};
-                    if (userIds.length > 0) {
-                        const { data: users, error: userError } = await _supabase
+                    var userMap = {};
+                    if (uniqueUserIds.length > 0) {
+                        var usersResult = await _supabase
                             .from('yata_profiles')
                             .select('id, full_name, username')
-                            .in('id', userIds);
+                            .in('id', uniqueUserIds);
                         
-                        if (!userError && users) {
-                            users.forEach(u => {
+                        if (!usersResult.error && usersResult.data) {
+                            for (var j = 0; j < usersResult.data.length; j++) {
+                                var u = usersResult.data[j];
                                 userMap[u.id] = u;
-                            });
+                            }
                         }
                     }
 
-                    messagesWithUser = messages.map(m => ({
-                        ...m,
-                        user: userMap[m.user_id] || { full_name: 'User', username: 'user' }
-                    }));
+                    for (var k = 0; k < messages.length; k++) {
+                        var m = messages[k];
+                        messagesWithUser.push({
+                            ...m,
+                            user: userMap[m.user_id] || { full_name: 'User', username: 'user' }
+                        });
+                    }
                 }
 
                 if (messagesWithUser.length > 0) {
-                    allMessages = reset ? messagesWithUser : [...allMessages, ...messagesWithUser];
+                    allMessages = reset ? messagesWithUser : allMessages.concat(messagesWithUser);
                     messagesPage++;
                     hasMoreMessages = messagesWithUser.length === adminPageSize;
                 } else {
@@ -1603,8 +1636,13 @@
                 renderMessages();
 
                 // Update unread count
-                const unreadCount = allMessages.filter(m => m.status === 'sent' || m.status === 'read').length;
-                const badge = document.getElementById('unreadMessageCount');
+                var unreadCount = 0;
+                for (var l = 0; l < allMessages.length; l++) {
+                    if (allMessages[l].status === 'sent' || allMessages[l].status === 'read') {
+                        unreadCount++;
+                    }
+                }
+                var badge = document.getElementById('unreadMessageCount');
                 if (badge) {
                     if (unreadCount > 0) {
                         badge.textContent = unreadCount;
@@ -1655,7 +1693,7 @@
         // 10. RENDER MESSAGES
         // ============================================
         function renderMessages() {
-            const container = document.getElementById('messageList');
+            var container = document.getElementById('messageList');
 
             if (allMessages.length === 0) {
                 container.innerHTML = `
@@ -1667,11 +1705,13 @@
                 return;
             }
 
-            container.innerHTML = allMessages.map(m => {
-                const userName = m.user?.full_name || 'User';
-                const isUnread = m.status === 'sent' || m.status === 'read';
+            var html = '';
+            for (var i = 0; i < allMessages.length; i++) {
+                var m = allMessages[i];
+                var userName = m.user?.full_name || 'User';
+                var isUnread = m.status === 'sent' || m.status === 'read';
                 
-                return `
+                html += `
                     <div class="p-4 hover:bg-slate-50 transition ${isUnread ? 'message-unread' : 'message-read'} cursor-pointer" onclick="openMessageDetail('${m.id}')">
                         <div class="flex items-start justify-between">
                             <div class="flex-1 min-w-0">
@@ -1688,7 +1728,9 @@
                         </div>
                     </div>
                 `;
-            }).join('');
+            }
+
+            container.innerHTML = html;
         }
 
         // ============================================
@@ -1698,16 +1740,18 @@
             currentMessageId = messageId;
 
             try {
-                const { data: message, error } = await _supabase
+                var messageResult = await _supabase
                     .from('yata_messages')
                     .select('*')
                     .eq('id', messageId)
                     .single();
 
-                if (error) {
-                    console.error('Query error:', error);
-                    throw error;
+                if (messageResult.error) {
+                    console.error('Query error:', messageResult.error);
+                    throw messageResult.error;
                 }
+
+                var message = messageResult.data;
 
                 if (!message) {
                     alert('Pesan tidak ditemukan.');
@@ -1715,16 +1759,16 @@
                 }
 
                 // Ambil data user
-                let userName = 'User';
+                var userName = 'User';
                 if (message.user_id) {
-                    const { data: user, error: userError } = await _supabase
+                    var userResult = await _supabase
                         .from('yata_profiles')
                         .select('full_name, username')
                         .eq('id', message.user_id)
                         .single();
                     
-                    if (!userError && user) {
-                        userName = user.full_name || 'User';
+                    if (!userResult.error && userResult.data) {
+                        userName = userResult.data.full_name || 'User';
                     }
                 }
 
@@ -1774,7 +1818,7 @@
         document.getElementById('replyForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const rateCheck = checkRateLimit('message');
+            var rateCheck = checkRateLimit('message');
             if (!rateCheck.allowed) {
                 showError(rateCheck.message, '⏳ Terlalu Cepat');
                 return;
@@ -1782,18 +1826,18 @@
 
             if (!currentMessageId) return;
 
-            const reply = document.getElementById('replyMessage').value.trim();
+            var reply = document.getElementById('replyMessage').value.trim();
             if (!reply) {
                 alert('Harap tulis balasan.');
                 return;
             }
 
-            const btn = this.querySelector('button[type="submit"]');
+            var btn = this.querySelector('button[type="submit"]');
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
 
             try {
-                const { error } = await _supabase
+                var updateResult = await _supabase
                     .from('yata_messages')
                     .update({
                         admin_reply: reply,
@@ -1802,20 +1846,20 @@
                     })
                     .eq('id', currentMessageId);
 
-                if (error) throw error;
+                if (updateResult.error) throw updateResult.error;
 
                 saveRateLimit('message');
 
-                const { data: message, error: msgError } = await _supabase
+                var messageResult = await _supabase
                     .from('yata_messages')
                     .select('user_id, subject')
                     .eq('id', currentMessageId)
                     .single();
 
-                if (!msgError && message) {
-                    const notifContent = `Admin telah membalas pesan Anda: "${reply}"`;
+                if (!messageResult.error && messageResult.data) {
+                    var notifContent = 'Admin telah membalas pesan Anda: "' + reply + '"';
                     
-                    const { data: notifData, error: notifError } = await _supabase
+                    var notifResult = await _supabase
                         .from('yata_notifications')
                         .insert([{
                             title: '📩 Balasan dari Tim Yatta',
@@ -1825,12 +1869,12 @@
                         .select()
                         .single();
 
-                    if (!notifError && notifData) {
+                    if (!notifResult.error && notifResult.data) {
                         await _supabase
                             .from('yata_user_notifications')
                             .insert([{
-                                notification_id: notifData.id,
-                                user_id: message.user_id,
+                                notification_id: notifResult.data.id,
+                                user_id: messageResult.data.user_id,
                                 is_read: false
                             }]);
                     }
@@ -1856,27 +1900,27 @@
             currentItemId = id;
             currentItemType = type;
 
-            const modal = document.getElementById('verifyModal');
-            const title = document.getElementById('verifyModalTitle');
-            const subtitle = document.getElementById('verifyModalSubtitle');
-            const content = document.getElementById('verifyModalContent');
-            const actions = document.getElementById('verifyModalActions');
-            const reasonDiv = document.getElementById('verifyReason');
+            var modal = document.getElementById('verifyModal');
+            var title = document.getElementById('verifyModalTitle');
+            var subtitle = document.getElementById('verifyModalSubtitle');
+            var content = document.getElementById('verifyModalContent');
+            var actions = document.getElementById('verifyModalActions');
+            var reasonDiv = document.getElementById('verifyReason');
 
             reasonDiv.classList.add('hidden');
             actions.classList.remove('hidden');
 
             try {
-                let data;
+                var data;
                 if (type === 'community') {
-                    const { data: c, error } = await _supabase
+                    var communityResult = await _supabase
                         .from('yata_communities')
                         .select('*, leader:leader_id(full_name)')
                         .eq('id', id)
                         .single();
 
-                    if (error) throw error;
-                    data = c;
+                    if (communityResult.error) throw communityResult.error;
+                    data = communityResult.data;
 
                     title.textContent = 'Verifikasi Komunitas';
                     subtitle.textContent = 'Tinjau data komunitas sebelum menyetujui.';
@@ -1897,14 +1941,14 @@
                     `;
 
                 } else if (type === 'campaign') {
-                    const { data: c, error } = await _supabase
+                    var campaignResult = await _supabase
                         .from('yata_community_campaigns')
                         .select('*, creator:creator_id(full_name), community:community_id(name)')
                         .eq('id', id)
                         .single();
 
-                    if (error) throw error;
-                    data = c;
+                    if (campaignResult.error) throw campaignResult.error;
+                    data = campaignResult.data;
 
                     title.textContent = 'Verifikasi Kampanye';
                     subtitle.textContent = 'Tinjau data kampanye sebelum menyetujui.';
@@ -1960,18 +2004,18 @@
         // ============================================
         async function approveCommunity() {
             try {
-                const session = await checkAdmin();
+                var session = await checkAdmin();
                 if (!session) return;
 
-                const { data: community, error: commError } = await _supabase
+                var communityResult = await _supabase
                     .from('yata_communities')
                     .select('name, leader_id')
                     .eq('id', currentItemId)
                     .single();
 
-                if (commError) throw commError;
+                if (communityResult.error) throw communityResult.error;
 
-                const { error } = await _supabase
+                var updateResult = await _supabase
                     .from('yata_communities')
                     .update({
                         status: 'pre_active',
@@ -1979,12 +2023,12 @@
                     })
                     .eq('id', currentItemId);
 
-                if (error) throw error;
+                if (updateResult.error) throw updateResult.error;
 
                 await sendNotificationToUser(
-                    community.leader_id,
+                    communityResult.data.leader_id,
                     '✅ Komunitas Diverifikasi!',
-                    `Komunitas "${community.name}" telah diverifikasi dan sekarang dalam status Pre-Active. Ajak 10 anggota untuk menjadi aktif!`,
+                    'Komunitas "' + communityResult.data.name + '" telah diverifikasi dan sekarang dalam status Pre-Active. Ajak 10 anggota untuk menjadi aktif!',
                     'success'
                 );
 
@@ -2003,18 +2047,18 @@
         // ============================================
         async function approveCampaign() {
             try {
-                const session = await checkAdmin();
+                var session = await checkAdmin();
                 if (!session) return;
 
-                const { data: campaign, error: campError } = await _supabase
+                var campaignResult = await _supabase
                     .from('yata_community_campaigns')
                     .select('title, creator_id')
                     .eq('id', currentItemId)
                     .single();
 
-                if (campError) throw campError;
+                if (campaignResult.error) throw campaignResult.error;
 
-                const { error } = await _supabase
+                var updateResult = await _supabase
                     .from('yata_community_campaigns')
                     .update({
                         verification_status: 'approved',
@@ -2022,12 +2066,12 @@
                     })
                     .eq('id', currentItemId);
 
-                if (error) throw error;
+                if (updateResult.error) throw updateResult.error;
 
                 await sendNotificationToUser(
-                    campaign.creator_id,
+                    campaignResult.data.creator_id,
                     '✅ Kampanye Diverifikasi!',
-                    `Kampanye "${campaign.title}" telah diverifikasi dan sekarang aktif!`,
+                    'Kampanye "' + campaignResult.data.title + '" telah diverifikasi dan sekarang aktif!',
                     'success'
                 );
 
@@ -2045,26 +2089,26 @@
         // 17. SUBMIT REJECTION
         // ============================================
         async function submitRejection() {
-            const reason = document.getElementById('rejectionReason').value.trim();
+            var reason = document.getElementById('rejectionReason').value.trim();
             if (!reason) {
                 alert('Harap berikan alasan penolakan.');
                 return;
             }
 
             try {
-                const session = await checkAdmin();
+                var session = await checkAdmin();
                 if (!session) return;
 
                 if (currentItemType === 'community') {
-                    const { data: community, error: commError } = await _supabase
+                    var communityResult = await _supabase
                         .from('yata_communities')
                         .select('name, leader_id')
                         .eq('id', currentItemId)
                         .single();
 
-                    if (commError) throw commError;
+                    if (communityResult.error) throw communityResult.error;
 
-                    const { error } = await _supabase
+                    var updateResult = await _supabase
                         .from('yata_communities')
                         .update({
                             status: 'rejected',
@@ -2072,27 +2116,27 @@
                         })
                         .eq('id', currentItemId);
 
-                    if (error) throw error;
+                    if (updateResult.error) throw updateResult.error;
 
                     await sendNotificationToUser(
-                        community.leader_id,
+                        communityResult.data.leader_id,
                         '❌ Komunitas Ditolak',
-                        `Komunitas "${community.name}" ditolak dengan alasan: ${reason}`,
+                        'Komunitas "' + communityResult.data.name + '" ditolak dengan alasan: ' + reason,
                         'warning'
                     );
 
                     alert('❌ Komunitas ditolak.');
 
                 } else if (currentItemType === 'campaign') {
-                    const { data: campaign, error: campError } = await _supabase
+                    var campaignResult = await _supabase
                         .from('yata_community_campaigns')
                         .select('title, creator_id')
                         .eq('id', currentItemId)
                         .single();
 
-                    if (campError) throw campError;
+                    if (campaignResult.error) throw campaignResult.error;
 
-                    const { error } = await _supabase
+                    var updateResult = await _supabase
                         .from('yata_community_campaigns')
                         .update({
                             verification_status: 'rejected',
@@ -2100,12 +2144,12 @@
                         })
                         .eq('id', currentItemId);
 
-                    if (error) throw error;
+                    if (updateResult.error) throw updateResult.error;
 
                     await sendNotificationToUser(
-                        campaign.creator_id,
+                        campaignResult.data.creator_id,
                         '❌ Kampanye Ditolak',
-                        `Kampanye "${campaign.title}" ditolak dengan alasan: ${reason}`,
+                        'Kampanye "' + campaignResult.data.title + '" ditolak dengan alasan: ' + reason,
                         'warning'
                     );
 
@@ -2124,7 +2168,9 @@
         // ============================================
         // 18. LOAD BOOK SUBMISSIONS
         // ============================================
-        async function loadBookSubmissions(reset = true) {
+        async function loadBookSubmissions(reset) {
+            if (reset === undefined) reset = true;
+            
             if (reset) {
                 booksPage = 0;
                 hasMoreBooks = true;
@@ -2136,10 +2182,10 @@
             if (isLoadingBooks || !hasMoreBooks) return;
             isLoadingBooks = true;
 
-            const container = document.getElementById('bookSubmissionList');
-            const loadMoreContainer = document.getElementById('loadMoreBooksContainer');
-            const loadMoreBtn = document.getElementById('loadMoreBooksBtn');
-            const skeleton = document.getElementById('loadingSkeletonBooks');
+            var container = document.getElementById('bookSubmissionList');
+            var loadMoreContainer = document.getElementById('loadMoreBooksContainer');
+            var loadMoreBtn = document.getElementById('loadMoreBooksBtn');
+            var skeleton = document.getElementById('loadingSkeletonBooks');
 
             if (!reset) {
                 skeleton.classList.remove('hidden');
@@ -2148,28 +2194,30 @@
             }
 
             try {
-                const from = booksPage * adminPageSize;
-                const to = from + adminPageSize - 1;
+                var from = booksPage * adminPageSize;
+                var to = from + adminPageSize - 1;
 
-                const { data: books, error } = await _supabase
+                var result = await _supabase
                     .from('yata_book_projects')
                     .select('*, author:author_id(full_name, username)')
                     .in('status', ['review', 'editing', 'layout', 'isbn_submission'])
                     .order('updated_at', { ascending: true })
                     .range(from, to);
 
-                if (error) throw error;
+                if (result.error) throw result.error;
 
-                if (books && books.length > 0) {
-                    allBooks = reset ? books : [...allBooks, ...books];
+                var books = result.data || [];
+
+                if (books.length > 0) {
+                    allBooks = reset ? books : allBooks.concat(books);
                     booksPage++;
                     hasMoreBooks = books.length === adminPageSize;
                 } else {
                     hasMoreBooks = false;
                 }
 
-                const pendingCount = allBooks.length;
-                const countEl = document.getElementById('pendingBookCount');
+                var pendingCount = allBooks.length;
+                var countEl = document.getElementById('pendingBookCount');
                 if (countEl) countEl.textContent = pendingCount;
 
                 renderBooks();
@@ -2215,7 +2263,7 @@
         // 19. RENDER BOOKS (ADMIN)
         // ============================================
         function renderBooks() {
-            const container = document.getElementById('bookSubmissionList');
+            var container = document.getElementById('bookSubmissionList');
 
             if (allBooks.length === 0) {
                 container.innerHTML = `
@@ -2227,68 +2275,74 @@
                 return;
             }
 
-            const statusLabels = {
+            var statusLabels = {
                 review: '⏳ Review',
                 editing: '✏️ Editing',
                 layout: '📐 Layout',
                 isbn_submission: '📖 ISBN/QRCBN'
             };
 
-            const statusColors = {
+            var statusColors = {
                 review: 'status-review',
                 editing: 'status-editing',
                 layout: 'status-layout',
                 isbn_submission: 'status-isbn'
             };
 
-            container.innerHTML = allBooks.map(b => `
-                <div class="p-4 hover:bg-slate-50 transition">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <h4 class="font-bold text-slate-800 text-sm">${b.title}</h4>
-                                <span class="status-badge ${statusColors[b.status] || 'status-draft'}">${statusLabels[b.status] || b.status}</span>
+            var html = '';
+            for (var i = 0; i < allBooks.length; i++) {
+                var b = allBooks[i];
+                html += `
+                    <div class="p-4 hover:bg-slate-50 transition">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h4 class="font-bold text-slate-800 text-sm">${b.title}</h4>
+                                    <span class="status-badge ${statusColors[b.status] || 'status-draft'}">${statusLabels[b.status] || b.status}</span>
+                                </div>
+                                <p class="text-xs text-slate-500">Penulis: ${b.author?.full_name || 'User'} (@${b.author?.username || '-'})</p>
+                                <p class="text-xs text-slate-400 mt-1 line-clamp-2">${b.synopsis || 'Tidak ada sinopsis'}</p>
+                                <div class="flex items-center gap-3 mt-1 text-xs text-slate-400">
+                                    <span><i class="fa-regular fa-file-lines mr-1"></i> ${b.total_chapters || 0} chapter</span>
+                                    <span><i class="fa-regular fa-clock mr-1"></i> Diajukan: ${new Date(b.updated_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                </div>
                             </div>
-                            <p class="text-xs text-slate-500">Penulis: ${b.author?.full_name || 'User'} (@${b.author?.username || '-'})</p>
-                            <p class="text-xs text-slate-400 mt-1 line-clamp-2">${b.synopsis || 'Tidak ada sinopsis'}</p>
-                            <div class="flex items-center gap-3 mt-1 text-xs text-slate-400">
-                                <span><i class="fa-regular fa-file-lines mr-1"></i> ${b.total_chapters || 0} chapter</span>
-                                <span><i class="fa-regular fa-clock mr-1"></i> Diajukan: ${new Date(b.updated_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                            <div class="flex items-center gap-2 flex-shrink-0 ml-4">
+                                <select onchange="updateBookStatus('${b.id}', this.value)" class="text-xs border border-slate-200 rounded-xl px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    <option value="review" ${b.status === 'review' ? 'selected' : ''}>⏳ Review</option>
+                                    <option value="editing" ${b.status === 'editing' ? 'selected' : ''}>✏️ Editing</option>
+                                    <option value="layout" ${b.status === 'layout' ? 'selected' : ''}>📐 Layout</option>
+                                    <option value="isbn_submission" ${b.status === 'isbn_submission' ? 'selected' : ''}>📖 ISBN/QRCBN</option>
+                                    <option value="published" ${b.status === 'published' ? 'selected' : ''}>✅ Terbit</option>
+                                </select>
                             </div>
-                        </div>
-                        <div class="flex items-center gap-2 flex-shrink-0 ml-4">
-                            <select onchange="updateBookStatus('${b.id}', this.value)" class="text-xs border border-slate-200 rounded-xl px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                <option value="review" ${b.status === 'review' ? 'selected' : ''}>⏳ Review</option>
-                                <option value="editing" ${b.status === 'editing' ? 'selected' : ''}>✏️ Editing</option>
-                                <option value="layout" ${b.status === 'layout' ? 'selected' : ''}>📐 Layout</option>
-                                <option value="isbn_submission" ${b.status === 'isbn_submission' ? 'selected' : ''}>📖 ISBN/QRCBN</option>
-                                <option value="published" ${b.status === 'published' ? 'selected' : ''}>✅ Terbit</option>
-                            </select>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }
+
+            container.innerHTML = html;
         }
 
         // ============================================
         // 20. UPDATE BOOK STATUS
         // ============================================
         async function updateBookStatus(bookId, newStatus) {
-            if (!confirm(`Ubah status buku ini menjadi "${newStatus}"?`)) return;
+            if (!confirm('Ubah status buku ini menjadi "' + newStatus + '"?')) return;
 
             try {
-                const session = await checkAdmin();
+                var session = await checkAdmin();
                 if (!session) return;
 
-                const { data: book, error: bookError } = await _supabase
+                var bookResult = await _supabase
                     .from('yata_book_projects')
                     .select('title, author_id')
                     .eq('id', bookId)
                     .single();
 
-                if (bookError) throw bookError;
+                if (bookResult.error) throw bookResult.error;
 
-                const { error } = await _supabase
+                var updateResult = await _supabase
                     .from('yata_book_projects')
                     .update({ 
                         status: newStatus,
@@ -2296,9 +2350,9 @@
                     })
                     .eq('id', bookId);
 
-                if (error) throw error;
+                if (updateResult.error) throw updateResult.error;
 
-                const statusMessages = {
+                var statusMessages = {
                     review: '⏳ Buku Anda sedang dalam proses Review oleh tim Yatta.',
                     editing: '✏️ Buku Anda masuk tahap Editing. Tim Yatta akan melakukan penyuntingan.',
                     layout: '📐 Buku Anda masuk tahap Layout. Desain dan tata letak sedang dikerjakan.',
@@ -2306,7 +2360,7 @@
                     published: '🎉 Selamat! Buku Anda telah diterbitkan di Yatta!'
                 };
 
-                const statusTitles = {
+                var statusTitles = {
                     review: '⏳ Buku Masuk Review',
                     editing: '✏️ Buku Masuk Editing',
                     layout: '📐 Buku Masuk Layout',
@@ -2316,7 +2370,7 @@
 
                 if (statusMessages[newStatus]) {
                     await sendNotificationToUser(
-                        book.author_id,
+                        bookResult.data.author_id,
                         statusTitles[newStatus] || '📚 Status Buku Diperbarui',
                         statusMessages[newStatus],
                         'publishing'
@@ -2350,17 +2404,17 @@
         // ============================================
         async function loadAllMembers() {
             try {
-                const { data: members, error } = await _supabase
+                var result = await _supabase
                     .from('yata_profiles')
                     .select('id, full_name, username, member_level, email')
                     .order('full_name', { ascending: true });
 
-                if (error) {
-                    console.error('Load members error:', error);
+                if (result.error) {
+                    console.error('Load members error:', result.error);
                     allMembers = [];
                     return;
                 }
-                allMembers = members || [];
+                allMembers = result.data || [];
                 console.log('✅ Members loaded:', allMembers.length);
             } catch (err) {
                 console.error('Load members error:', err);
@@ -2372,19 +2426,23 @@
         // 22. SEARCH MEMBERS
         // ============================================
         async function searchMembers() {
-            const query = document.getElementById('searchMember').value.trim().toLowerCase();
-            const resultsContainer = document.getElementById('memberSearchResults');
+            var query = document.getElementById('searchMember').value.trim().toLowerCase();
+            var resultsContainer = document.getElementById('memberSearchResults');
             
             if (query.length < 2) {
                 resultsContainer.classList.add('hidden');
                 return;
             }
 
-            const filtered = allMembers.filter(m => 
-                (m.full_name && m.full_name.toLowerCase().includes(query)) ||
-                (m.username && m.username.toLowerCase().includes(query)) ||
-                (m.email && m.email.toLowerCase().includes(query))
-            );
+            var filtered = [];
+            for (var i = 0; i < allMembers.length; i++) {
+                var m = allMembers[i];
+                if ((m.full_name && m.full_name.toLowerCase().includes(query)) ||
+                    (m.username && m.username.toLowerCase().includes(query)) ||
+                    (m.email && m.email.toLowerCase().includes(query))) {
+                    filtered.push(m);
+                }
+            }
 
             if (filtered.length === 0) {
                 resultsContainer.innerHTML = `
@@ -2396,24 +2454,36 @@
                 return;
             }
 
-            resultsContainer.innerHTML = filtered.map(m => `
-                <div class="flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0 member-search-item" onclick="toggleMember('${m.id}')">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
-                            ${m.full_name ? m.full_name.charAt(0).toUpperCase() : '?'}
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-800">${m.full_name || 'Tanpa Nama'}</p>
-                            <p class="text-xs text-slate-400">${m.email || '-'} • ${m.member_level || 'Tamu'}</p>
-                        </div>
-                    </div>
-                    ${selectedMembers.some(s => s.id === m.id) ? 
-                        '<span class="text-emerald-600 text-xs font-bold"><i class="fa-solid fa-check-circle"></i> Dipilih</span>' : 
-                        '<span class="text-slate-400 text-xs">Klik pilih</span>'
+            var html = '';
+            for (var j = 0; j < filtered.length; j++) {
+                var m = filtered[j];
+                var isSelected = false;
+                for (var k = 0; k < selectedMembers.length; k++) {
+                    if (selectedMembers[k].id === m.id) {
+                        isSelected = true;
+                        break;
                     }
-                </div>
-            `).join('');
+                }
+                html += `
+                    <div class="flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0 member-search-item" onclick="toggleMember('${m.id}')">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
+                                ${m.full_name ? m.full_name.charAt(0).toUpperCase() : '?'}
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-slate-800">${m.full_name || 'Tanpa Nama'}</p>
+                                <p class="text-xs text-slate-400">${m.email || '-'} • ${m.member_level || 'Tamu'}</p>
+                            </div>
+                        </div>
+                        ${isSelected ? 
+                            '<span class="text-emerald-600 text-xs font-bold"><i class="fa-solid fa-check-circle"></i> Dipilih</span>' : 
+                            '<span class="text-slate-400 text-xs">Klik pilih</span>'
+                        }
+                    </div>
+                `;
+            }
 
+            resultsContainer.innerHTML = html;
             resultsContainer.classList.remove('hidden');
         }
 
@@ -2421,10 +2491,22 @@
         // 23. TOGGLE MEMBER
         // ============================================
         function toggleMember(memberId) {
-            const member = allMembers.find(m => m.id === memberId);
+            var member = null;
+            for (var i = 0; i < allMembers.length; i++) {
+                if (allMembers[i].id === memberId) {
+                    member = allMembers[i];
+                    break;
+                }
+            }
             if (!member) return;
 
-            const index = selectedMembers.findIndex(s => s.id === memberId);
+            var index = -1;
+            for (var j = 0; j < selectedMembers.length; j++) {
+                if (selectedMembers[j].id === memberId) {
+                    index = j;
+                    break;
+                }
+            }
             if (index > -1) {
                 selectedMembers.splice(index, 1);
             } else {
@@ -2440,8 +2522,8 @@
         // 24. UPDATE SELECTED MEMBERS UI
         // ============================================
         function updateSelectedMembersUI() {
-            const container = document.getElementById('selectedMembersContainer');
-            const countText = document.getElementById('selectedCountText');
+            var container = document.getElementById('selectedMembersContainer');
+            var countText = document.getElementById('selectedCountText');
 
             if (selectedMembers.length === 0) {
                 container.innerHTML = '';
@@ -2449,23 +2531,28 @@
                 return;
             }
 
-            container.innerHTML = selectedMembers.map(m => `
-                <span class="selected-member-tag">
-                    ${m.full_name || 'User'}
-                    <span onclick="toggleMember('${m.id}')" class="remove-btn">
-                        <i class="fa-solid fa-xmark"></i>
+            var html = '';
+            for (var i = 0; i < selectedMembers.length; i++) {
+                var m = selectedMembers[i];
+                html += `
+                    <span class="selected-member-tag">
+                        ${m.full_name || 'User'}
+                        <span onclick="toggleMember('${m.id}')" class="remove-btn">
+                            <i class="fa-solid fa-xmark"></i>
+                        </span>
                     </span>
-                </span>
-            `).join('');
+                `;
+            }
 
-            countText.textContent = `✅ ${selectedMembers.length} member dipilih. Notifikasi akan dikirim khusus ke member terpilih.`;
+            container.innerHTML = html;
+            countText.textContent = '✅ ' + selectedMembers.length + ' member dipilih. Notifikasi akan dikirim khusus ke member terpilih.';
         }
 
         // ============================================
         // 25. SELECT ALL / CLEAR
         // ============================================
         function selectAllMembers() {
-            selectedMembers = [...allMembers];
+            selectedMembers = allMembers.slice();
             updateSelectedMembersUI();
         }
 
@@ -2482,18 +2569,20 @@
             currentTab = tab;
 
             // Sembunyikan semua konten admin
-            document.querySelectorAll('[id^="admin"]').forEach(el => {
-                el.classList.add('hidden');
-            });
+            var adminElements = document.querySelectorAll('[id^="admin"]');
+            for (var i = 0; i < adminElements.length; i++) {
+                adminElements[i].classList.add('hidden');
+            }
 
             // Update sidebar links
-            document.querySelectorAll('.sidebar-link').forEach(el => {
-                el.classList.remove('active');
-                el.classList.add('text-slate-600');
-            });
+            var sidebarLinks = document.querySelectorAll('.sidebar-link');
+            for (var j = 0; j < sidebarLinks.length; j++) {
+                sidebarLinks[j].classList.remove('active');
+                sidebarLinks[j].classList.add('text-slate-600');
+            }
 
             // Tampilkan konten yang dipilih
-            const contentMap = {
+            var contentMap = {
                 'notifications': 'adminNotifications',
                 'messages': 'adminMessages',
                 'communities': 'adminCommunities',
@@ -2504,16 +2593,16 @@
                 'reputation': 'adminReputation'
             };
             
-            const contentId = contentMap[tab];
+            var contentId = contentMap[tab];
             if (contentId) {
-                const contentEl = document.getElementById(contentId);
+                var contentEl = document.getElementById(contentId);
                 if (contentEl) {
                     contentEl.classList.remove('hidden');
                 }
             }
 
             // Update sidebar active state
-            const tabMap = {
+            var tabMap = {
                 'notifications': 'tabNotifications',
                 'messages': 'tabMessages',
                 'communities': 'tabCommunities',
@@ -2524,9 +2613,9 @@
                 'reputation': 'tabReputation'
             };
             
-            const tabId = tabMap[tab];
+            var tabId = tabMap[tab];
             if (tabId) {
-                const tabEl = document.getElementById(tabId);
+                var tabEl = document.getElementById(tabId);
                 if (tabEl) {
                     tabEl.classList.add('active');
                     tabEl.classList.remove('text-slate-600');
@@ -2557,53 +2646,58 @@
         document.getElementById('notifForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const rateCheck = checkRateLimit('notification');
+            var rateCheck = checkRateLimit('notification');
             if (!rateCheck.allowed) {
                 showNotifMessage(rateCheck.message, 'error');
                 return;
             }
 
-            const title = document.getElementById('notifTitle').value.trim();
-            const content = document.getElementById('notifContent').value.trim();
-            const type = document.getElementById('notifType').value;
-            const targetAudience = document.getElementById('notifAudience').value;
+            var title = document.getElementById('notifTitle').value.trim();
+            var content = document.getElementById('notifContent').value.trim();
+            var type = document.getElementById('notifType').value;
+            var targetAudience = document.getElementById('notifAudience').value;
 
             if (!title || !content) {
                 showNotifMessage('Harap isi judul dan isi notifikasi.', 'error');
                 return;
             }
 
-            const btn = this.querySelector('button[type="submit"]');
-            const msg = document.getElementById('notifMessage');
+            var btn = this.querySelector('button[type="submit"]');
+            var msg = document.getElementById('notifMessage');
 
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
             msg.classList.add('hidden');
 
             try {
-                const session = await checkAdmin();
+                var session = await checkAdmin();
                 if (!session) return;
 
-                let targetUsers = [];
+                var targetUsers = [];
                 
                 if (selectedMembers.length > 0) {
-                    targetUsers = selectedMembers.map(m => m.id);
+                    for (var i = 0; i < selectedMembers.length; i++) {
+                        targetUsers.push(selectedMembers[i].id);
+                    }
                 } else {
-                    const query = _supabase.from('yata_profiles').select('id');
+                    var query = _supabase.from('yata_profiles').select('id');
                     if (targetAudience !== 'all') {
-                        const levelMap = {
+                        var levelMap = {
                             'member': 'Tamu',
                             'penulis': 'Penulis',
                             'profesional': 'Penulis Profesional',
                             'mentor': 'Mentor'
                         };
-                        const level = levelMap[targetAudience];
+                        var level = levelMap[targetAudience];
                         if (level) {
                             query.eq('member_level', level);
                         }
                     }
-                    const { data: users } = await query;
-                    targetUsers = (users || []).map(u => u.id);
+                    var usersResult = await query;
+                    var users = usersResult.data || [];
+                    for (var j = 0; j < users.length; j++) {
+                        targetUsers.push(users[j].id);
+                    }
                 }
 
                 if (targetUsers.length === 0) {
@@ -2611,10 +2705,10 @@
                     return;
                 }
 
-                const now = new Date();
-                const wibTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+                var now = new Date();
+                var wibTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
 
-                const { data: notifData, error } = await _supabase
+                var notifResult = await _supabase
                     .from('yata_notifications')
                     .insert([{
                         title: title,
@@ -2628,27 +2722,30 @@
                     .select()
                     .single();
 
-                if (error) throw error;
+                if (notifResult.error) throw notifResult.error;
 
                 saveRateLimit('notification');
 
-                const notifEntries = targetUsers.map(userId => ({
-                    notification_id: notifData.id,
-                    user_id: userId,
-                    is_read: false
-                }));
+                var notifEntries = [];
+                for (var k = 0; k < targetUsers.length; k++) {
+                    notifEntries.push({
+                        notification_id: notifResult.data.id,
+                        user_id: targetUsers[k],
+                        is_read: false
+                    });
+                }
 
-                const chunkSize = 100;
-                for (let i = 0; i < notifEntries.length; i += chunkSize) {
-                    const chunk = notifEntries.slice(i, i + chunkSize);
+                var chunkSize = 100;
+                for (var l = 0; l < notifEntries.length; l += chunkSize) {
+                    var chunk = notifEntries.slice(l, l + chunkSize);
                     await _supabase.from('yata_user_notifications').insert(chunk);
                 }
 
-                const targetText = selectedMembers.length > 0 ? 
-                    `${selectedMembers.length} member terpilih` : 
-                    `${targetUsers.length} member (${targetAudience})`;
+                var targetText = selectedMembers.length > 0 ? 
+                    selectedMembers.length + ' member terpilih' : 
+                    targetUsers.length + ' member (' + targetAudience + ')';
 
-                showNotifMessage(`✅ Notifikasi berhasil dikirim ke ${targetText}!`, 'success');
+                showNotifMessage('✅ Notifikasi berhasil dikirim ke ' + targetText + '!', 'success');
                 document.getElementById('notifTitle').value = '';
                 document.getElementById('notifContent').value = '';
                 
@@ -2665,28 +2762,30 @@
         });
 
         function showNotifMessage(text, type) {
-            const msg = document.getElementById('notifMessage');
+            var msg = document.getElementById('notifMessage');
             msg.textContent = text;
-            msg.className = `text-sm text-center ${type === 'success' ? 'text-emerald-600' : 'text-red-600'} block`;
+            msg.className = 'text-sm text-center ' + (type === 'success' ? 'text-emerald-600' : 'text-red-600') + ' block';
         }
 
         // ============================================
         // 28. LOAD ONBOARDING LIST
         // ============================================
         async function loadOnboardingList() {
-            const container = document.getElementById('onboardingList');
-            const countEl = document.getElementById('onboardingCountLabel');
+            var container = document.getElementById('onboardingList');
+            var countEl = document.getElementById('onboardingCountLabel');
 
             try {
-                const { data: sessions, error } = await _supabase
+                var result = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('*')
                     .or('is_onboarding.eq.true,is_mandatory.eq.true')
                     .order('created_at', { ascending: false });
 
-                if (error) throw error;
+                if (result.error) throw result.error;
 
-                if (countEl) countEl.textContent = sessions?.length || 0;
+                var sessions = result.data || [];
+
+                if (countEl) countEl.textContent = sessions.length || 0;
 
                 if (!sessions || sessions.length === 0) {
                     container.innerHTML = `
@@ -2698,18 +2797,20 @@
                     return;
                 }
 
-                container.innerHTML = sessions.map(s => {
-                    const reviewCount = s.total_reviews || 0;
-                    const participantCount = s.current_participants || 0;
+                var html = '';
+                for (var i = 0; i < sessions.length; i++) {
+                    var s = sessions[i];
+                    var reviewCount = s.total_reviews || 0;
+                    var participantCount = s.current_participants || 0;
 
-                    let typeBadge = '';
+                    var typeBadge = '';
                     if (s.is_onboarding) {
                         typeBadge = '<span class="onboarding-badge">🎓 Onboarding</span>';
                     } else if (s.is_mandatory) {
                         typeBadge = '<span class="mandatory-badge">📖 Mentoring Wajib</span>';
                     }
 
-                    return `
+                    html += `
                         <div class="p-4 hover:bg-slate-50 transition flex items-center justify-between">
                             <div>
                                 <div class="flex items-center gap-2 flex-wrap">
@@ -2725,8 +2826,8 @@
                                     <span><i class="fa-regular fa-star"></i> ${reviewCount} ulasan</span>
                                     <span><i class="fa-regular fa-calendar"></i> ${s.schedule || 'TBA'}</span>
                                     <span class="text-emerald-600 font-semibold">${s.price === 0 ? '🆓 Gratis' : '💰 Rp' + (s.price || 0).toLocaleString()}</span>
-                                    ${s.meeting_link ? `<span class="text-blue-500"><i class="fa-regular fa-link"></i> Link tersedia</span>` : ''}
-                                    ${s.mentor_name ? `<span class="text-purple-600"><i class="fa-regular fa-user"></i> Mentor: ${s.mentor_name}</span>` : '<span class="text-slate-400">Belum ada mentor</span>'}
+                                    ${s.meeting_link ? '<span class="text-blue-500"><i class="fa-regular fa-link"></i> Link tersedia</span>' : ''}
+                                    ${s.mentor_name ? '<span class="text-purple-600"><i class="fa-regular fa-user"></i> Mentor: ' + s.mentor_name + '</span>' : '<span class="text-slate-400">Belum ada mentor</span>'}
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
@@ -2739,7 +2840,9 @@
                             </div>
                         </div>
                     `;
-                }).join('');
+                }
+
+                container.innerHTML = html;
 
             } catch (err) {
                 console.error('Load wajib classes error:', err);
@@ -2755,7 +2858,7 @@
         // 29. UPDATE HINT JENIS KELAS
         // ============================================
         document.getElementById('classType').addEventListener('change', function() {
-            const hint = document.getElementById('classTypeHint');
+            var hint = document.getElementById('classTypeHint');
             if (this.value === 'onboarding') {
                 hint.textContent = '💡 Onboarding: 1 kelas wajib untuk semua member baru.';
                 hint.className = 'text-xs text-blue-600 mt-1';
@@ -2773,16 +2876,16 @@
 
             console.log('🔥 Form submitted!');
 
-            const classType = document.getElementById('classType').value;
-            const title = document.getElementById('onboardingTitle').value.trim();
-            const slug = document.getElementById('onboardingSlug').value.trim().toLowerCase();
-            const description = document.getElementById('onboardingDescription').value.trim();
-            const level = document.getElementById('onboardingLevel').value;
-            const maxParticipants = parseInt(document.getElementById('onboardingMax').value) || 30;
-            const schedule = document.getElementById('onboardingSchedule').value.trim();
-            const price = parseInt(document.getElementById('onboardingPrice').value) || 0;
-            const meetingLink = document.getElementById('onboardingLink').value.trim();
-            const mentorName = document.getElementById('onboardingMentor').value.trim();
+            var classType = document.getElementById('classType').value;
+            var title = document.getElementById('onboardingTitle').value.trim();
+            var slug = document.getElementById('onboardingSlug').value.trim().toLowerCase();
+            var description = document.getElementById('onboardingDescription').value.trim();
+            var level = document.getElementById('onboardingLevel').value;
+            var maxParticipants = parseInt(document.getElementById('onboardingMax').value) || 30;
+            var schedule = document.getElementById('onboardingSchedule').value.trim();
+            var price = parseInt(document.getElementById('onboardingPrice').value) || 0;
+            var meetingLink = document.getElementById('onboardingLink').value.trim();
+            var mentorName = document.getElementById('onboardingMentor').value.trim();
 
             console.log('📝 Data form:', { classType, title, slug, description, mentorName });
 
@@ -2796,44 +2899,44 @@
                 return;
             }
 
-            const session = await checkAdmin();
+            var session = await checkAdmin();
             if (!session) {
                 showOnboardingMessage('Sesi admin tidak valid. Silakan login ulang.', 'error');
                 return;
             }
 
-            const isOnboarding = classType === 'onboarding';
-            const isMandatory = true;
+            var isOnboarding = classType === 'onboarding';
+            var isMandatory = true;
 
             if (isOnboarding) {
-                const { count: existingOnboarding } = await _supabase
+                var existingOnboardingResult = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('*', { count: 'exact', head: true })
                     .eq('is_onboarding', true);
 
-                if ((existingOnboarding || 0) > 0) {
+                if ((existingOnboardingResult.count || 0) > 0) {
                     showOnboardingMessage('❌ Hanya 1 kelas onboarding yang diperbolehkan. Hapus kelas onboarding lama terlebih dahulu.', 'error');
                     return;
                 }
             }
 
-            const { data: existing } = await _supabase
+            var existingResult = await _supabase
                 .from('yata_mentoring_sessions')
                 .select('slug')
                 .eq('slug', slug)
                 .maybeSingle();
 
-            if (existing) {
+            if (existingResult.data) {
                 showOnboardingMessage('❌ Slug sudah digunakan. Silakan gunakan slug lain.', 'error');
                 return;
             }
 
-            const submitBtn = this.querySelector('button[type="submit"]');
+            var submitBtn = this.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Membuat...';
 
             try {
-                const { data, error } = await _supabase
+                var insertResult = await _supabase
                     .from('yata_mentoring_sessions')
                     .insert([{
                         mentor_name: mentorName,
@@ -2857,10 +2960,10 @@
                     .select()
                     .single();
 
-                if (error) throw error;
+                if (insertResult.error) throw insertResult.error;
 
-                const typeLabel = isOnboarding ? 'Onboarding' : 'Mentoring Wajib';
-                showOnboardingMessage(`✅ Kelas ${typeLabel} berhasil dibuat!`, 'success');
+                var typeLabel = isOnboarding ? 'Onboarding' : 'Mentoring Wajib';
+                showOnboardingMessage('✅ Kelas ' + typeLabel + ' berhasil dibuat!', 'success');
                 this.reset();
                 document.getElementById('onboardingPrice').value = '0';
                 document.getElementById('onboardingMax').value = '30';
@@ -2897,12 +3000,12 @@
                     .delete()
                     .eq('session_id', sessionId);
 
-                const { error } = await _supabase
+                var deleteResult = await _supabase
                     .from('yata_mentoring_sessions')
                     .delete()
                     .eq('id', sessionId);
 
-                if (error) throw error;
+                if (deleteResult.error) throw deleteResult.error;
 
                 showError('✅ Kelas berhasil dihapus!', 'Sukses');
                 await loadOnboardingList();
@@ -2920,24 +3023,24 @@
             deleteClassTargetId = sessionId;
 
             try {
-                const { count: participantCount } = await _supabase
+                var participantResult = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*', { count: 'exact', head: true })
                     .eq('session_id', sessionId);
 
-                const { count: reviewCount } = await _supabase
+                var reviewResult = await _supabase
                     .from('yata_onboarding_reviews')
                     .select('*', { count: 'exact', head: true })
                     .eq('session_id', sessionId);
 
-                const { count: materialCount } = await _supabase
+                var materialResult = await _supabase
                     .from('yata_mentoring_materials')
                     .select('*', { count: 'exact', head: true })
                     .eq('session_id', sessionId);
 
-                document.getElementById('deleteClassParticipantCount').textContent = participantCount || 0;
-                document.getElementById('deleteClassReviewCount').textContent = reviewCount || 0;
-                document.getElementById('deleteClassMaterialCount').textContent = materialCount || 0;
+                document.getElementById('deleteClassParticipantCount').textContent = participantResult.count || 0;
+                document.getElementById('deleteClassReviewCount').textContent = reviewResult.count || 0;
+                document.getElementById('deleteClassMaterialCount').textContent = materialResult.count || 0;
 
             } catch (err) {
                 console.error('Count related data error:', err);
@@ -2981,26 +3084,28 @@
         // ============================================
         async function openEditOnboardingModal(sessionId) {
             try {
-                const { data: session, error } = await _supabase
+                var sessionResult = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('*')
                     .eq('id', sessionId)
                     .single();
 
-                if (error) throw error;
+                if (sessionResult.error) throw sessionResult.error;
 
-                document.getElementById('editOnboardingId').value = session.id;
-                document.getElementById('editOnboardingTitle').value = session.title;
-                document.getElementById('editOnboardingDesc').value = session.description || '';
-                document.getElementById('editOnboardingLevel').value = session.level || 'pemula';
-                document.getElementById('editOnboardingMax').value = session.max_participants || 30;
-                document.getElementById('editOnboardingSchedule').value = session.schedule || '';
-                document.getElementById('editOnboardingLink').value = session.meeting_link || '';
-                document.getElementById('editOnboardingStatus').value = session.status || 'draft';
-                document.getElementById('editOnboardingMentor').value = session.mentor_name || '';
+                var s = sessionResult.data;
 
-                const classTypeSelect = document.getElementById('editClassType');
-                if (session.is_onboarding) {
+                document.getElementById('editOnboardingId').value = s.id;
+                document.getElementById('editOnboardingTitle').value = s.title;
+                document.getElementById('editOnboardingDesc').value = s.description || '';
+                document.getElementById('editOnboardingLevel').value = s.level || 'pemula';
+                document.getElementById('editOnboardingMax').value = s.max_participants || 30;
+                document.getElementById('editOnboardingSchedule').value = s.schedule || '';
+                document.getElementById('editOnboardingLink').value = s.meeting_link || '';
+                document.getElementById('editOnboardingStatus').value = s.status || 'draft';
+                document.getElementById('editOnboardingMentor').value = s.mentor_name || '';
+
+                var classTypeSelect = document.getElementById('editClassType');
+                if (s.is_onboarding) {
                     classTypeSelect.value = 'onboarding';
                 } else {
                     classTypeSelect.value = 'mandatory';
@@ -3024,45 +3129,45 @@
         document.getElementById('editOnboardingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const sessionId = document.getElementById('editOnboardingId').value;
-            const title = document.getElementById('editOnboardingTitle').value.trim();
-            const description = document.getElementById('editOnboardingDesc').value.trim();
-            const level = document.getElementById('editOnboardingLevel').value;
-            const maxParticipants = parseInt(document.getElementById('editOnboardingMax').value) || 30;
-            const schedule = document.getElementById('editOnboardingSchedule').value.trim();
-            const meetingLink = document.getElementById('editOnboardingLink').value.trim();
-            const status = document.getElementById('editOnboardingStatus').value;
-            const mentorName = document.getElementById('editOnboardingMentor').value.trim();
-            const classType = document.getElementById('editClassType').value;
+            var sessionId = document.getElementById('editOnboardingId').value;
+            var title = document.getElementById('editOnboardingTitle').value.trim();
+            var description = document.getElementById('editOnboardingDesc').value.trim();
+            var level = document.getElementById('editOnboardingLevel').value;
+            var maxParticipants = parseInt(document.getElementById('editOnboardingMax').value) || 30;
+            var schedule = document.getElementById('editOnboardingSchedule').value.trim();
+            var meetingLink = document.getElementById('editOnboardingLink').value.trim();
+            var status = document.getElementById('editOnboardingStatus').value;
+            var mentorName = document.getElementById('editOnboardingMentor').value.trim();
+            var classType = document.getElementById('editClassType').value;
 
             if (!title || !description || !mentorName) {
                 showEditOnboardingMessage('Judul, deskripsi, dan nama mentor wajib diisi.', 'error');
                 return;
             }
 
-            const isOnboarding = classType === 'onboarding';
-            const isMandatory = true;
+            var isOnboarding = classType === 'onboarding';
+            var isMandatory = true;
 
             if (isOnboarding) {
-                const { count: existingOnboarding } = await _supabase
+                var existingOnboardingResult = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('*', { count: 'exact', head: true })
                     .eq('is_onboarding', true)
                     .neq('id', sessionId);
 
-                if ((existingOnboarding || 0) > 0) {
+                if ((existingOnboardingResult.count || 0) > 0) {
                     showEditOnboardingMessage('❌ Hanya 1 kelas onboarding yang diperbolehkan.', 'error');
                     return;
                 }
             }
 
-            const submitBtn = this.querySelector('button[type="submit"]');
+            var submitBtn = this.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...';
             showEditOnboardingMessage('', '');
 
             try {
-                const { error } = await _supabase
+                var updateResult = await _supabase
                     .from('yata_mentoring_sessions')
                     .update({
                         mentor_name: mentorName,
@@ -3079,12 +3184,12 @@
                     })
                     .eq('id', sessionId);
 
-                if (error) throw error;
+                if (updateResult.error) throw updateResult.error;
 
                 showEditOnboardingMessage('✅ Kelas berhasil diperbarui!', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
 
-                setTimeout(() => {
+                setTimeout(function() {
                     closeEditOnboardingModal();
                     loadOnboardingList();
                 }, 1500);
@@ -3099,13 +3204,9 @@
         });
 
         function showEditOnboardingMessage(text, type) {
-            const msg = document.getElementById('editOnboardingMessage');
+            var msg = document.getElementById('editOnboardingMessage');
             msg.textContent = text;
-            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
-                type === 'success' ? 'text-emerald-600' :
-                type === 'error' ? 'text-red-600' :
-                ''
-            }`;
+            msg.className = 'text-sm text-center ' + (type ? 'block' : 'hidden') + ' ' + (type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-red-600' : '');
         }
 
         document.getElementById('editOnboardingModal').addEventListener('click', function(e) {
@@ -3116,33 +3217,35 @@
         // 34. LOAD PENGAJUAN NAIK LEVEL
         // ============================================
         async function loadLevelRequests() {
-            const container = document.getElementById('levelRequestList');
-            const countEl = document.getElementById('pendingLevelCount');
+            var container = document.getElementById('levelRequestList');
+            var countEl = document.getElementById('pendingLevelCount');
 
-            const now = new Date();
-            const refreshEl = document.getElementById('lastRefreshTime');
+            var now = new Date();
+            var refreshEl = document.getElementById('lastRefreshTime');
             if (refreshEl) {
-                refreshEl.textContent = `🔄 Terakhir diperbarui: ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+                refreshEl.textContent = '🔄 Terakhir diperbarui: ' + now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             }
 
             try {
                 console.log('🔄 loadLevelRequests dipanggil pada:', now.toISOString());
                 
-                const { data: profiles, error } = await _supabase
+                var profilesResult = await _supabase
                     .from('yata_profiles')
                     .select('id, full_name, email, member_level, level_status, created_at, rejection_reason')
                     .eq('level_status', 'pending')
                     .neq('member_level', 'Mentor')
                     .order('created_at', { ascending: true });
 
-                if (error) {
-                    console.error('❌ Error load profiles:', error);
-                    throw error;
+                if (profilesResult.error) {
+                    console.error('❌ Error load profiles:', profilesResult.error);
+                    throw profilesResult.error;
                 }
 
-                console.log('📊 Jumlah pending:', profiles?.length || 0);
+                var profiles = profilesResult.data || [];
 
-                if (countEl) countEl.textContent = profiles?.length || 0;
+                console.log('📊 Jumlah pending:', profiles.length);
+
+                if (countEl) countEl.textContent = profiles.length || 0;
 
                 if (!profiles || profiles.length === 0) {
                     container.innerHTML = `
@@ -3154,90 +3257,94 @@
                     return;
                 }
 
-                let html = '';
-                for (const p of profiles) {
-                    const { count: writingsCount } = await _supabase
+                var html = '';
+                for (var i = 0; i < profiles.length; i++) {
+                    var p = profiles[i];
+                    
+                    var writingsCountResult = await _supabase
                         .from('yata_writings')
                         .select('*', { count: 'exact', head: true })
                         .eq('author_id', p.id)
                         .eq('status', 'published');
 
-                    const { count: mentoringCount } = await _supabase
+                    var mentoringCountResult = await _supabase
                         .from('yata_mentoring_participants')
                         .select('*', { count: 'exact', head: true })
                         .eq('user_id', p.id)
                         .eq('attended', true);
 
-                    const totalWritings = writingsCount || 0;
-                    const totalMentoring = mentoringCount || 0;
+                    var totalWritings = writingsCountResult.count || 0;
+                    var totalMentoring = mentoringCountResult.count || 0;
 
-                    const levelMap = {
+                    var levelMap = {
                         'Tamu': 'Penulis',
                         'Penulis': 'Penulis Profesional',
                         'Penulis Profesional': 'Mentor'
                     };
-                    const nextLevel = levelMap[p.member_level] || 'Penulis';
+                    var nextLevel = levelMap[p.member_level] || 'Penulis';
 
-                    let requirementsMet = true;
-                    let reqDetails = [];
+                    var requirementsMet = true;
+                    var reqDetails = [];
                     
                     if (p.member_level === 'Tamu') {
                         if (totalWritings < 5) {
                             requirementsMet = false;
-                            reqDetails.push(`Karya: ${totalWritings}/5`);
+                            reqDetails.push('Karya: ' + totalWritings + '/5');
                         }
                         if (totalMentoring < 3) {
                             requirementsMet = false;
-                            reqDetails.push(`Mentoring: ${totalMentoring}/3`);
+                            reqDetails.push('Mentoring: ' + totalMentoring + '/3');
                         }
                     } else if (p.member_level === 'Penulis') {
                         if (totalWritings < 20) {
                             requirementsMet = false;
-                            reqDetails.push(`Karya: ${totalWritings}/20`);
+                            reqDetails.push('Karya: ' + totalWritings + '/20');
                         }
                         if (totalMentoring < 5) {
                             requirementsMet = false;
-                            reqDetails.push(`Mentoring: ${totalMentoring}/5`);
+                            reqDetails.push('Mentoring: ' + totalMentoring + '/5');
                         }
-                        const { count: booksCount } = await _supabase
+                        var booksCountResult = await _supabase
                             .from('yata_book_projects')
                             .select('*', { count: 'exact', head: true })
                             .eq('author_id', p.id)
                             .eq('status', 'published');
-                        if ((booksCount || 0) < 1) {
+                        if ((booksCountResult.count || 0) < 1) {
                             requirementsMet = false;
-                            reqDetails.push(`Buku: ${booksCount || 0}/1`);
+                            reqDetails.push('Buku: ' + (booksCountResult.count || 0) + '/1');
                         }
                     } else if (p.member_level === 'Penulis Profesional') {
                         if (totalWritings < 50) {
                             requirementsMet = false;
-                            reqDetails.push(`Karya: ${totalWritings}/50`);
+                            reqDetails.push('Karya: ' + totalWritings + '/50');
                         }
                         if (totalMentoring < 5) {
                             requirementsMet = false;
-                            reqDetails.push(`Mentoring: ${totalMentoring}/5`);
+                            reqDetails.push('Mentoring: ' + totalMentoring + '/5');
                         }
-                        const { count: booksCount } = await _supabase
+                        var booksCountResult2 = await _supabase
                             .from('yata_book_projects')
                             .select('*', { count: 'exact', head: true })
                             .eq('author_id', p.id)
                             .eq('status', 'published');
-                        if ((booksCount || 0) < 3) {
+                        if ((booksCountResult2.count || 0) < 3) {
                             requirementsMet = false;
-                            reqDetails.push(`Buku: ${booksCount || 0}/3`);
+                            reqDetails.push('Buku: ' + (booksCountResult2.count || 0) + '/3');
                         }
                     }
 
-                    const requirementStatus = requirementsMet ? '✅ Memenuhi Syarat' : '⚠️ Belum Memenuhi';
-                    const requirementClass = requirementsMet ? 'level-requirement-met' : 'level-requirement-unmet';
+                    var requirementStatus = requirementsMet ? '✅ Memenuhi Syarat' : '⚠️ Belum Memenuhi';
+                    var requirementClass = requirementsMet ? 'level-requirement-met' : 'level-requirement-unmet';
 
-                    const { data: writings } = await _supabase
+                    var writingsResult = await _supabase
                         .from('yata_writings')
                         .select('id, title, category, created_at, likes, views, is_verified')
                         .eq('author_id', p.id)
                         .eq('status', 'published')
                         .order('created_at', { ascending: false })
                         .limit(10);
+
+                    var writings = writingsResult.data || [];
 
                     html += `
                         <div class="p-4 hover:bg-slate-50 transition border-b border-slate-100 last:border-0" data-user-id="${p.id}">
@@ -3266,17 +3373,19 @@
                                         <div class="mt-2 bg-slate-50 rounded-xl p-3">
                                             <p class="text-xs font-semibold text-slate-600 mb-2">📖 Karya Terbaru:</p>
                                             <div class="space-y-1 max-h-40 overflow-y-auto">
-                                                ${writings.map(w => `
-                                                    <div class="flex items-center justify-between text-xs py-1 border-b border-slate-100 last:border-0">
-                                                        <span class="text-slate-700 truncate max-w-[200px] cursor-pointer hover:text-emerald-600" onclick="openVerifyWriting('${p.id}', '${w.id}')" title="Klik untuk verifikasi autentikasi">
-                                                            ${w.title}
-                                                            ${w.is_verified ? '<span class="text-emerald-600">✅</span>' : '<span class="text-amber-500">🔍</span>'}
-                                                        </span>
-                                                        <span class="text-slate-400 flex-shrink-0">${w.category || 'Umum'} • ❤️ ${w.likes || 0}</span>
-                                                    </div>
-                                                `).join('')}
+                                                ${writings.map(function(w) {
+                                                    return `
+                                                        <div class="flex items-center justify-between text-xs py-1 border-b border-slate-100 last:border-0">
+                                                            <span class="text-slate-700 truncate max-w-[200px] cursor-pointer hover:text-emerald-600" onclick="openVerifyWriting('${p.id}', '${w.id}')" title="Klik untuk verifikasi autentikasi">
+                                                                ${w.title}
+                                                                ${w.is_verified ? '<span class="text-emerald-600">✅</span>' : '<span class="text-amber-500">🔍</span>'}
+                                                            </span>
+                                                            <span class="text-slate-400 flex-shrink-0">${w.category || 'Umum'} • ❤️ ${w.likes || 0}</span>
+                                                        </div>
+                                                    `;
+                                                }).join('')}
                                             </div>
-                                            ${writingsCount > 10 ? `<p class="text-xs text-slate-400 mt-1">+${writingsCount - 10} karya lainnya</p>` : ''}
+                                            ${totalWritings > 10 ? '<p class="text-xs text-slate-400 mt-1">+' + (totalWritings - 10) + ' karya lainnya</p>' : ''}
                                             <p class="text-xs text-amber-600 mt-1">💡 Klik judul karya untuk verifikasi autentikasi.</p>
                                         </div>
                                     ` : `
@@ -3318,7 +3427,7 @@
         }
 
         // ============================================
-        // 35. APPROVE NAIK LEVEL
+        // 35. APPROVE NAIK LEVEL - DENGAN UPDATE ID ANGGOTA
         // ============================================
         async function approveLevelUp(userId, userName) {
             console.log('🔥 approveLevelUp dipanggil!', { userId, userName });
@@ -3329,87 +3438,126 @@
                 return;
             }
 
-            if (!confirm(`Setujui pengajuan naik level untuk "${userName}"?`)) return;
+            if (!confirm('Setujui pengajuan naik level untuk "' + userName + '"?')) return;
 
             try {
-                const session = await checkAdmin();
+                var session = await checkAdmin();
                 if (!session) {
                     alert('Sesi admin tidak valid. Silakan login ulang.');
                     return;
                 }
 
-                const buttons = document.querySelectorAll(`button[onclick*="approveLevelUp('${userId}')"], button[onclick*="rejectLevelUp('${userId}')"]`);
-                buttons.forEach(btn => {
-                    btn.disabled = true;
-                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>';
-                    btn.className = 'opacity-50 cursor-not-allowed px-3 py-1.5 rounded-xl text-xs transition bg-slate-200 text-slate-400';
-                });
+                var buttons = document.querySelectorAll('button[onclick*="approveLevelUp(\'' + userId + '\')"], button[onclick*="rejectLevelUp(\'' + userId + '\')"]');
+                for (var i = 0; i < buttons.length; i++) {
+                    buttons[i].disabled = true;
+                    buttons[i].innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>';
+                    buttons[i].className = 'opacity-50 cursor-not-allowed px-3 py-1.5 rounded-xl text-xs transition bg-slate-200 text-slate-400';
+                }
 
-                const { data: profile, error: profileError } = await _supabase
+                var profileResult = await _supabase
                     .from('yata_profiles')
-                    .select('member_level')
+                    .select('member_level, member_id')
                     .eq('id', userId)
                     .single();
 
-                if (profileError) {
-                    console.error('❌ Profile error:', profileError);
-                    alert('Gagal mengambil data user: ' + profileError.message);
-                    buttons.forEach(btn => {
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Setujui';
-                        btn.className = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition';
-                    });
+                if (profileResult.error) {
+                    console.error('❌ Profile error:', profileResult.error);
+                    alert('Gagal mengambil data user: ' + profileResult.error.message);
+                    for (var j = 0; j < buttons.length; j++) {
+                        buttons[j].disabled = false;
+                        buttons[j].innerHTML = '<i class="fa-solid fa-check mr-1"></i> Setujui';
+                        buttons[j].className = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition';
+                    }
                     return;
                 }
 
+                var profile = profileResult.data;
                 console.log('📊 Profile saat ini:', profile);
 
-                const levelMap = {
+                var levelMap = {
                     'Tamu': 'Penulis',
                     'Penulis': 'Penulis Profesional',
                     'Penulis Profesional': 'Mentor'
                 };
 
-                const newLevel = levelMap[profile.member_level] || 'Penulis';
+                var newLevel = levelMap[profile.member_level] || 'Penulis';
                 console.log('📈 Level baru:', newLevel);
 
-                const { data: updatedProfile, error: updateError } = await _supabase
+                // 🔥 GENERATE MEMBER ID BARU SESUAI LEVEL
+                var prefixMap = {
+                    'Tamu': 'Yatta-T',
+                    'Penulis': 'Yatta-P',
+                    'Penulis Profesional': 'Yatta-PP',
+                    'Mentor': 'Yatta-M'
+                };
+                var newPrefix = prefixMap[newLevel] || 'Yatta-P';
+                
+                var newMemberId = profile.member_id;
+                if (profile.member_id) {
+                    // Ganti prefix dengan yang baru
+                    var parts = profile.member_id.split('-');
+                    if (parts.length >= 2) {
+                        var numberPart = parts.slice(2).join('-') || parts[1];
+                        newMemberId = newPrefix + '-' + numberPart;
+                    } else {
+                        // Jika format tidak sesuai, buat baru
+                        var timestamp = String(Date.now()).slice(-4);
+                        var now = new Date();
+                        var tanggal = String(now.getDate()).padStart(2, '0');
+                        var bulan = String(now.getMonth() + 1).padStart(2, '0');
+                        var tahun = String(now.getFullYear()).slice(-2);
+                        newMemberId = newPrefix + '-' + timestamp + tanggal + bulan + tahun;
+                    }
+                } else {
+                    // Jika belum punya member_id, buat baru
+                    var timestamp2 = String(Date.now()).slice(-4);
+                    var now2 = new Date();
+                    var tanggal2 = String(now2.getDate()).padStart(2, '0');
+                    var bulan2 = String(now2.getMonth() + 1).padStart(2, '0');
+                    var tahun2 = String(now2.getFullYear()).slice(-2);
+                    newMemberId = newPrefix + '-' + timestamp2 + tanggal2 + bulan2 + tahun2;
+                }
+
+                console.log('🆔 Member ID baru:', newMemberId);
+
+                var updateResult = await _supabase
                     .from('yata_profiles')
                     .update({
                         member_level: newLevel,
                         level_status: 'approved',
+                        member_id: newMemberId,
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', userId)
                     .select();
 
-                if (updateError) {
-                    console.error('❌ Update error:', updateError);
-                    alert('Gagal update: ' + updateError.message);
-                    buttons.forEach(btn => {
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Setujui';
-                        btn.className = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition';
-                    });
+                if (updateResult.error) {
+                    console.error('❌ Update error:', updateResult.error);
+                    alert('Gagal update: ' + updateResult.error.message);
+                    for (var k = 0; k < buttons.length; k++) {
+                        buttons[k].disabled = false;
+                        buttons[k].innerHTML = '<i class="fa-solid fa-check mr-1"></i> Setujui';
+                        buttons[k].className = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition';
+                    }
                     return;
                 }
 
-                console.log('✅ Update berhasil:', updatedProfile);
+                console.log('✅ Update berhasil:', updateResult.data);
 
                 await sendNotificationToUser(
                     userId,
                     '🎉 Selamat! Level Anda Naik!',
-                    `Selamat! Level Anda telah naik dari "${profile.member_level}" menjadi "${newLevel}". Terus berkarya!`,
+                    'Selamat! Level Anda telah naik dari "' + profile.member_level + '" menjadi "' + newLevel + '".\n\n🆔 ID Anggota baru Anda: ' + newMemberId + '\n\nTerus berkarya!',
                     'success'
                 );
 
-                const card = document.querySelector(`[data-user-id="${userId}"]`);
+                var card = document.querySelector('[data-user-id="' + userId + '"]');
                 if (card) {
                     card.style.transition = 'all 0.3s ease';
                     card.style.opacity = '0';
                     card.style.transform = 'translateX(20px)';
-                    setTimeout(() => {
-                        card.remove();
+                    setTimeout(function() {
+                        if (card.parentNode) card.parentNode.removeChild(card);
                         updatePendingCount();
                         loadLevelRequests();
                     }, 300);
@@ -3417,17 +3565,17 @@
                     await loadLevelRequests();
                 }
 
-                alert(`✅ Level ${userName} berhasil dinaikkan ke "${newLevel}"!`);
+                alert('✅ Level ' + userName + ' berhasil dinaikkan ke "' + newLevel + '" dengan ID anggota baru ' + newMemberId + '!');
 
             } catch (err) {
                 console.error('❌ Approve level error:', err);
                 alert('❌ Gagal menyetujui: ' + err.message);
-                const buttons = document.querySelectorAll(`button[onclick*="approveLevelUp('${userId}')"]`);
-                buttons.forEach(btn => {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Setujui';
-                    btn.className = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition';
-                });
+                var buttons2 = document.querySelectorAll('button[onclick*="approveLevelUp(\'' + userId + '\')"]');
+                for (var l = 0; l < buttons2.length; l++) {
+                    buttons2[l].disabled = false;
+                    buttons2[l].innerHTML = '<i class="fa-solid fa-check mr-1"></i> Setujui';
+                    buttons2[l].className = 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-xs transition';
+                }
             }
         }
 
@@ -3443,7 +3591,7 @@
                 return;
             }
 
-            const reason = prompt(`Berikan alasan penolakan untuk "${userName}":`);
+            var reason = prompt('Berikan alasan penolakan untuk "' + userName + '":');
             if (reason === null) return;
             if (!reason.trim()) {
                 alert('Harap berikan alasan penolakan.');
@@ -3451,23 +3599,23 @@
             }
 
             try {
-                const session = await checkAdmin();
+                var session = await checkAdmin();
                 if (!session) {
                     alert('Sesi admin tidak valid. Silakan login ulang.');
                     return;
                 }
 
-                const buttons = document.querySelectorAll(`button[onclick*="approveLevelUp('${userId}')"], button[onclick*="rejectLevelUp('${userId}')"]`);
-                buttons.forEach(btn => {
-                    btn.disabled = true;
-                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>';
-                    btn.className = 'opacity-50 cursor-not-allowed px-3 py-1.5 rounded-xl text-xs transition bg-slate-200 text-slate-400';
-                });
+                var buttons = document.querySelectorAll('button[onclick*="approveLevelUp(\'' + userId + '\')"], button[onclick*="rejectLevelUp(\'' + userId + '\')"]');
+                for (var i = 0; i < buttons.length; i++) {
+                    buttons[i].disabled = true;
+                    buttons[i].innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>';
+                    buttons[i].className = 'opacity-50 cursor-not-allowed px-3 py-1.5 rounded-xl text-xs transition bg-slate-200 text-slate-400';
+                }
 
                 console.log('❌ Reject user:', userId, userName);
                 console.log('📝 Alasan:', reason);
 
-                const { data: updatedProfile, error: updateError } = await _supabase
+                var updateResult = await _supabase
                     .from('yata_profiles')
                     .update({
                         level_status: 'rejected',
@@ -3477,33 +3625,33 @@
                     .eq('id', userId)
                     .select();
 
-                if (updateError) {
-                    console.error('❌ Update error:', updateError);
-                    alert('Gagal menolak: ' + updateError.message);
-                    buttons.forEach(btn => {
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fa-solid fa-xmark mr-1"></i> Tolak';
-                        btn.className = 'bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-4 py-2 rounded-xl text-xs transition';
-                    });
+                if (updateResult.error) {
+                    console.error('❌ Update error:', updateResult.error);
+                    alert('Gagal menolak: ' + updateResult.error.message);
+                    for (var j = 0; j < buttons.length; j++) {
+                        buttons[j].disabled = false;
+                        buttons[j].innerHTML = '<i class="fa-solid fa-xmark mr-1"></i> Tolak';
+                        buttons[j].className = 'bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-4 py-2 rounded-xl text-xs transition';
+                    }
                     return;
                 }
 
-                console.log('✅ Update berhasil:', updatedProfile);
+                console.log('✅ Update berhasil:', updateResult.data);
 
                 await sendNotificationToUser(
                     userId,
                     '❌ Pengajuan Naik Level Ditolak',
-                    `Pengajuan naik level Anda ditolak dengan alasan: ${reason}`,
+                    'Pengajuan naik level Anda ditolak dengan alasan: ' + reason,
                     'warning'
                 );
 
-                const card = document.querySelector(`[data-user-id="${userId}"]`);
+                var card = document.querySelector('[data-user-id="' + userId + '"]');
                 if (card) {
                     card.style.transition = 'all 0.3s ease';
                     card.style.opacity = '0';
                     card.style.transform = 'translateX(20px)';
-                    setTimeout(() => {
-                        card.remove();
+                    setTimeout(function() {
+                        if (card.parentNode) card.parentNode.removeChild(card);
                         updatePendingCount();
                         loadLevelRequests();
                     }, 300);
@@ -3511,17 +3659,17 @@
                     await loadLevelRequests();
                 }
 
-                alert(`❌ Pengajuan ${userName} ditolak.`);
+                alert('❌ Pengajuan ' + userName + ' ditolak.');
 
             } catch (err) {
                 console.error('❌ Reject level error:', err);
                 alert('❌ Gagal menolak: ' + err.message);
-                const buttons = document.querySelectorAll(`button[onclick*="rejectLevelUp('${userId}')"]`);
-                buttons.forEach(btn => {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fa-solid fa-xmark mr-1"></i> Tolak';
-                    btn.className = 'bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-4 py-2 rounded-xl text-xs transition';
-                });
+                var buttons2 = document.querySelectorAll('button[onclick*="rejectLevelUp(\'' + userId + '\')"]');
+                for (var k = 0; k < buttons2.length; k++) {
+                    buttons2[k].disabled = false;
+                    buttons2[k].innerHTML = '<i class="fa-solid fa-xmark mr-1"></i> Tolak';
+                    buttons2[k].className = 'bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-4 py-2 rounded-xl text-xs transition';
+                }
             }
         }
 
@@ -3529,11 +3677,11 @@
         // 37. UPDATE PENDING COUNT
         // ============================================
         function updatePendingCount() {
-            const container = document.getElementById('levelRequestList');
-            const items = container.querySelectorAll('[data-user-id]');
-            const count = items.length;
+            var container = document.getElementById('levelRequestList');
+            var items = container.querySelectorAll('[data-user-id]');
+            var count = items.length;
             
-            const countEl = document.getElementById('pendingLevelCount');
+            var countEl = document.getElementById('pendingLevelCount');
             if (countEl) {
                 countEl.textContent = count;
             }
@@ -3553,22 +3701,28 @@
         // ============================================
         async function openVerifyWriting(profileId, writingId) {
             try {
-                const { data: writing, error } = await _supabase
+                var writingResult = await _supabase
                     .from('yata_writings')
                     .select('*')
                     .eq('id', writingId)
                     .single();
 
-                if (error) throw error;
+                if (writingResult.error) throw writingResult.error;
 
-                const modal = document.getElementById('verifyWritingModal');
-                const content = document.getElementById('verifyWritingContent');
+                var writing = writingResult.data;
+
+                var modal = document.getElementById('verifyWritingModal');
+                var content = document.getElementById('verifyWritingContent');
                 
-                content.innerHTML = `
+                var verifiedBadge = writing.is_verified ? 
+                    '<span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">✅ Terverifikasi</span>' : 
+                    '<span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">⏳ Belum Diverifikasi</span>';
+
+                var contentHtml = `
                     <div class="bg-slate-50 rounded-xl p-4 space-y-3">
                         <div class="flex items-center justify-between">
                             <p><strong>Judul:</strong> ${writing.title}</p>
-                            ${writing.is_verified ? '<span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">✅ Terverifikasi</span>' : '<span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">⏳ Belum Diverifikasi</span>'}
+                            ${verifiedBadge}
                         </div>
                         <p><strong>Kategori:</strong> ${writing.category || 'Umum'}</p>
                         <p><strong>Tanggal:</strong> ${new Date(writing.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
@@ -3578,7 +3732,7 @@
                         <div class="flex items-center gap-2 text-xs text-slate-400">
                             <span><i class="fa-regular fa-eye"></i> ${writing.views || 0} views</span>
                             <span><i class="fa-regular fa-heart"></i> ${writing.likes || 0} likes</span>
-                            ${writing.verified_at ? `<span>✅ Diverifikasi: ${new Date(writing.verified_at).toLocaleDateString('id-ID')}</span>` : ''}
+                            ${writing.verified_at ? '<span>✅ Diverifikasi: ' + new Date(writing.verified_at).toLocaleDateString('id-ID') + '</span>' : ''}
                         </div>
                         <div class="text-xs text-slate-400 mt-1">
                             <p class="font-semibold">📌 Tips Verifikasi:</p>
@@ -3590,6 +3744,8 @@
                         </div>
                     </div>
                 `;
+
+                content.innerHTML = contentHtml;
 
                 modal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
@@ -3611,8 +3767,8 @@
         }
 
         async function confirmVerifyWriting() {
-            const writingId = window._verifyWritingId;
-            const profileId = window._verifyProfileId;
+            var writingId = window._verifyWritingId;
+            var profileId = window._verifyProfileId;
 
             if (!writingId) {
                 alert('Tidak ada karya yang dipilih untuk diverifikasi.');
@@ -3621,8 +3777,8 @@
 
             if (!confirm('Verifikasi bahwa karya ini ASLI ditulis oleh member tersebut?')) return;
 
-            const btn = document.querySelector('#verifyWritingModal .flex-1.bg-emerald-600');
-            const originalText = btn.innerHTML;
+            var btn = document.querySelector('#verifyWritingModal .flex-1.bg-emerald-600');
+            var originalText = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memverifikasi...';
             document.getElementById('verifyWritingMessage').className = 'text-sm text-center hidden';
@@ -3636,7 +3792,7 @@
                     })
                     .eq('id', writingId);
 
-                const session = await checkAdmin();
+                var session = await checkAdmin();
                 if (session) {
                     await _supabase
                         .from('yata_activity_logs')
@@ -3655,7 +3811,7 @@
                 document.getElementById('verifyWritingMessage').className = 'text-sm text-center text-emerald-600 block';
                 btn.innerHTML = '✅ Terverifikasi!';
 
-                setTimeout(() => {
+                setTimeout(function() {
                     closeVerifyWritingModal();
                     loadLevelRequests();
                 }, 1500);
@@ -3674,8 +3830,8 @@
         // 39. AUTO REFRESH LEVEL REQUESTS
         // ============================================
         function autoRefreshLevelRequests() {
-            setInterval(() => {
-                const levelTab = document.getElementById('adminLevelRequests');
+            setInterval(function() {
+                var levelTab = document.getElementById('adminLevelRequests');
                 if (levelTab && !levelTab.classList.contains('hidden')) {
                     console.log('🔄 Auto-refresh level requests...');
                     loadLevelRequests();
@@ -3687,33 +3843,41 @@
         // 40. LOAD REPUTASI DATA (ADMIN)
         // ============================================
         async function loadReputationData() {
-            const container = document.getElementById('reputationMemberList');
+            var container = document.getElementById('reputationMemberList');
             
             try {
-                const session = await checkAdmin();
+                var session = await checkAdmin();
                 if (!session) return;
 
-                const { data: members, error } = await _supabase
+                var membersResult = await _supabase
                     .from('yata_profiles')
                     .select('id, full_name, username, email, member_level, reputation, total_published, total_views_received, total_likes_received, created_at')
                     .eq('role', 'member')
                     .order('reputation', { ascending: false });
 
-                if (error) throw error;
+                if (membersResult.error) throw membersResult.error;
 
-                allReputationData = members || [];
+                allReputationData = membersResult.data || [];
 
-                const total = allReputationData.length;
-                const premium = allReputationData.filter(m => (m.reputation || 0) >= 150).length;
-                const trusted = allReputationData.filter(m => (m.reputation || 0) >= 100 && (m.reputation || 0) < 150).length;
-                const standard = allReputationData.filter(m => (m.reputation || 0) >= 60 && (m.reputation || 0) < 100).length;
-                const low = allReputationData.filter(m => (m.reputation || 0) < 60).length;
+                var total = allReputationData.length;
+                var premium = 0;
+                var trusted = 0;
+                var standard = 0;
+                var low = 0;
 
-                const totalEl = document.getElementById('repTotalMembers');
-                const premiumEl = document.getElementById('repPremium');
-                const trustedEl = document.getElementById('repTrusted');
-                const standardEl = document.getElementById('repStandard');
-                const lowEl = document.getElementById('repLow');
+                for (var i = 0; i < allReputationData.length; i++) {
+                    var rep = allReputationData[i].reputation || 0;
+                    if (rep >= 150) premium++;
+                    else if (rep >= 100) trusted++;
+                    else if (rep >= 60) standard++;
+                    else low++;
+                }
+
+                var totalEl = document.getElementById('repTotalMembers');
+                var premiumEl = document.getElementById('repPremium');
+                var trustedEl = document.getElementById('repTrusted');
+                var standardEl = document.getElementById('repStandard');
+                var lowEl = document.getElementById('repLow');
 
                 if (totalEl) totalEl.textContent = total;
                 if (premiumEl) premiumEl.textContent = premium;
@@ -3737,29 +3901,29 @@
         }
 
         function renderReputationList() {
-            const container = document.getElementById('reputationMemberList');
+            var container = document.getElementById('reputationMemberList');
 
-            let filtered = allReputationData;
+            var filtered = allReputationData.slice();
 
             if (repFilter !== 'all') {
                 if (repFilter === 'premium') {
-                    filtered = filtered.filter(m => (m.reputation || 0) >= 150);
+                    filtered = filtered.filter(function(m) { return (m.reputation || 0) >= 150; });
                 } else if (repFilter === 'trusted') {
-                    filtered = filtered.filter(m => (m.reputation || 0) >= 100 && (m.reputation || 0) < 150);
+                    filtered = filtered.filter(function(m) { return (m.reputation || 0) >= 100 && (m.reputation || 0) < 150; });
                 } else if (repFilter === 'standard') {
-                    filtered = filtered.filter(m => (m.reputation || 0) >= 60 && (m.reputation || 0) < 100);
+                    filtered = filtered.filter(function(m) { return (m.reputation || 0) >= 60 && (m.reputation || 0) < 100; });
                 } else if (repFilter === 'low') {
-                    filtered = filtered.filter(m => (m.reputation || 0) < 60);
+                    filtered = filtered.filter(function(m) { return (m.reputation || 0) < 60; });
                 }
             }
 
             if (repSearch.trim()) {
-                const query = repSearch.toLowerCase().trim();
-                filtered = filtered.filter(m =>
-                    (m.full_name && m.full_name.toLowerCase().includes(query)) ||
-                    (m.username && m.username.toLowerCase().includes(query)) ||
-                    (m.email && m.email.toLowerCase().includes(query))
-                );
+                var query = repSearch.toLowerCase().trim();
+                filtered = filtered.filter(function(m) {
+                    return (m.full_name && m.full_name.toLowerCase().includes(query)) ||
+                           (m.username && m.username.toLowerCase().includes(query)) ||
+                           (m.email && m.email.toLowerCase().includes(query));
+                });
             }
 
             if (filtered.length === 0) {
@@ -3772,7 +3936,7 @@
                 return;
             }
 
-            const levelLabels = {
+            var levelLabels = {
                 premium: '🌟 Premium',
                 trusted: '✅ Terpercaya',
                 standard: '📝 Standar',
@@ -3780,7 +3944,7 @@
                 limited: '🚫 Terbatas'
             };
 
-            const levelColors = {
+            var levelColors = {
                 premium: 'rep-level-premium',
                 trusted: 'rep-level-trusted',
                 standard: 'rep-level-standard',
@@ -3788,17 +3952,19 @@
                 limited: 'rep-level-limited'
             };
 
-            container.innerHTML = filtered.map(m => {
-                const reputation = m.reputation || 100;
-                const level = getReputationLevel(reputation);
-                const levelLabel = levelLabels[level.badge] || '📝 Standar';
-                const levelColor = levelColors[level.badge] || 'rep-level-standard';
+            var html = '';
+            for (var i = 0; i < filtered.length; i++) {
+                var m = filtered[i];
+                var reputation = m.reputation || 100;
+                var level = getReputationLevel(reputation);
+                var levelLabel = levelLabels[level.badge] || '📝 Standar';
+                var levelColor = levelColors[level.badge] || 'rep-level-standard';
 
-                return `
+                html += `
                     <div class="flex items-center justify-between bg-white rounded-xl p-3 border border-slate-100 hover:shadow-sm transition">
                         <div class="flex items-center gap-3 flex-1 min-w-0">
                             <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm flex-shrink-0">
-                                ${m.full_name?.charAt(0) || '?'}
+                                ${m.full_name ? m.full_name.charAt(0).toUpperCase() : '?'}
                             </div>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
@@ -3826,12 +3992,14 @@
                         </div>
                     </div>
                 `;
-            }).join('');
+            }
+
+            container.innerHTML = html;
         }
 
         function filterReputation() {
-            const filterEl = document.getElementById('repFilter');
-            const searchEl = document.getElementById('repSearch');
+            var filterEl = document.getElementById('repFilter');
+            var searchEl = document.getElementById('repSearch');
             if (filterEl) repFilter = filterEl.value;
             if (searchEl) repSearch = searchEl.value;
             renderReputationList();
@@ -3843,11 +4011,11 @@
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
                 try {
-                    const { error } = await _supabase.auth.signOut();
-                    if (!error) {
+                    var result = await _supabase.auth.signOut();
+                    if (!result.error) {
                         window.location.href = 'login.html';
                     } else {
-                        console.error('Logout error:', error);
+                        console.error('Logout error:', result.error);
                     }
                 } catch (err) {
                     console.error('Logout error:', err);
@@ -3858,55 +4026,55 @@
         // ============================================
         // 42. EVENT LISTENERS
         // ============================================
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', function() {
             loadAdminData();
             autoRefreshLevelRequests();
 
-            const logoutBtn = document.getElementById('btnLogout');
-            const logoutMobileBtn = document.getElementById('btnLogoutMobile');
+            var logoutBtn = document.getElementById('btnLogout');
+            var logoutMobileBtn = document.getElementById('btnLogoutMobile');
             if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
             if (logoutMobileBtn) logoutMobileBtn.addEventListener('click', handleLogout);
 
-            const mobileMenuBtn = document.getElementById('mobileMenuButton');
+            var mobileMenuBtn = document.getElementById('mobileMenuButton');
             if (mobileMenuBtn) {
                 mobileMenuBtn.addEventListener('click', function() {
-                    const menu = document.getElementById('mobileMenu');
+                    var menu = document.getElementById('mobileMenu');
                     if (menu) menu.classList.toggle('hidden');
                 });
             }
 
             // Tutup mobile menu saat klik link
-            const mobileMenuLinks = document.querySelectorAll('#mobileMenu a, #mobileMenu button');
-            mobileMenuLinks.forEach(el => {
-                el.addEventListener('click', () => {
-                    const menu = document.getElementById('mobileMenu');
+            var mobileMenuLinks = document.querySelectorAll('#mobileMenu a, #mobileMenu button');
+            for (var i = 0; i < mobileMenuLinks.length; i++) {
+                mobileMenuLinks[i].addEventListener('click', function() {
+                    var menu = document.getElementById('mobileMenu');
                     if (menu) menu.classList.add('hidden');
                 });
-            });
+            }
 
             // Close modal saat klik di luar
-            const messageModal = document.getElementById('messageModal');
+            var messageModal = document.getElementById('messageModal');
             if (messageModal) {
                 messageModal.addEventListener('click', function(e) {
                     if (e.target === this) closeMessageModal();
                 });
             }
 
-            const verifyModal = document.getElementById('verifyModal');
+            var verifyModal = document.getElementById('verifyModal');
             if (verifyModal) {
                 verifyModal.addEventListener('click', function(e) {
                     if (e.target === this) closeVerifyModal();
                 });
             }
 
-            const verifyWritingModal = document.getElementById('verifyWritingModal');
+            var verifyWritingModal = document.getElementById('verifyWritingModal');
             if (verifyWritingModal) {
                 verifyWritingModal.addEventListener('click', function(e) {
                     if (e.target === this) closeVerifyWritingModal();
                 });
             }
 
-            const deleteClassModal = document.getElementById('deleteClassModal');
+            var deleteClassModal = document.getElementById('deleteClassModal');
             if (deleteClassModal) {
                 deleteClassModal.addEventListener('click', function(e) {
                     if (e.target === this) closeDeleteClassModal();
@@ -3915,8 +4083,8 @@
 
             // Close search results saat klik di luar
             document.addEventListener('click', function(e) {
-                const results = document.getElementById('memberSearchResults');
-                const searchInput = document.getElementById('searchMember');
+                var results = document.getElementById('memberSearchResults');
+                var searchInput = document.getElementById('searchMember');
                 if (results && !results.contains(e.target) && e.target !== searchInput) {
                     results.classList.add('hidden');
                 }
