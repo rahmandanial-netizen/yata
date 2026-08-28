@@ -644,7 +644,7 @@
         }
 
         // ============================================
-        // 5. POPUP PROFIL PENULIS (DIPERBAIKI)
+        // 5. POPUP PROFIL PENULIS (DIPERBAIKI - LENGKAP)
         // ============================================
         async function openAuthorPopup(authorId) {
             currentPopupAuthorId = authorId;
@@ -662,7 +662,9 @@
             `;
 
             try {
+                // ============================================
                 // 1. Ambil data profil
+                // ============================================
                 const { data: profile, error } = await _supabase
                     .from('yata_profiles')
                     .select('*')
@@ -671,7 +673,9 @@
 
                 if (error) throw error;
 
+                // ============================================
                 // 2. Ambil jumlah karya
+                // ============================================
                 const { data: writings, error: writingsError } = await _supabase
                     .from('yata_writings')
                     .select('id')
@@ -680,7 +684,9 @@
 
                 const totalWritings = writings?.length || 0;
 
-                // 3. ✅ AMBIL TOTAL LIKES (DIPERBAIKI)
+                // ============================================
+                // 3. AMBIL TOTAL LIKES (DIPERBAIKI)
+                // ============================================
                 const { data: likesData, error: likesError } = await _supabase
                     .from('yata_writings')
                     .select('likes')
@@ -693,7 +699,9 @@
                 }
                 console.log('✅ Total likes for', profile.full_name, ':', totalLikes);
 
-                // 4. ✅ AMBIL TOTAL VIEWS
+                // ============================================
+                // 4. AMBIL TOTAL VIEWS
+                // ============================================
                 const { data: viewsData, error: viewsError } = await _supabase
                     .from('yata_writings')
                     .select('views')
@@ -705,14 +713,33 @@
                     totalViews = viewsData.reduce((sum, w) => sum + (w.views || 0), 0);
                 }
 
-                // 5. ✅ AMBIL RANKING
-                const { data: ranking, error: rankingError } = await _supabase
-                    .from('yata_rankings')
-                    .select('rank_position, total_score, rank_category')
-                    .eq('user_id', authorId)
-                    .maybeSingle();
+                // ============================================
+                // 5. AMBIL RANKING (DIPERBAIKI)
+                // ============================================
+                let rankDisplay = '-';
+                let scoreDisplay = 0;
+                let rankCategory = '';
 
+                try {
+                    const { data: ranking, error: rankingError } = await _supabase
+                        .from('yata_rankings')
+                        .select('rank_position, total_score, rank_category')
+                        .eq('user_id', authorId)
+                        .single();
+                    
+                    if (!rankingError && ranking) {
+                        rankDisplay = ranking.rank_position ? `#${ranking.rank_position}` : '-';
+                        scoreDisplay = ranking.total_score ? Math.round(ranking.total_score) : 0;
+                        rankCategory = ranking.rank_category || '';
+                        console.log('✅ Ranking found:', ranking);
+                    }
+                } catch (err) {
+                    console.log('ℹ️ No ranking for user:', authorId);
+                }
+
+                // ============================================
                 // 6. Ambil jumlah buku
+                // ============================================
                 const { data: books, error: booksError } = await _supabase
                     .from('yata_book_projects')
                     .select('id')
@@ -721,7 +748,9 @@
 
                 const totalBooks = books?.length || 0;
 
+                // ============================================
                 // 7. Ambil jumlah komunitas
+                // ============================================
                 const { data: communities, error: commError } = await _supabase
                     .from('yata_community_members')
                     .select('community_id')
@@ -729,11 +758,9 @@
 
                 const totalCommunities = communities?.length || 0;
 
-                // 8. ✅ Hitung poin dari ranking
-                const scoreDisplay = ranking?.total_score ? Math.round(ranking.total_score) : 0;
-                const rankDisplay = ranking?.rank_position ? `#${ranking.rank_position}` : '-';
-                const rankLabel = ranking?.rank_category ? ranking.rank_category.replace('_', ' ').toUpperCase() : '';
-
+                // ============================================
+                // 8. Render Popup
+                // ============================================
                 const levelEmojis = {
                     'Tamu': '🌱',
                     'Penulis': '✍️',
@@ -764,9 +791,9 @@
                         <h3 class="text-xl font-bold text-slate-800 mt-3">${profile.full_name || 'User'}</h3>
                         <p class="text-xs text-slate-400">@${profile.username || 'username'}</p>
                         <span class="level-badge ${levelClass} mt-2 inline-block">${levelEmoji} ${profile.member_level || 'Tamu'}</span>
-                        ${rankLabel ? `<span class="text-xs block mt-1">${rankLabel}</span>` : ''}
+                        ${rankCategory ? `<span class="text-xs block mt-1">${rankCategory.replace('_', ' ').toUpperCase()}</span>` : ''}
 
-                        <!-- ✅ STATISTIK LENGKAP (DIPERBAIKI) -->
+                        <!-- ✅ STATISTIK LENGKAP -->
                         <div class="stat-grid mt-4">
                             <div class="stat-item">
                                 <p class="number">${totalWritings}</p>
