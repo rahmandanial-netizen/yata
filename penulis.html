@@ -143,6 +143,28 @@
             transform: translateY(-4px);
             box-shadow: 0 12px 30px -12px rgba(6, 95, 70, 0.15);
         }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .stat-grid .stat-item {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 8px 4px;
+            text-align: center;
+        }
+        .stat-grid .stat-item .number {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .stat-grid .stat-item .label {
+            font-size: 9px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
     </style>
 </head>
 <body>
@@ -320,11 +342,24 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- JAVASCRIPT -->
+    <!-- JAVASCRIPT - LENGKAP DIPERBAIKI -->
     <!-- ============================================ -->
     <script>
+        // ============================================
+        // INISIALISASI SUPABASE
+        // ============================================
         const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
+        // ============================================
+        // REGISTRASI SUPABASE CLIENT GLOBAL UNTUK UTILS.JS
+        // ============================================
+        window._supabase = _supabase;
+        window.supabase = _supabase;
+        console.log('✅ Supabase client registered globally');
+
+        // ============================================
+        // VARIABEL GLOBAL
+        // ============================================
         let allAuthors = [];
         let currentFilter = 'all';
         let currentSearch = '';
@@ -353,6 +388,7 @@
                             category: r.rank_category
                         };
                     });
+                    console.log('✅ Rankings loaded:', Object.keys(authorRankings).length);
                 }
             } catch (err) {
                 console.error('Load rankings error:', err);
@@ -608,7 +644,7 @@
         }
 
         // ============================================
-        // 5. POPUP PROFIL PENULIS (TANPA TOMBOL PROFIL)
+        // 5. POPUP PROFIL PENULIS (DIPERBAIKI)
         // ============================================
         async function openAuthorPopup(authorId) {
             currentPopupAuthorId = authorId;
@@ -644,23 +680,39 @@
 
                 const totalWritings = writings?.length || 0;
 
-                // 3. Ambil total likes
+                // 3. ✅ AMBIL TOTAL LIKES (DIPERBAIKI)
                 const { data: likesData, error: likesError } = await _supabase
                     .from('yata_writings')
                     .select('likes')
                     .eq('author_id', authorId)
                     .eq('status', 'published');
 
-                const totalLikes = likesData?.reduce((sum, w) => sum + (w.likes || 0), 0) || 0;
+                let totalLikes = 0;
+                if (likesData && likesData.length > 0) {
+                    totalLikes = likesData.reduce((sum, w) => sum + (w.likes || 0), 0);
+                }
+                console.log('✅ Total likes for', profile.full_name, ':', totalLikes);
 
-                // 4. Ambil ranking
+                // 4. ✅ AMBIL TOTAL VIEWS
+                const { data: viewsData, error: viewsError } = await _supabase
+                    .from('yata_writings')
+                    .select('views')
+                    .eq('author_id', authorId)
+                    .eq('status', 'published');
+
+                let totalViews = 0;
+                if (viewsData && viewsData.length > 0) {
+                    totalViews = viewsData.reduce((sum, w) => sum + (w.views || 0), 0);
+                }
+
+                // 5. ✅ AMBIL RANKING
                 const { data: ranking, error: rankingError } = await _supabase
                     .from('yata_rankings')
                     .select('rank_position, total_score, rank_category')
                     .eq('user_id', authorId)
                     .maybeSingle();
 
-                // 5. Ambil jumlah buku
+                // 6. Ambil jumlah buku
                 const { data: books, error: booksError } = await _supabase
                     .from('yata_book_projects')
                     .select('id')
@@ -669,13 +721,18 @@
 
                 const totalBooks = books?.length || 0;
 
-                // 6. Ambil jumlah komunitas
+                // 7. Ambil jumlah komunitas
                 const { data: communities, error: commError } = await _supabase
                     .from('yata_community_members')
                     .select('community_id')
                     .eq('user_id', authorId);
 
                 const totalCommunities = communities?.length || 0;
+
+                // 8. ✅ Hitung poin dari ranking
+                const scoreDisplay = ranking?.total_score ? Math.round(ranking.total_score) : 0;
+                const rankDisplay = ranking?.rank_position ? `#${ranking.rank_position}` : '-';
+                const rankLabel = ranking?.rank_category ? ranking.rank_category.replace('_', ' ').toUpperCase() : '';
 
                 const levelEmojis = {
                     'Tamu': '🌱',
@@ -691,20 +748,10 @@
                     'Mentor': 'level-mentor'
                 };
 
-                const rankLabels = {
-                    'top_10': '🏆 Top 10',
-                    'top_50': '⭐ Top 50',
-                    'top_100': '📈 Top 100',
-                    'active': ''
-                };
-
                 const avatar = profile.full_name?.charAt(0) || '?';
                 const avatarUrl = profile.avatar_url || null;
                 const levelEmoji = levelEmojis[profile.member_level] || '🌱';
                 const levelClass = levelClasses[profile.member_level] || 'level-tamu';
-                const rankLabel = rankLabels[ranking?.rank_category] || '';
-                const rankDisplay = ranking?.rank_position ? `#${ranking.rank_position}` : '-';
-                const scoreDisplay = ranking?.total_score ? Math.round(ranking.total_score) : 0;
 
                 content.innerHTML = `
                     <div class="text-center">
@@ -719,31 +766,35 @@
                         <span class="level-badge ${levelClass} mt-2 inline-block">${levelEmoji} ${profile.member_level || 'Tamu'}</span>
                         ${rankLabel ? `<span class="text-xs block mt-1">${rankLabel}</span>` : ''}
 
-                        <!-- Statistik -->
-                        <div class="grid grid-cols-3 gap-2 mt-4 p-3 bg-slate-50 rounded-xl">
-                            <div>
-                                <p class="text-xl font-bold text-slate-800">${totalWritings}</p>
-                                <p class="text-[10px] text-slate-400">📖 Karya</p>
+                        <!-- ✅ STATISTIK LENGKAP (DIPERBAIKI) -->
+                        <div class="stat-grid mt-4">
+                            <div class="stat-item">
+                                <p class="number">${totalWritings}</p>
+                                <p class="label">📖 Karya</p>
                             </div>
-                            <div>
-                                <p class="text-xl font-bold text-slate-800">${totalLikes}</p>
-                                <p class="text-[10px] text-slate-400">❤️ Likes</p>
+                            <div class="stat-item">
+                                <p class="number">${totalLikes}</p>
+                                <p class="label">❤️ Likes</p>
                             </div>
-                            <div>
-                                <p class="text-xl font-bold text-slate-800">${rankDisplay}</p>
-                                <p class="text-[10px] text-slate-400">🏆 Rank</p>
+                            <div class="stat-item">
+                                <p class="number">${totalViews}</p>
+                                <p class="label">👁️ Views</p>
                             </div>
-                            <div>
-                                <p class="text-xl font-bold text-slate-800">${totalBooks}</p>
-                                <p class="text-[10px] text-slate-400">📚 Buku</p>
+                            <div class="stat-item">
+                                <p class="number">${rankDisplay}</p>
+                                <p class="label">🏆 Rank</p>
                             </div>
-                            <div>
-                                <p class="text-xl font-bold text-slate-800">${totalCommunities}</p>
-                                <p class="text-[10px] text-slate-400">👥 Komunitas</p>
+                            <div class="stat-item">
+                                <p class="number">${totalBooks}</p>
+                                <p class="label">📚 Buku</p>
                             </div>
-                            <div>
-                                <p class="text-xl font-bold text-slate-800">${scoreDisplay}</p>
-                                <p class="text-[10px] text-slate-400">⭐ Poin</p>
+                            <div class="stat-item">
+                                <p class="number">${scoreDisplay}</p>
+                                <p class="label">⭐ Poin</p>
+                            </div>
+                            <div class="stat-item col-span-3">
+                                <p class="number">${totalCommunities}</p>
+                                <p class="label">👥 Komunitas</p>
                             </div>
                         </div>
 
