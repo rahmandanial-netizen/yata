@@ -342,7 +342,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- JAVASCRIPT - PASTI BERHASIL UNTUK SEMUA USER -->
+    <!-- JAVASCRIPT - LENGKAP TANPA FORCE RANKING -->
     <!-- ============================================ -->
     <script>
         // ============================================
@@ -644,7 +644,7 @@
         }
 
         // ============================================
-        // 5. POPUP PROFIL PENULIS - PASTI BERHASIL!
+        // 5. POPUP PROFIL PENULIS - TANPA FORCE
         // ============================================
         async function openAuthorPopup(authorId) {
             currentPopupAuthorId = authorId;
@@ -714,39 +714,32 @@
                 }
 
                 // ============================================
-                // 5. ✅ RANKING - AMBIL SEMUA DULU, BARU FILTER
+                // 5. ✅ AMBIL RANKING DARI DATABASE
                 // ============================================
                 let rankDisplay = '-';
                 let scoreDisplay = 0;
                 let rankCategory = '';
 
                 try {
-                    // Ambil semua ranking
-                    const { data: allRankings, error: allError } = await _supabase
+                    const { data: ranking, error: rankingError } = await _supabase
                         .from('yata_rankings')
-                        .select('*')
-                        .order('rank_position', { ascending: true });
-
-                    if (allError) {
-                        console.error('❌ Error ambil semua ranking:', allError);
-                    } else if (allRankings && allRankings.length > 0) {
-                        // Cari ranking untuk user ini
-                        const userRank = allRankings.find(r => r.user_id === authorId);
+                        .select('rank_position, total_score, rank_category')
+                        .eq('user_id', authorId)
+                        .maybeSingle();
+                    
+                    if (rankingError) {
+                        console.error('❌ Ranking error:', rankingError);
+                    } else if (ranking) {
+                        const rankNum = parseInt(ranking.rank_position) || 0;
+                        const scoreNum = parseFloat(ranking.total_score) || 0;
                         
-                        if (userRank) {
-                            const rankNum = parseInt(userRank.rank_position) || 0;
-                            const scoreNum = parseFloat(userRank.total_score) || 0;
-                            
-                            rankDisplay = rankNum > 0 ? `#${rankNum}` : '-';
-                            scoreDisplay = Math.round(scoreNum);
-                            rankCategory = userRank.rank_category || '';
-                            
-                            console.log('✅ Ranking ditemukan untuk', profile.full_name, ':', { rankDisplay, scoreDisplay });
-                        } else {
-                            console.log('ℹ️ User tidak ada di ranking:', authorId);
-                        }
+                        rankDisplay = rankNum > 0 ? `#${rankNum}` : '-';
+                        scoreDisplay = Math.round(scoreNum);
+                        rankCategory = ranking.rank_category || '';
+                        
+                        console.log('✅ Ranking ditemukan:', { rankDisplay, scoreDisplay, rankCategory });
                     } else {
-                        console.log('ℹ️ Belum ada data ranking');
+                        console.log('ℹ️ Tidak ada ranking untuk user:', authorId);
                     }
                 } catch (err) {
                     console.error('❌ Error:', err.message);
@@ -797,7 +790,6 @@
                 const levelEmoji = levelEmojis[profile.member_level] || '🌱';
                 const levelClass = levelClasses[profile.member_level] || 'level-tamu';
 
-                // 🔥 AMANKAN SEMUA DATA
                 const safeRankCategory = rankCategory ? String(rankCategory).replace(/_/g, ' ').toUpperCase() : '';
                 const safeName = profile.full_name || 'User';
                 const safeUsername = profile.username || 'username';
