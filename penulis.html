@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Semua Penulis — Yatta</title>
 
-    <!-- ============================================ -->
-    <!-- FAVICON YATTA -->
-    <!-- ============================================ -->
     <link rel="icon" type="image/png" href="assets/favicon.png" />
     <link rel="apple-touch-icon" href="assets/favicon.png" />
     <link rel="shortcut icon" href="assets/favicon.png" />
@@ -342,20 +339,15 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- JAVASCRIPT - LENGKAP DIPERBAIKI -->
+    <!-- JAVASCRIPT - VERSI SIMPLIFIED -->
     <!-- ============================================ -->
     <script>
         // ============================================
         // INISIALISASI SUPABASE
         // ============================================
         var _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-
-        // ============================================
-        // REGISTRASI SUPABASE CLIENT GLOBAL UNTUK UTILS.JS
-        // ============================================
         window._supabase = _supabase;
         window.supabase = _supabase;
-        console.log('✅ Supabase client registered globally');
 
         // ============================================
         // VARIABEL GLOBAL
@@ -368,49 +360,41 @@
         var hasMoreData = true;
         var isLoading = false;
         var authorRankings = {};
-        var currentPopupAuthorId = null;
 
         // ============================================
-        // 1. LOAD RANKINGS - DIPERBAIKI
+        // 1. LOAD RANKINGS - SIMPLIFIED
         // ============================================
         async function loadRankings() {
             try {
-                console.log('🔄 [loadRankings] Memulai loading ranking...');
+                console.log('🔄 Loading rankings...');
                 
-                // 🔥 QUERY LANGSUNG TANPA FILTER
-                var { data: rankings, error } = await _supabase
+                var result = await _supabase
                     .from('yata_rankings')
                     .select('*');
 
-                if (error) {
-                    console.error('❌ [loadRankings] Error:', error);
+                console.log('📊 Rankings result:', result);
+
+                if (result.error) {
+                    console.error('❌ Error:', result.error);
                     return;
                 }
 
-                console.log('📊 [loadRankings] Data mentah dari DB:', rankings);
-                console.log('📊 [loadRankings] Jumlah data:', rankings ? rankings.length : 0);
-
-                if (rankings && rankings.length > 0) {
-                    for (var i = 0; i < rankings.length; i++) {
-                        var r = rankings[i];
-                        var rankNum = parseInt(r.rank_position) || 0;
-                        var scoreNum = parseFloat(r.total_score) || 0;
-                        
+                if (result.data && result.data.length > 0) {
+                    for (var i = 0; i < result.data.length; i++) {
+                        var r = result.data[i];
                         authorRankings[r.user_id] = {
-                            score: scoreNum,
-                            rank: rankNum,
-                            rankDisplay: rankNum > 0 ? '#' + rankNum : '-',
+                            score: parseFloat(r.total_score) || 0,
+                            rank: parseInt(r.rank_position) || 0,
                             category: r.rank_category || 'active'
                         };
                     }
-                    console.log('✅ [loadRankings] Rankings loaded:', Object.keys(authorRankings).length, 'users');
-                    console.log('📊 [loadRankings] Data authorRankings:', authorRankings);
+                    console.log('✅ Rankings loaded:', Object.keys(authorRankings).length);
+                    console.log('📊 Data:', authorRankings);
                 } else {
-                    console.log('ℹ️ [loadRankings] Tidak ada data ranking');
+                    console.log('ℹ️ No rankings data');
                 }
             } catch (err) {
-                console.error('❌ [loadRankings] Error:', err);
-                authorRankings = {};
+                console.error('❌ Load rankings error:', err);
             }
         }
 
@@ -438,7 +422,7 @@
             if (!reset) {
                 skeleton.classList.remove('hidden');
                 loadMoreBtn.disabled = true;
-                loadMoreBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat...';
+                loadMoreBtn.innerHTML = 'Memuat...';
             }
 
             try {
@@ -447,7 +431,7 @@
 
                 var query = _supabase
                     .from('yata_profiles')
-                    .select('*', { count: 'exact' })
+                    .select('*')
                     .eq('role', 'member')
                     .order('created_at', { ascending: false })
                     .range(from, to);
@@ -461,52 +445,51 @@
                     query = query.or('full_name.ilike.%' + searchTerm + '%, username.ilike.%' + searchTerm + '%');
                 }
 
-                var { data: authors, error, count } = await query;
+                var result = await query;
 
-                if (error) throw error;
+                if (result.error) throw result.error;
+                var authors = result.data || [];
 
-                if (authors && authors.length > 0) {
+                // Hitung total karya
+                if (authors.length > 0) {
                     var authorIds = [];
                     for (var i = 0; i < authors.length; i++) {
                         authorIds.push(authors[i].id);
                     }
                     
-                    var { data: writings, error: writingsError } = await _supabase
+                    var writingsResult = await _supabase
                         .from('yata_writings')
                         .select('author_id')
                         .in('author_id', authorIds)
                         .eq('status', 'published');
 
-                    if (!writingsError && writings) {
+                    if (!writingsResult.error && writingsResult.data) {
                         var countMap = {};
-                        for (var j = 0; j < writings.length; j++) {
-                            var w = writings[j];
+                        for (var j = 0; j < writingsResult.data.length; j++) {
+                            var w = writingsResult.data[j];
                             countMap[w.author_id] = (countMap[w.author_id] || 0) + 1;
                         }
                         for (var k = 0; k < authors.length; k++) {
-                            var a = authors[k];
-                            a.total_writings = countMap[a.id] || 0;
+                            authors[k].total_writings = countMap[authors[k].id] || 0;
                         }
                     }
 
+                    // Tambahkan ranking
                     for (var l = 0; l < authors.length; l++) {
-                        var author = authors[l];
-                        var rank = authorRankings[author.id];
+                        var rank = authorRankings[authors[l].id];
                         if (rank) {
-                            author.rank_score = rank.score || 0;
-                            author.rank_position = rank.rank || 0;
-                            author.rank_display = rank.rankDisplay || '-';
-                            author.rank_category = rank.category || 'active';
+                            authors[l].rank_score = rank.score || 0;
+                            authors[l].rank_position = rank.rank || 0;
+                            authors[l].rank_category = rank.category || 'active';
                         } else {
-                            author.rank_score = 0;
-                            author.rank_position = 0;
-                            author.rank_display = '-';
-                            author.rank_category = 'active';
+                            authors[l].rank_score = 0;
+                            authors[l].rank_position = 0;
+                            authors[l].rank_category = 'active';
                         }
                     }
                 }
 
-                if (authors && authors.length > 0) {
+                if (authors.length > 0) {
                     if (reset) {
                         allAuthors = authors;
                     } else {
@@ -524,7 +507,7 @@
                 if (hasMoreData && allAuthors.length > 0) {
                     loadMoreContainer.classList.remove('hidden');
                     loadMoreBtn.disabled = false;
-                    loadMoreBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Muat Lebih Banyak';
+                    loadMoreBtn.innerHTML = 'Muat Lebih Banyak';
                 } else {
                     loadMoreContainer.classList.add('hidden');
                     if (allAuthors.length > 0) {
@@ -536,7 +519,6 @@
                 console.error('Load authors error:', err);
                 if (allAuthors.length === 0) {
                     container.innerHTML = '<div class="col-span-full text-center py-12 text-red-400 text-sm">' +
-                        '<i class="fa-solid fa-circle-exclamation text-2xl block mb-2"></i>' +
                         'Gagal memuat penulis: ' + err.message +
                         '</div>';
                 }
@@ -544,7 +526,7 @@
                 isLoading = false;
                 skeleton.classList.add('hidden');
                 loadMoreBtn.disabled = false;
-                loadMoreBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Muat Lebih Banyak';
+                loadMoreBtn.innerHTML = 'Muat Lebih Banyak';
             }
         }
 
@@ -564,9 +546,7 @@
                 container.innerHTML = '<div class="col-span-full bg-white rounded-2xl p-12 text-center border border-emerald-100/60 shadow-sm">' +
                     '<i class="fa-regular fa-folder-open text-5xl text-slate-300 block mb-4"></i>' +
                     '<p class="text-slate-500 text-sm">Belum ada penulis yang cocok dengan pencarian Anda.</p>' +
-                    '<button onclick="resetFilters()" class="mt-4 text-emerald-600 hover:text-emerald-700 font-semibold text-sm">' +
-                    'Reset filter' +
-                    '</button>' +
+                    '<button onclick="resetFilters()" class="mt-4 text-emerald-600 hover:text-emerald-700 font-semibold text-sm">Reset filter</button>' +
                     '</div>';
                 return;
             }
@@ -600,7 +580,7 @@
                 var levelEmoji = levelEmojis[a.member_level] || '🌱';
                 var levelClass = levelClasses[a.member_level] || 'level-tamu';
                 
-                var rankDisplay = a.rank_display || '-';
+                var rankDisplay = a.rank_position > 0 ? '#' + a.rank_position : '-';
                 var scoreDisplay = Math.round(a.rank_score || 0);
                 var rankEmoji = rankEmojis[a.rank_category] || '';
                 var totalWritings = a.total_writings || 0;
@@ -646,13 +626,11 @@
         // ============================================
         function filterAuthors(filter) {
             currentFilter = filter;
-
             var btns = document.querySelectorAll('.filter-btn');
             for (var i = 0; i < btns.length; i++) {
                 btns[i].classList.remove('active');
                 btns[i].classList.add('text-slate-600');
             }
-
             var idMap = {
                 'all': 'filterAll',
                 'Mentor': 'filterMentor',
@@ -660,19 +638,16 @@
                 'Penulis': 'filterPenulis',
                 'Tamu': 'filterTamu'
             };
-
             var activeBtn = document.getElementById(idMap[filter]);
             if (activeBtn) {
                 activeBtn.classList.add('active');
                 activeBtn.classList.remove('text-slate-600');
             }
-
             loadAuthors(true);
         }
 
         function searchAuthors() {
-            var input = document.getElementById('searchAuthor');
-            currentSearch = input.value;
+            currentSearch = document.getElementById('searchAuthor').value;
             loadAuthors(true);
         }
 
@@ -680,7 +655,6 @@
             currentFilter = 'all';
             currentSearch = '';
             document.getElementById('searchAuthor').value = '';
-            
             var btns = document.querySelectorAll('.filter-btn');
             for (var i = 0; i < btns.length; i++) {
                 btns[i].classList.remove('active');
@@ -692,147 +666,83 @@
         }
 
         // ============================================
-        // 5. POPUP PROFIL PENULIS - DIPERBAIKI
+        // 5. POPUP PROFIL - DIPERBAIKI
         // ============================================
         async function openAuthorPopup(authorId) {
-            currentPopupAuthorId = authorId;
             var modal = document.getElementById('authorPopupModal');
             var content = document.getElementById('authorPopupContent');
             
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             
-            content.innerHTML = '<div class="py-8 text-center">' +
-                '<i class="fa-solid fa-spinner fa-spin text-2xl text-emerald-600"></i>' +
-                '<p class="text-slate-400 text-sm mt-2">Memuat profil...</p>' +
-                '</div>';
+            content.innerHTML = '<div class="py-8 text-center"><i class="fa-solid fa-spinner fa-spin text-2xl text-emerald-600"></i><p class="text-slate-400 text-sm mt-2">Memuat profil...</p></div>';
 
             try {
-                console.log('🔍 [openAuthorPopup] Membuka popup untuk user:', authorId);
-                
-                // ============================================
-                // 1. Ambil data profil
-                // ============================================
-                var profileQuery = await _supabase
+                // 1. Ambil profil
+                var profileResult = await _supabase
                     .from('yata_profiles')
                     .select('*')
                     .eq('id', authorId)
                     .single();
+                if (profileResult.error) throw profileResult.error;
+                var profile = profileResult.data;
 
-                if (profileQuery.error) throw profileQuery.error;
-                var profile = profileQuery.data;
-                console.log('📋 [openAuthorPopup] Data profil:', profile);
-
-                // ============================================
-                // 2. Ambil jumlah karya
-                // ============================================
-                var writingsQuery = await _supabase
-                    .from('yata_writings')
-                    .select('id')
-                    .eq('author_id', authorId)
-                    .eq('status', 'published');
-
-                var totalWritings = (writingsQuery.data || []).length;
-
-                // ============================================
-                // 3. AMBIL TOTAL LIKES
-                // ============================================
-                var likesQuery = await _supabase
-                    .from('yata_writings')
-                    .select('likes')
-                    .eq('author_id', authorId)
-                    .eq('status', 'published');
-
-                var totalLikes = 0;
-                if (likesQuery.data && likesQuery.data.length > 0) {
-                    for (var li = 0; li < likesQuery.data.length; li++) {
-                        totalLikes += (likesQuery.data[li].likes || 0);
-                    }
-                }
-
-                // ============================================
-                // 4. AMBIL TOTAL VIEWS
-                // ============================================
-                var viewsQuery = await _supabase
-                    .from('yata_writings')
-                    .select('views')
-                    .eq('author_id', authorId)
-                    .eq('status', 'published');
-
-                var totalViews = 0;
-                if (viewsQuery.data && viewsQuery.data.length > 0) {
-                    for (var vi = 0; vi < viewsQuery.data.length; vi++) {
-                        totalViews += (viewsQuery.data[vi].views || 0);
-                    }
-                }
-
-                // ============================================
-                // 5. 🔥 AMBIL RANKING - QUERY LANGSUNG KE DB
-                // ============================================
+                // 2. Ambil ranking langsung dari database
                 var rankDisplay = '-';
                 var scoreDisplay = 0;
                 var rankCategory = '';
-
-                console.log('🔍 [openAuthorPopup] Mencari ranking untuk user:', authorId);
                 
-                try {
-                    var rankingQuery = await _supabase
-                        .from('yata_rankings')
-                        .select('rank_position, total_score, rank_category')
-                        .eq('user_id', authorId)
-                        .maybeSingle();
-                    
-                    console.log('📊 [openAuthorPopup] Hasil query ranking:', rankingQuery);
-                    
-                    if (rankingQuery.error) {
-                        console.error('❌ [openAuthorPopup] Ranking error:', rankingQuery.error);
-                    } else if (rankingQuery.data) {
-                        var rankNum = parseInt(rankingQuery.data.rank_position) || 0;
-                        var scoreNum = parseFloat(rankingQuery.data.total_score) || 0;
-                        
-                        rankDisplay = rankNum > 0 ? '#' + rankNum : '-';
-                        scoreDisplay = Math.round(scoreNum);
-                        rankCategory = rankingQuery.data.rank_category || '';
-                        
-                        console.log('✅ [openAuthorPopup] Ranking ditemukan:', { rankDisplay: rankDisplay, scoreDisplay: scoreDisplay, rankCategory: rankCategory });
-                    } else {
-                        console.log('ℹ️ [openAuthorPopup] Tidak ada ranking untuk user:', authorId);
-                    }
-                } catch (err) {
-                    console.error('❌ [openAuthorPopup] Error query ranking:', err);
+                var rankingResult = await _supabase
+                    .from('yata_rankings')
+                    .select('rank_position, total_score, rank_category')
+                    .eq('user_id', authorId)
+                    .maybeSingle();
+                
+                console.log('📊 Ranking for user:', authorId, rankingResult.data);
+                
+                if (rankingResult.data) {
+                    var rankNum = parseInt(rankingResult.data.rank_position) || 0;
+                    var scoreNum = parseFloat(rankingResult.data.total_score) || 0;
+                    rankDisplay = rankNum > 0 ? '#' + rankNum : '-';
+                    scoreDisplay = Math.round(scoreNum);
+                    rankCategory = rankingResult.data.rank_category || '';
                 }
 
-                // ============================================
-                // 6. Ambil jumlah buku
-                // ============================================
-                var booksQuery = await _supabase
+                // 3. Ambil statistik lainnya
+                var writingsResult = await _supabase
+                    .from('yata_writings')
+                    .select('id, likes, views')
+                    .eq('author_id', authorId)
+                    .eq('status', 'published');
+                var writings = writingsResult.data || [];
+                var totalWritings = writings.length;
+                var totalLikes = 0;
+                var totalViews = 0;
+                for (var i = 0; i < writings.length; i++) {
+                    totalLikes += (writings[i].likes || 0);
+                    totalViews += (writings[i].views || 0);
+                }
+
+                var booksResult = await _supabase
                     .from('yata_book_projects')
                     .select('id')
                     .eq('author_id', authorId)
                     .eq('status', 'published');
+                var totalBooks = (booksResult.data || []).length;
 
-                var totalBooks = (booksQuery.data || []).length;
-
-                // ============================================
-                // 7. Ambil jumlah komunitas
-                // ============================================
-                var communitiesQuery = await _supabase
+                var communitiesResult = await _supabase
                     .from('yata_community_members')
                     .select('community_id')
                     .eq('user_id', authorId);
+                var totalCommunities = (communitiesResult.data || []).length;
 
-                var totalCommunities = (communitiesQuery.data || []).length;
-
-                // ============================================
-                // 8. Render Popup
-                // ============================================
+                // 4. Render Popup
                 var levelEmojis = {
                     'Tamu': '🌱',
                     'Penulis': '✍️',
                     'Penulis Profesional': '📚',
                     'Mentor': '🌟'
                 };
-
                 var levelClasses = {
                     'Tamu': 'level-tamu',
                     'Penulis': 'level-penulis',
@@ -845,17 +755,11 @@
                 var levelEmoji = levelEmojis[profile.member_level] || '🌱';
                 var levelClass = levelClasses[profile.member_level] || 'level-tamu';
 
-                var safeRankCategory = rankCategory ? String(rankCategory).replace(/_/g, ' ').toUpperCase() : '';
-                var safeName = profile.full_name || 'User';
-                var safeUsername = profile.username || 'username';
-                var safeLevel = profile.member_level || 'Tamu';
-                var safeBio = profile.bio || '';
-
                 var displayRank = rankDisplay !== '-' ? rankDisplay : '-';
                 var displayScore = scoreDisplay > 0 ? scoreDisplay : 0;
+                var safeRankCategory = rankCategory ? String(rankCategory).replace(/_/g, ' ').toUpperCase() : '';
 
                 var html = '<div class="text-center">';
-                
                 html += '<div class="w-24 h-24 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-4xl font-bold mx-auto overflow-hidden">';
                 if (avatarUrl) {
                     html += '<img src="' + avatarUrl + '" class="w-full h-full object-cover" />';
@@ -863,14 +767,12 @@
                     html += avatar;
                 }
                 html += '</div>';
-
-                html += '<h3 class="text-xl font-bold text-slate-800 mt-3">' + safeName + '</h3>';
-                html += '<p class="text-xs text-slate-400">@' + safeUsername + '</p>';
-                html += '<span class="level-badge ' + levelClass + ' mt-2 inline-block">' + levelEmoji + ' ' + safeLevel + '</span>';
+                html += '<h3 class="text-xl font-bold text-slate-800 mt-3">' + (profile.full_name || 'User') + '</h3>';
+                html += '<p class="text-xs text-slate-400">@' + (profile.username || 'username') + '</p>';
+                html += '<span class="level-badge ' + levelClass + ' mt-2 inline-block">' + levelEmoji + ' ' + (profile.member_level || 'Tamu') + '</span>';
                 if (safeRankCategory) {
                     html += '<span class="text-xs block mt-1">' + safeRankCategory + '</span>';
                 }
-
                 html += '<div class="stat-grid mt-4">';
                 html += '<div class="stat-item"><p class="number">' + totalWritings + '</p><p class="label">📖 Karya</p></div>';
                 html += '<div class="stat-item"><p class="number">' + totalLikes + '</p><p class="label">❤️ Likes</p></div>';
@@ -880,31 +782,25 @@
                 html += '<div class="stat-item"><p class="number">' + displayScore + '</p><p class="label">⭐ Poin</p></div>';
                 html += '<div class="stat-item col-span-3"><p class="number">' + totalCommunities + '</p><p class="label">👥 Komunitas</p></div>';
                 html += '</div>';
-
-                if (safeBio) {
+                if (profile.bio) {
                     html += '<div class="mt-4 p-3 bg-slate-50 rounded-xl text-left">';
                     html += '<p class="text-xs text-slate-500">📝 Bio</p>';
-                    html += '<p class="text-sm text-slate-700 mt-1">' + safeBio + '</p>';
+                    html += '<p class="text-sm text-slate-700 mt-1">' + profile.bio + '</p>';
                     html += '</div>';
                 }
-
                 html += '</div>';
 
                 content.innerHTML = html;
 
             } catch (err) {
-                console.error('Load author popup error:', err);
-                content.innerHTML = '<div class="text-center py-8">' +
-                    '<i class="fa-solid fa-circle-exclamation text-red-400 text-3xl block mb-2"></i>' +
-                    '<p class="text-red-400 text-sm">Gagal memuat profil: ' + err.message + '</p>' +
-                    '</div>';
+                console.error('Popup error:', err);
+                content.innerHTML = '<div class="text-center py-8"><i class="fa-solid fa-circle-exclamation text-red-400 text-3xl block mb-2"></i><p class="text-red-400 text-sm">Gagal memuat profil: ' + err.message + '</p></div>';
             }
         }
 
         function closeAuthorPopup() {
             document.getElementById('authorPopupModal').classList.add('hidden');
             document.body.style.overflow = 'auto';
-            currentPopupAuthorId = null;
         }
 
         document.getElementById('authorPopupModal').addEventListener('click', function(e) {
