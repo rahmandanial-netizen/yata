@@ -342,7 +342,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- JAVASCRIPT - LENGKAP DIPERBAIKI -->
+    <!-- JAVASCRIPT - LENGKAP DIPERBAIKI (AMAN) -->
     <!-- ============================================ -->
     <script>
         // ============================================
@@ -644,7 +644,7 @@
         }
 
         // ============================================
-        // 5. POPUP PROFIL PENULIS (DIPERBAIKI - RANK AMAN)
+        // 5. POPUP PROFIL PENULIS (DIPERBAIKI - AMAN)
         // ============================================
         async function openAuthorPopup(authorId) {
             currentPopupAuthorId = authorId;
@@ -725,18 +725,18 @@
                         .from('yata_rankings')
                         .select('rank_position, total_score, rank_category')
                         .eq('user_id', authorId)
-                        .maybeSingle();  // ← PAKAI maybeSingle() BUKAN single()
+                        .maybeSingle();
                     
                     if (rankingError) {
                         console.error('❌ Ranking error:', rankingError);
                     } else if (ranking) {
                         // ✅ AMANKAN DARI KARAKTER ANEH
-                        const rankNum = parseInt(ranking.rank_position) || 0;
-                        const scoreNum = parseFloat(ranking.total_score) || 0;
+                        const rankNum = parseInt(String(ranking.rank_position).replace(/[^0-9]/g, '')) || 0;
+                        const scoreNum = parseFloat(String(ranking.total_score).replace(/[^0-9.]/g, '')) || 0;
                         
                         rankDisplay = rankNum > 0 ? `#${rankNum}` : '-';
                         scoreDisplay = Math.round(scoreNum);
-                        rankCategory = ranking.rank_category ? String(ranking.rank_category).trim() : '';
+                        rankCategory = String(ranking.rank_category || '').replace(/[^a-zA-Z0-9_]/g, '').trim();
                         
                         console.log('✅ Ranking ditemukan:', { rankDisplay, scoreDisplay, rankCategory });
                     } else {
@@ -770,7 +770,7 @@
                 const totalCommunities = communities?.length || 0;
 
                 // ============================================
-                // 8. Render Popup
+                // 8. Render Popup (DIPERBAIKI - AMAN)
                 // ============================================
                 const levelEmojis = {
                     'Tamu': '🌱',
@@ -791,6 +791,13 @@
                 const levelEmoji = levelEmojis[profile.member_level] || '🌱';
                 const levelClass = levelClasses[profile.member_level] || 'level-tamu';
 
+                // 🔥 AMANKAN SEMUA DATA SEBELUM DI-RENDER
+                const safeRankCategory = rankCategory ? String(rankCategory).replace(/_/g, ' ').toUpperCase() : '';
+                const safeName = profile.full_name || 'User';
+                const safeUsername = profile.username || 'username';
+                const safeLevel = profile.member_level || 'Tamu';
+                const safeBio = profile.bio || '';
+
                 content.innerHTML = `
                     <div class="text-center">
                         <!-- Avatar -->
@@ -799,12 +806,12 @@
                         </div>
 
                         <!-- Nama & Level -->
-                        <h3 class="text-xl font-bold text-slate-800 mt-3">${profile.full_name || 'User'}</h3>
-                        <p class="text-xs text-slate-400">@${profile.username || 'username'}</p>
-                        <span class="level-badge ${levelClass} mt-2 inline-block">${levelEmoji} ${profile.member_level || 'Tamu'}</span>
-                        ${rankCategory ? `<span class="text-xs block mt-1">${rankCategory.replace('_', ' ').toUpperCase()}</span>` : ''}
+                        <h3 class="text-xl font-bold text-slate-800 mt-3">${safeName}</h3>
+                        <p class="text-xs text-slate-400">@${safeUsername}</p>
+                        <span class="level-badge ${levelClass} mt-2 inline-block">${levelEmoji} ${safeLevel}</span>
+                        ${safeRankCategory ? `<span class="text-xs block mt-1">${safeRankCategory}</span>` : ''}
 
-                        <!-- ✅ STATISTIK LENGKAP DENGAN RANK & POIN -->
+                        <!-- ✅ STATISTIK LENGKAP -->
                         <div class="stat-grid mt-4">
                             <div class="stat-item">
                                 <p class="number">${totalWritings}</p>
@@ -837,10 +844,10 @@
                         </div>
 
                         <!-- Bio -->
-                        ${profile.bio ? `
+                        ${safeBio ? `
                             <div class="mt-4 p-3 bg-slate-50 rounded-xl text-left">
                                 <p class="text-xs text-slate-500">📝 Bio</p>
-                                <p class="text-sm text-slate-700 mt-1">${profile.bio}</p>
+                                <p class="text-sm text-slate-700 mt-1">${safeBio}</p>
                             </div>
                         ` : ''}
                     </div>
