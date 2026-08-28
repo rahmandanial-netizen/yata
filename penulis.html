@@ -342,7 +342,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- JAVASCRIPT - LENGKAP DIPERBAIKI DENGAN FORCE RANKING -->
+    <!-- JAVASCRIPT - LENGKAP TANPA FORCE RANKING -->
     <!-- ============================================ -->
     <script>
         // ============================================
@@ -644,7 +644,7 @@
         }
 
         // ============================================
-        // 5. POPUP PROFIL PENULIS - DENGAN FORCE RANKING!
+        // 5. POPUP PROFIL PENULIS (TANPA FORCE RANKING)
         // ============================================
         async function openAuthorPopup(authorId) {
             currentPopupAuthorId = authorId;
@@ -714,46 +714,37 @@
                 }
 
                 // ============================================
-                // 5. 🔥 FORCE RANKING UNTUK ARSA! 🔥
+                // 5. ✅ AMBIL RANKING DARI DATABASE (SEMUA USER)
                 // ============================================
                 let rankDisplay = '-';
                 let scoreDisplay = 0;
                 let rankCategory = '';
 
-                // 🔥 FORCE DISPLAY UNTUK ARSA!
-                if (authorId === '4e14faec-fa22-4ace-a656-1ec97b732551') {
-                    rankDisplay = '#1';
-                    scoreDisplay = 42;
-                    rankCategory = 'TOP 10';
-                    console.log('🔥 FORCE RANKING UNTUK ARSA!');
-                } else {
-                    // Untuk user lain, ambil dari database
-                    try {
-                        const { data: ranking, error: rankingError } = await _supabase
-                            .from('yata_rankings')
-                            .select('rank_position, total_score, rank_category')
-                            .eq('user_id', authorId)
-                            .maybeSingle();
+                try {
+                    const { data: ranking, error: rankingError } = await _supabase
+                        .from('yata_rankings')
+                        .select('rank_position, total_score, rank_category')
+                        .eq('user_id', authorId)
+                        .maybeSingle();
+                    
+                    if (rankingError) {
+                        console.error('❌ Ranking error:', rankingError);
+                    } else if (ranking) {
+                        const rankNum = parseInt(ranking.rank_position) || 0;
+                        const scoreNum = parseFloat(ranking.total_score) || 0;
                         
-                        if (rankingError) {
-                            console.error('❌ Ranking error:', rankingError);
-                        } else if (ranking) {
-                            const rankNum = parseInt(ranking.rank_position) || 0;
-                            const scoreNum = parseFloat(ranking.total_score) || 0;
-                            
-                            rankDisplay = rankNum > 0 ? `#${rankNum}` : '-';
-                            scoreDisplay = Math.round(scoreNum);
-                            rankCategory = ranking.rank_category || '';
-                            
-                            console.log('✅ Ranking ditemukan:', { rankDisplay, scoreDisplay, rankCategory });
-                        } else {
-                            console.log('ℹ️ Tidak ada ranking untuk user:', authorId);
-                        }
-                    } catch (err) {
-                        console.error('❌ Error:', err.message);
-                        rankDisplay = '-';
-                        scoreDisplay = 0;
+                        rankDisplay = rankNum > 0 ? `#${rankNum}` : '-';
+                        scoreDisplay = Math.round(scoreNum);
+                        rankCategory = ranking.rank_category || '';
+                        
+                        console.log('✅ Ranking ditemukan:', { rankDisplay, scoreDisplay, rankCategory });
+                    } else {
+                        console.log('ℹ️ Tidak ada ranking untuk user:', authorId);
                     }
+                } catch (err) {
+                    console.error('❌ Error:', err.message);
+                    rankDisplay = '-';
+                    scoreDisplay = 0;
                 }
 
                 // ============================================
