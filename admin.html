@@ -3483,42 +3483,55 @@
                 var newLevel = levelMap[profile.member_level] || 'Penulis';
                 console.log('📈 Level baru:', newLevel);
 
-                // 🔥 GENERATE MEMBER ID BARU SESUAI LEVEL
-                var prefixMap = {
-                    'Tamu': 'Yatta-T',
-                    'Penulis': 'Yatta-P',
-                    'Penulis Profesional': 'Yatta-PP',
-                    'Mentor': 'Yatta-M'
-                };
-                var newPrefix = prefixMap[newLevel] || 'Yatta-P';
-                
+                // 🔥 GENERATE MEMBER ID BARU DENGAN FORMAT BARU
+                // Hanya ubah prefix, nomor urut dan tanggal tetap
                 var newMemberId = profile.member_id;
-                if (profile.member_id) {
-                    // Ganti prefix dengan yang baru
+                
+                if (profile.member_id && profile.member_id !== 'undefined' && profile.member_id !== 'null') {
+                    // Ekstrak nomor urut dan tanggal dari member ID saat ini
                     var parts = profile.member_id.split('-');
-                    if (parts.length >= 2) {
-                        var numberPart = parts.slice(2).join('-') || parts[1];
-                        newMemberId = newPrefix + '-' + numberPart;
-                    } else {
-                        // Jika format tidak sesuai, buat baru
-                        var timestamp = String(Date.now()).slice(-4);
-                        var now = new Date();
-                        var tanggal = String(now.getDate()).padStart(2, '0');
-                        var bulan = String(now.getMonth() + 1).padStart(2, '0');
-                        var tahun = String(now.getFullYear()).slice(-2);
-                        newMemberId = newPrefix + '-' + timestamp + tanggal + bulan + tahun;
+                    if (parts.length === 3) {
+                        var idPart = parts[2];
+                        var datePart = idPart.slice(-6); // DDMMYY
+                        var numberPart = idPart.substring(0, idPart.length - 6); // Nomor urut
+                        
+                        // PREFIX BARU SESUAI LEVEL
+                        var prefixMap = {
+                            'Tamu': 'Yatta-T',
+                            'Penulis': 'Yatta-P',
+                            'Penulis Profesional': 'Yatta-PP',
+                            'Mentor': 'Yatta-M'
+                        };
+                        var newPrefix = prefixMap[newLevel] || 'Yatta-P';
+                        
+                        newMemberId = newPrefix + '-' + numberPart + datePart;
+                        console.log('🆔 Member ID baru:', newMemberId);
                     }
                 } else {
                     // Jika belum punya member_id, buat baru
-                    var timestamp2 = String(Date.now()).slice(-4);
-                    var now2 = new Date();
-                    var tanggal2 = String(now2.getDate()).padStart(2, '0');
-                    var bulan2 = String(now2.getMonth() + 1).padStart(2, '0');
-                    var tahun2 = String(now2.getFullYear()).slice(-2);
-                    newMemberId = newPrefix + '-' + timestamp2 + tanggal2 + bulan2 + tahun2;
+                    var now = new Date();
+                    var tanggal = String(now.getDate()).padStart(2, '0');
+                    var bulan = String(now.getMonth() + 1).padStart(2, '0');
+                    var tahun = String(now.getFullYear()).slice(-2);
+                    var dateSuffix = tanggal + bulan + tahun;
+                    
+                    var prefixMap = {
+                        'Tamu': 'Yatta-T',
+                        'Penulis': 'Yatta-P',
+                        'Penulis Profesional': 'Yatta-PP',
+                        'Mentor': 'Yatta-M'
+                    };
+                    var newPrefix = prefixMap[newLevel] || 'Yatta-P';
+                    
+                    // Hitung nomor urut
+                    var countResult = await _supabase
+                        .from('yata_profiles')
+                        .select('*', { count: 'exact', head: true });
+                    var nextNumber = (countResult.count || 0) + 1;
+                    
+                    newMemberId = newPrefix + '-' + nextNumber + dateSuffix;
+                    console.log('🆔 Member ID baru (generated):', newMemberId);
                 }
-
-                console.log('🆔 Member ID baru:', newMemberId);
 
                 var updateResult = await _supabase
                     .from('yata_profiles')
@@ -3543,6 +3556,17 @@
                 }
 
                 console.log('✅ Update berhasil:', updateResult.data);
+
+                // Update level history
+                await _supabase
+                    .from('yata_level_history')
+                    .update({
+                        status: 'approved',
+                        approved_at: new Date().toISOString()
+                    })
+                    .eq('user_id', userId)
+                    .eq('new_level', newLevel)
+                    .eq('status', 'pending');
 
                 await sendNotificationToUser(
                     userId,
@@ -3637,6 +3661,17 @@
                 }
 
                 console.log('✅ Update berhasil:', updateResult.data);
+
+                // Update level history
+                await _supabase
+                    .from('yata_level_history')
+                    .update({
+                        status: 'rejected',
+                        rejection_reason: reason.trim(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('user_id', userId)
+                    .eq('status', 'pending');
 
                 await sendNotificationToUser(
                     userId,

@@ -1219,17 +1219,30 @@ async function approveLevelUp(userId) {
         const targetLevelKey = currentLevel.nextLevel;
         const targetLevel = LEVELS[targetLevelKey];
 
+        // 🔥 UPDATE MEMBER ID DENGAN PREFIX BARU (NOMOR & TANGGAL TETAP)
         let newMemberId = profile.member_id;
-        if (newMemberId) {
-            const parts = newMemberId.split('-');
-            const numberPart = parts.slice(2).join('-') || parts[1] || '0001';
-            newMemberId = targetLevel.idPrefix + '-' + numberPart;
+        
+        if (profile.member_id && profile.member_id !== 'undefined' && profile.member_id !== 'null') {
+            const parts = profile.member_id.split('-');
+            if (parts.length === 3) {
+                const idPart = parts[2];
+                const datePart = idPart.slice(-6);
+                const numberPart = idPart.substring(0, idPart.length - 6);
+                newMemberId = targetLevel.idPrefix + '-' + numberPart + datePart;
+            }
         } else {
             const now = new Date();
             const tanggal = String(now.getDate()).padStart(2, '0');
             const bulan = String(now.getMonth() + 1).padStart(2, '0');
             const tahun = String(now.getFullYear()).slice(-2);
-            newMemberId = targetLevel.idPrefix + '-01' + tanggal + bulan + tahun;
+            const dateSuffix = tanggal + bulan + tahun;
+            
+            const { count } = await supabase
+                .from('yata_profiles')
+                .select('*', { count: 'exact', head: true });
+            const nextNumber = (count || 0) + 1;
+            
+            newMemberId = targetLevel.idPrefix + '-' + nextNumber + dateSuffix;
         }
 
         await supabase
@@ -1307,6 +1320,194 @@ async function rejectLevelUp(userId, reason) {
 }
 
 // ============================================
+// 🔥 GENERATE MEMBER ID - FORMAT BARU
+// Format: Yatta-{Level}-{NomorUrut}{DDMMYY}
+// Contoh: Yatta-T-17300826
+// ============================================
+
+async function generateMemberId(levelKey) {
+    const prefixMap = {
+        'tamu': 'Yatta-T',
+        'penulis': 'Yatta-P',
+        'penulis_profesional': 'Yatta-PP',
+        'mentor': 'Yatta-M'
+    };
+    
+    const prefix = prefixMap[levelKey] || 'Yatta-T';
+    
+    // Format tanggal: DDMMYY
+    const now = new Date();
+    const tanggal = String(now.getDate()).padStart(2, '0');
+    const bulan = String(now.getMonth() + 1).padStart(2, '0');
+    const tahun = String(now.getFullYear()).slice(-2);
+    const dateSuffix = `${tanggal}${bulan}${tahun}`;
+    
+    try {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            return `${prefix}-1${dateSuffix}`;
+        }
+
+        // Hitung jumlah user pada hari yang sama
+        const { data, error } = await supabase
+            .from('yata_profiles')
+            .select('member_id')
+            .ilike('member_id', `%${dateSuffix}`);
+
+        if (error) {
+            console.error('Error counting members:', error);
+            return `${prefix}-1${dateSuffix}`;
+        }
+
+        // Cari nomor urut tertinggi pada hari yang sama
+        let maxNumber = 0;
+        if (data && data.length > 0) {
+            data.forEach(record => {
+                if (record.member_id) {
+                    const parts = record.member_id.split('-');
+                    if (parts.length === 3) {
+                        const idPart = parts[2];
+                        const numberStr = idPart.substring(0, idPart.length - 6);
+                        const num = parseInt(numberStr);
+                        if (!isNaN(num) && num > maxNumber) {
+                            maxNumber = num;
+                        }
+                    }
+                }
+            });
+        }
+
+        const nextNumber = maxNumber + 1;
+        return `${prefix}-${nextNumber}${dateSuffix}`;
+
+    } catch (err) {
+        console.error('Generate member ID error:', err);
+        return `${prefix}-1${dateSuffix}`;
+    }
+}
+
+// ============================================
+// UPDATE MEMBER ID SAAT NAIK LEVEL
+// Hanya mengubah prefix, nomor & tanggal tetap
+// ============================================
+
+async function updateMemberIdOnLevelUp(userId, newLevelKey) {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    try {
+        // Ambil member ID saat ini
+        const { data: profile, error: profileError } = await supabase
+            .from('yata_profiles')
+            .select('member_id')
+            .eq('id', userId)
+            .single();
+
+        if (profileError) throw profileError;
+
+        // Ekstrak nomor urut dan tanggal dari member ID saat ini
+        let numberPart = '';
+        let datePart = '';
+        
+        if (profile.member_id && profile.member_id !== 'undefined' && profile.member_id !== 'null') {
+            const parts = profile.member_id.split('-');
+            if (parts.length === 3) {
+                const idPart = parts[2];
+                datePart = idPart.slice(-6);
+                numberPart = idPart.substring(0, idPart.length - 6);
+            }
+        }
+
+        // Jika tidak ada ID atau format lama, generate baru (fallback)
+        if (!numberPart || !datePart || numberPart === 'undefined') {
+            const now = new Date();
+            const tanggal = String(now.getDate()).padStart(2, '0');
+            const bulan = String(now.getMonth() + 1).padStart(2, '0');
+            const tahun = String(now.getFullYear()).slice(-2);
+            datePart = `${tanggal}${bulan}${tahun}`;
+            
+            const { count } = await supabase
+                .from('yata_profiles')
+                .select('*', { count: 'exact', head: true });
+            numberPart = String((count || 0) + 1);
+        }
+
+        // Buat member ID baru dengan prefix level baru
+        const prefixMap = {
+            'tamu': 'Yatta-T',
+            'penulis': 'Yatta-P',
+            'penulis_profesional': 'Yatta-PP',
+            'mentor': 'Yatta-M'
+        };
+        
+        const newPrefix = prefixMap[newLevelKey] || 'Yatta-P';
+        const newMemberId = `${newPrefix}-${numberPart}${datePart}`;
+
+        // Update profil
+        const { error: updateError } = await supabase
+            .from('yata_profiles')
+            .update({ 
+                member_id: newMemberId,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', userId);
+
+        if (updateError) throw updateError;
+
+        console.log(`✅ Member ID updated: ${newMemberId}`);
+        return newMemberId;
+
+    } catch (err) {
+        console.error('Update member ID error:', err);
+        return false;
+    }
+}
+
+// ============================================
+// FORMAT MEMBER ID (UNTUK DISPLAY)
+// ============================================
+
+function formatMemberId(memberId) {
+    // Jika ID kosong atau undefined, buat default
+    if (!memberId || memberId === 'undefined' || memberId === 'null' || memberId === '') {
+        const now = new Date();
+        const tanggal = String(now.getDate()).padStart(2, '0');
+        const bulan = String(now.getMonth() + 1).padStart(2, '0');
+        const tahun = String(now.getFullYear()).slice(-2);
+        return `Yatta-T-1${tanggal}${bulan}${tahun}`;
+    }
+    
+    // Cek apakah format sudah baru (ada tanggal 6 digit di akhir)
+    const parts = memberId.split('-');
+    if (parts.length === 3) {
+        const idPart = parts[2];
+        // Cek apakah 6 digit terakhir adalah angka (format DDMMYY)
+        if (idPart.length >= 6 && !isNaN(parseInt(idPart.slice(-6)))) {
+            return memberId; // Sudah format baru
+        }
+    }
+    
+    // Format lama, konversi ke format baru
+    const now = new Date();
+    const tanggal = String(now.getDate()).padStart(2, '0');
+    const bulan = String(now.getMonth() + 1).padStart(2, '0');
+    const tahun = String(now.getFullYear()).slice(-2);
+    const dateSuffix = `${tanggal}${bulan}${tahun}`;
+    
+    if (parts.length === 3) {
+        const idPart = parts[2];
+        // Ambil angka dari ID lama
+        const num = parseInt(idPart.replace(/\D/g, ''));
+        if (!isNaN(num) && num > 0) {
+            return `${parts[0]}-${parts[1]}-${num}${dateSuffix}`;
+        }
+        return `${parts[0]}-${parts[1]}-1${dateSuffix}`;
+    }
+    
+    return `${memberId}-1${dateSuffix}`;
+}
+
+// ============================================
 // FUNGSI KTA
 // ============================================
 
@@ -1326,7 +1527,7 @@ function formatMemberId(memberId) {
         const tanggal = String(now.getDate()).padStart(2, '0');
         const bulan = String(now.getMonth() + 1).padStart(2, '0');
         const tahun = String(now.getFullYear()).slice(-2);
-        return `Yatta-T-01${tanggal}${bulan}${tahun}`;
+        return `Yatta-T-1${tanggal}${bulan}${tahun}`;
     }
     return memberId;
 }

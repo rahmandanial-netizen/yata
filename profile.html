@@ -1314,24 +1314,23 @@
             // === MEMBER ID ===
             var memberIdEl = document.getElementById('profileMemberId');
             if (memberIdEl) {
-                var memberId = profile.member_id || formatMemberId();
-                var prefixMap = {
-                    'Tamu': 'Yatta-T',
-                    'Penulis': 'Yatta-P',
-                    'Penulis Profesional': 'Yatta-PP',
-                    'Mentor': 'Yatta-M'
-                };
-                var expectedPrefix = prefixMap[levelName] || 'Yatta-T';
-                if (memberId && !memberId.startsWith(expectedPrefix)) {
-                    var parts = memberId.split('-');
-                    var numberPart = parts.slice(2).join('-') || parts[1] || '0001';
-                    memberId = expectedPrefix + '-' + numberPart;
+                // 🔥 Gunakan formatMemberId untuk menampilkan ID
+                var memberId = formatMemberId(profile.member_id);
+                
+                // Jika memberId masih undefined, buat default
+                if (!memberId || memberId === 'undefined' || memberId === 'null') {
+                    var now = new Date();
+                    var tanggal = String(now.getDate()).padStart(2, '0');
+                    var bulan = String(now.getMonth() + 1).padStart(2, '0');
+                    var tahun = String(now.getFullYear()).slice(-2);
+                    memberId = 'Yatta-T-1' + tanggal + bulan + tahun;
                 }
+                
                 memberIdEl.textContent = memberId;
             }
 
             // === KTA ===
-            updateKTA(profile, memberIdEl?.textContent || formatMemberId(), levelName);
+            updateKTA(profile, memberIdEl?.textContent || formatMemberId(profile.member_id), levelName);
 
             // === STATISTIK ===
             var totalWritings = allWritings.length;
@@ -1384,7 +1383,7 @@
         }
 
         // ============================================
-        // 🔥 UPDATE KTA
+        // 🔥 UPDATE KTA DENGAN FORMAT ID BARU
         // ============================================
         function updateKTA(profile, memberId, levelName) {
             var level = levelName || 'Tamu';
@@ -1402,20 +1401,17 @@
             };
 
             var name = profile.full_name || 'Member';
-            var finalMemberId = memberId || formatMemberId();
             
-            var prefixMap = {
-                'Tamu': 'Yatta-T',
-                'Penulis': 'Yatta-P',
-                'Penulis Profesional': 'Yatta-PP',
-                'Mentor': 'Yatta-M'
-            };
-            var expectedPrefix = prefixMap[level] || 'Yatta-T';
+            // 🔥 Gunakan formatMemberId untuk menampilkan ID
+            var finalMemberId = formatMemberId(memberId || profile.member_id);
             
-            if (finalMemberId && !finalMemberId.startsWith(expectedPrefix)) {
-                var parts = finalMemberId.split('-');
-                var numberPart = parts.slice(2).join('-') || parts[1] || '0001';
-                finalMemberId = expectedPrefix + '-' + numberPart;
+            // Jika finalMemberId masih undefined, buat default
+            if (!finalMemberId || finalMemberId === 'undefined' || finalMemberId === 'null') {
+                var now = new Date();
+                var tanggal = String(now.getDate()).padStart(2, '0');
+                var bulan = String(now.getMonth() + 1).padStart(2, '0');
+                var tahun = String(now.getFullYear()).slice(-2);
+                finalMemberId = 'Yatta-T-1' + tanggal + bulan + tahun;
             }
             
             var validDate = getKTAValidDate();
@@ -1459,22 +1455,18 @@
             var icon = data.icon || '🌱';
             var ktaClasses = data.ktaClasses || {};
             var name = data.name || 'Member';
-            var memberId = data.memberId || formatMemberId();
-            var validDate = data.validDate || getKTAValidDate();
+            var memberId = data.memberId || formatMemberId(profileUserId);
             
-            var prefixMap = {
-                'Tamu': 'Yatta-T',
-                'Penulis': 'Yatta-P',
-                'Penulis Profesional': 'Yatta-PP',
-                'Mentor': 'Yatta-M'
-            };
-            var expectedPrefix = prefixMap[level] || 'Yatta-T';
-            
-            if (memberId && !memberId.startsWith(expectedPrefix)) {
-                var parts = memberId.split('-');
-                var numberPart = parts.slice(2).join('-') || parts[1] || '0001';
-                memberId = expectedPrefix + '-' + numberPart;
+            // Jika memberId masih undefined, buat default
+            if (!memberId || memberId === 'undefined' || memberId === 'null') {
+                var now = new Date();
+                var tanggal = String(now.getDate()).padStart(2, '0');
+                var bulan = String(now.getMonth() + 1).padStart(2, '0');
+                var tahun = String(now.getFullYear()).slice(-2);
+                memberId = 'Yatta-T-1' + tanggal + bulan + tahun;
             }
+            
+            var validDate = data.validDate || getKTAValidDate();
 
             var container = document.getElementById('ktaFullPreview');
             if (container) {

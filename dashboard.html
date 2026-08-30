@@ -440,7 +440,7 @@
         .progress-item .count-current {
             font-size: 13px;
             font-weight: 700;
-            color: #fbbf24; /* KUNING TERANG */
+            color: #fbbf24;
         }
         .progress-item .count-divider {
             font-size: 13px;
@@ -780,7 +780,7 @@
                             <p id="levelNextInfo" class="text-xs text-white/60 mt-1">Selesaikan semua syarat</p>
                         </div>
 
-                        <!-- 🔥 DETAIL PROGRESS - SEMUA SYARAT DENGAN WARMA TERANG -->
+                        <!-- 🔥 DETAIL PROGRESS - SEMUA SYARAT DENGAN WARNA TERANG -->
                         <div id="progressDetails" class="mt-3 pt-3 border-t border-white/10 space-y-2">
                             <!-- Akan diisi JavaScript oleh updateLevelUI -->
                             <div class="text-xs text-white/40 text-center py-2">Memuat syarat...</div>
@@ -1489,7 +1489,10 @@
 
                 // Load reputasi
                 await loadReputation();
+                
+                // 🔥 RENDER KTA DENGAN FORMAT ID BARU
                 renderKTA(profile);
+                
                 await loadRecentWritings(session.user.id);
                 await loadRecentProjects(session.user.id);
                 await loadNotifications();
@@ -1539,7 +1542,7 @@
         }
 
         // ============================================
-        // RENDER KTA
+        // 🔥 RENDER KTA DENGAN FORMAT ID BARU
         // ============================================
         function renderKTA(user) {
             var container = document.getElementById('ktaCardContainer');
@@ -1548,20 +1551,16 @@
             var icon = getLevelIcon(displayLevel);
             var ktaClass = getKTAClass(displayLevel);
             
-            var memberId = user?.member_id || formatMemberId();
+            // 🔥 Gunakan formatMemberId untuk menampilkan ID
+            var memberId = formatMemberId(user?.member_id);
             
-            var prefixMap = {
-                'Tamu': 'Yatta-T',
-                'Penulis': 'Yatta-P',
-                'Penulis Profesional': 'Yatta-PP',
-                'Mentor': 'Yatta-M'
-            };
-            var expectedPrefix = prefixMap[displayLevel] || 'Yatta-T';
-            
-            if (memberId && !memberId.startsWith(expectedPrefix)) {
-                var parts = memberId.split('-');
-                var numberPart = parts.slice(2).join('-') || parts[1] || '0001';
-                memberId = expectedPrefix + '-' + numberPart;
+            // Jika memberId masih undefined, buat default
+            if (!memberId || memberId === 'undefined' || memberId === 'null') {
+                var now = new Date();
+                var tanggal = String(now.getDate()).padStart(2, '0');
+                var bulan = String(now.getMonth() + 1).padStart(2, '0');
+                var tahun = String(now.getFullYear()).slice(-2);
+                memberId = 'Yatta-T-1' + tanggal + bulan + tahun;
             }
             
             var validDate = getKTAValidDate();
@@ -1601,7 +1600,15 @@
                 </div>
             `;
 
-            currentUserData = { ...user, displayLevel, memberId, validDate };
+            // Simpan data KTA untuk digunakan di fungsi lain
+            currentUserData = { 
+                ...user, 
+                displayLevel: displayLevel, 
+                memberId: memberId, 
+                validDate: validDate,
+                icon: icon,
+                ktaClass: ktaClass
+            };
         }
 
         // ============================================
@@ -1620,23 +1627,10 @@
         function openKtaModal() {
             if (!currentUserData) return;
             var data = currentUserData;
-            var icon = getLevelIcon(data.displayLevel);
-            var ktaClass = getKTAClass(data.displayLevel);
+            var icon = data.icon || getLevelIcon(data.displayLevel);
+            var ktaClass = data.ktaClass || getKTAClass(data.displayLevel);
             
-            var prefixMap = {
-                'Tamu': 'Yatta-T',
-                'Penulis': 'Yatta-P',
-                'Penulis Profesional': 'Yatta-PP',
-                'Mentor': 'Yatta-M'
-            };
-            var expectedPrefix = prefixMap[data.displayLevel] || 'Yatta-T';
-            var memberId = data.memberId;
-            
-            if (memberId && !memberId.startsWith(expectedPrefix)) {
-                var parts = memberId.split('-');
-                var numberPart = parts.slice(2).join('-') || parts[1] || '0001';
-                memberId = expectedPrefix + '-' + numberPart;
-            }
+            var memberId = data.memberId || formatMemberId(data.member_id);
 
             setText('ktaMemberName', data.full_name || 'Member');
             setText('ktaLevelName', data.displayLevel);
@@ -1644,9 +1638,11 @@
             setText('ktaLevelIcon', icon);
 
             var preview = document.getElementById('ktaPreview');
-            preview.className = 'kta-card ' + ktaClass;
-            preview.style.maxWidth = '360px';
-            preview.style.width = '100%';
+            if (preview) {
+                preview.className = 'kta-card ' + ktaClass;
+                preview.style.maxWidth = '360px';
+                preview.style.width = '100%';
+            }
 
             setText('ktaValidUntil', data.validDate || getKTAValidDate());
 
