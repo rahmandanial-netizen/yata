@@ -1,5 +1,5 @@
 // ============================================
-// UTILS.JS - VERSI LENGKAP (DIPERBAIKI)
+// UTILS.JS - VERSI LENGKAP (FINAL - OTOMATIS)
 // ============================================
 
 // ============================================
@@ -12,6 +12,68 @@ const REPUTATION_LEVELS = {
     standard: { min: 60, label: '📝 Standar', dailyLimit: 5, badge: 'standard' },
     improving: { min: 30, label: '⚠️ Perlu Perbaikan', dailyLimit: 2, badge: 'improving' },
     limited: { min: 0, label: '🚫 Terbatas', dailyLimit: 1, badge: 'limited' }
+};
+
+// ============================================
+// KONFIGURASI LEVEL - LENGKAP
+// ============================================
+
+const LEVELS = {
+    tamu: {
+        name: 'Tamu',
+        icon: '🌱',
+        description: 'Masih belajar dan menemukan gaya menulis.',
+        ktaClass: 'kta-tamu',
+        idPrefix: 'Yatta-T',
+        nextLevel: 'penulis',
+        nextRequirements: {
+            onboarding: 1,
+            mandatoryMentoring: 2,
+            writings: 5
+        }
+    },
+    penulis: {
+        name: 'Penulis',
+        icon: '✍️',
+        description: 'Mulai produktif dan aktif belajar.',
+        ktaClass: 'kta-penulis',
+        idPrefix: 'Yatta-P',
+        nextLevel: 'penulis_profesional',
+        nextRequirements: {
+            writings: 20,
+            books: 1,
+            mentoring: 5,
+            speakerInternal: 1,
+            createMentoring: 3,
+            certification: 1
+        }
+    },
+    penulis_profesional: {
+        name: 'Penulis Profesional',
+        icon: '📚',
+        description: 'Penulis mapan dengan portofolio kuat.',
+        ktaClass: 'kta-profesional',
+        idPrefix: 'Yatta-PP',
+        nextLevel: 'mentor',
+        nextRequirements: {
+            writings: 50,
+            books: 3,
+            speakerInternal: 5,
+            speakerExternal: 3,
+            createMentoring: 5,
+            certification: 1
+        }
+    },
+    mentor: {
+        name: 'Mentor',
+        icon: '🌟',
+        description: 'Puncak karir literasi, menginspirasi orang lain.',
+        ktaClass: 'kta-mentor',
+        idPrefix: 'Yatta-M',
+        nextLevel: null,
+        nextRequirements: null,
+        hasSpecialCertification: true
+    }
 };
 
 // ============================================
@@ -166,7 +228,6 @@ async function checkPublishEligibility(userId) {
 // ============================================
 
 function getSupabaseClient() {
-    // Coba dari berbagai sumber
     if (typeof _supabase !== 'undefined') {
         return _supabase;
     }
@@ -178,6 +239,1071 @@ function getSupabaseClient() {
     }
     console.warn('⚠️ Supabase client not available');
     return null;
+}
+
+// ============================================
+// HELPER: Ambil Level Key dari Nama Level
+// ============================================
+
+function getLevelKey(levelName) {
+    const map = {
+        'Tamu': 'tamu',
+        'Penulis': 'penulis',
+        'Penulis Profesional': 'penulis_profesional',
+        'Mentor': 'mentor'
+    };
+    return map[levelName] || 'tamu';
+}
+
+// ============================================
+// HELPER: Ambil Nama Level dari Level Key
+// ============================================
+
+function getLevelName(levelKey) {
+    const map = {
+        'tamu': 'Tamu',
+        'penulis': 'Penulis',
+        'penulis_profesional': 'Penulis Profesional',
+        'mentor': 'Mentor'
+    };
+    return map[levelKey] || 'Tamu';
+}
+
+// ============================================
+// 🔥 CEK SYARAT NAIK LEVEL - DIPERBAIKI (RESET PER LEVEL)
+// ============================================
+
+async function checkLevelUpRequirements(userId) {
+    try {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            console.error('❌ Supabase client not available');
+            return {
+                canLevelUp: false,
+                requirements: {},
+                details: [],
+                message: '❌ Gagal mengecek syarat'
+            };
+        }
+
+        // 1. Ambil profil user
+        const { data: profile, error: profileError } = await supabase
+            .from('yata_profiles')
+            .select('member_level, level_status, rejection_reason, created_at')
+            .eq('id', userId)
+            .single();
+
+        if (profileError) throw profileError;
+
+        const currentLevelKey = getLevelKey(profile.member_level);
+        const currentLevel = LEVELS[currentLevelKey];
+        
+        if (!currentLevel || !currentLevel.nextLevel) {
+            return {
+                canLevelUp: false,
+                requirements: {},
+                details: [],
+                message: '🏆 Anda sudah di level tertinggi!',
+                isMaxLevel: true
+            };
+        }
+
+        const targetLevel = currentLevel.nextLevel;
+        const req = currentLevel.nextRequirements;
+        
+        if (!req) {
+            return {
+                canLevelUp: false,
+                requirements: {},
+                details: [],
+                message: '❌ Data syarat tidak ditemukan'
+            };
+        }
+
+        // ============================================
+        // 🔥 FUNGSI UNTUK MENDAPATKAN CUTOFF DATE (RESET)
+        // ============================================
+        async function getCutoffDate(userId, currentLevelKey) {
+            // Jika masih di level Tamu, tidak perlu reset
+            if (currentLevelKey === 'tamu') {
+                return null; // Tidak perlu filter
+            }
+
+            const levelName = getLevelName(currentLevelKey);
+            
+            // 🔥 Cari tanggal naik ke level SAAT INI
+            const { data: levelHistory, error: histError } = await supabase
+                .from('yata_level_history')
+                .select('created_at')
+                .eq('user_id', userId)
+                .eq('new_level', levelName)
+                .eq('status', 'approved')
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (!histError && levelHistory && levelHistory.length > 0) {
+                // ✅ Berhasil: reset dari tanggal naik ke level ini
+                console.log(`📅 [Reset] Level "${levelName}" dicapai pada:`, levelHistory[0].created_at);
+                return new Date(levelHistory[0].created_at);
+            }
+
+            // 🔥 Fallback: Cari level sebelumnya
+            const levelKeys = ['tamu', 'penulis', 'penulis_profesional', 'mentor'];
+            const currentIndex = levelKeys.indexOf(currentLevelKey);
+            
+            if (currentIndex > 0) {
+                const previousLevelKey = levelKeys[currentIndex - 1];
+                const previousLevelName = getLevelName(previousLevelKey);
+                
+                const { data: prevHistory, error: prevError } = await supabase
+                    .from('yata_level_history')
+                    .select('created_at')
+                    .eq('user_id', userId)
+                    .eq('new_level', previousLevelName)
+                    .eq('status', 'approved')
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+                
+                if (!prevError && prevHistory && prevHistory.length > 0) {
+                    // ✅ Gunakan tanggal naik ke level sebelumnya
+                    console.log(`📅 [Reset] Level sebelumnya "${previousLevelName}" dicapai pada:`, prevHistory[0].created_at);
+                    return new Date(prevHistory[0].created_at);
+                }
+            }
+
+            // 🔥 Ultimate fallback: Gunakan created_at profil
+            const { data: profileData } = await supabase
+                .from('yata_profiles')
+                .select('created_at')
+                .eq('id', userId)
+                .single();
+            
+            const fallbackDate = profileData ? new Date(profileData.created_at) : null;
+            console.log(`📅 [Reset] Fallback menggunakan created_at:`, fallbackDate);
+            return fallbackDate;
+        }
+
+        const cutoffDate = await getCutoffDate(userId, currentLevelKey);
+        console.log(`📅 [Reset] Final Cutoff Date:`, cutoffDate);
+
+        // ============================================
+        // AMBIL DATA DENGAN CUTOFF DATE
+        // ============================================
+
+        // 2a. Ambil partisipasi mentoring (attended = true)
+        let queryParticipants = supabase
+            .from('yata_mentoring_participants')
+            .select('session_id, session:session_id(is_onboarding, is_mandatory, is_mentor_created), registered_at, attended')
+            .eq('user_id', userId)
+            .eq('attended', true);
+
+        // 🔥 FILTER BERDASARKAN CUTOFF DATE
+        let participants = [];
+        if (cutoffDate) {
+            const { data, error } = await queryParticipants.gte('registered_at', cutoffDate.toISOString());
+            if (error) {
+                console.error('❌ Error get participants with cutoff:', error);
+            } else {
+                participants = data || [];
+            }
+        } else {
+            const { data, error } = await queryParticipants;
+            if (error) {
+                console.error('❌ Error get participants:', error);
+            } else {
+                participants = data || [];
+            }
+        }
+
+        console.log(`📊 Participants setelah reset (${cutoffDate ? 'dari ' + cutoffDate.toISOString() : 'semua'}):`, participants.length);
+
+        // 2b. Ambil karya published DENGAN CUTOFF DATE
+        let queryWritings = supabase
+            .from('yata_writings')
+            .select('*', { count: 'exact', head: true })
+            .eq('author_id', userId)
+            .eq('status', 'published');
+
+        if (cutoffDate) {
+            queryWritings = queryWritings.gte('created_at', cutoffDate.toISOString());
+        }
+
+        const { count: totalWritings, error: wError } = await queryWritings;
+        if (wError) {
+            console.error('❌ Error count writings:', wError);
+        }
+
+        console.log(`📊 Writings setelah reset:`, totalWritings || 0);
+
+        // 2c. Buku published DENGAN CUTOFF DATE
+        let queryBooks = supabase
+            .from('yata_book_projects')
+            .select('id, created_at, status')
+            .eq('author_id', userId)
+            .eq('status', 'published');
+
+        if (cutoffDate) {
+            queryBooks = queryBooks.gte('created_at', cutoffDate.toISOString());
+        }
+
+        const { data: booksData, error: bError } = await queryBooks;
+        if (bError) {
+            console.error('❌ Error get books:', bError);
+        }
+
+        console.log(`📊 Books setelah reset:`, booksData?.length || 0);
+
+        // 2d. Speaker events DENGAN CUTOFF DATE
+        let querySpeaker = supabase
+            .from('yata_speaker_events')
+            .select('event_type, created_at')
+            .eq('user_id', userId)
+            .eq('status', 'approved');
+
+        if (cutoffDate) {
+            querySpeaker = querySpeaker.gte('created_at', cutoffDate.toISOString());
+        }
+
+        const { data: speakerEvents, error: sError } = await querySpeaker;
+        if (sError) {
+            console.error('❌ Error get speaker events:', sError);
+        }
+
+        // 2e. Create mentoring DENGAN CUTOFF DATE
+        let queryCreatedMentoring = supabase
+            .from('yata_mentoring_sessions')
+            .select('id, created_at, is_onboarding, is_mandatory, is_mentor_created')
+            .eq('mentor_id', userId)
+            .eq('is_onboarding', false)
+            .eq('is_mandatory', false)
+            .eq('is_mentor_created', true);
+
+        if (cutoffDate) {
+            queryCreatedMentoring = queryCreatedMentoring.gte('created_at', cutoffDate.toISOString());
+        }
+
+        const { data: createdMentoring, error: cmError } = await queryCreatedMentoring;
+        if (cmError) {
+            console.error('❌ Error get created mentoring:', cmError);
+        }
+
+        console.log(`📊 Created Mentoring setelah reset:`, createdMentoring?.length || 0);
+
+        // 2f. Sertifikasi (tidak perlu filter cutoff)
+        const { count: certCount, error: cError } = await supabase
+            .from('yata_certifications')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .eq('is_active', true);
+
+        if (cError) {
+            console.error('❌ Error get certifications:', cError);
+        }
+
+        // ============================================
+        // HASIL AKHIR
+        // ============================================
+        const result = {
+            onboardingCount: participants.filter(p => p.session && p.session.is_onboarding === true).length,
+            mandatoryMentoringCount: participants.filter(p => p.session && p.session.is_onboarding === false && p.session.is_mandatory === true).length,
+            writingsCount: totalWritings || 0,
+            booksCount: booksData?.length || 0,
+            mentoringCount: participants.length,
+            speakerInternalCount: (speakerEvents || []).filter(e => e.event_type === 'internal').length,
+            speakerExternalCount: (speakerEvents || []).filter(e => e.event_type === 'external').length,
+            createMentoringCount: createdMentoring?.length || 0,
+            certificationCount: certCount || 0
+        };
+
+        console.log('📊 Final Result setelah reset:', result);
+
+        // ============================================
+        // CEK SYARAT
+        // ============================================
+        let canLevelUp = true;
+        const requirementStatus = {};
+        const details = [];
+
+        if (req.onboarding !== undefined) {
+            const met = result.onboardingCount >= req.onboarding;
+            requirementStatus.onboarding = met;
+            if (!met) canLevelUp = false;
+            details.push({ 
+                key: 'onboarding', 
+                label: 'Onboarding', 
+                current: result.onboardingCount, 
+                target: req.onboarding,
+                met: met,
+                icon: '🎓'
+            });
+        }
+
+        if (req.mandatoryMentoring !== undefined) {
+            const met = result.mandatoryMentoringCount >= req.mandatoryMentoring;
+            requirementStatus.mandatoryMentoring = met;
+            if (!met) canLevelUp = false;
+            details.push({ 
+                key: 'mandatoryMentoring', 
+                label: 'Mentoring Admin (Wajib)', 
+                current: result.mandatoryMentoringCount, 
+                target: req.mandatoryMentoring,
+                met: met,
+                icon: '📖'
+            });
+        }
+
+        if (req.writings !== undefined) {
+            const met = result.writingsCount >= req.writings;
+            requirementStatus.writings = met;
+            if (!met) canLevelUp = false;
+            let label = 'Karya';
+            if (currentLevelKey === 'penulis') {
+                label = 'Karya (di luar level Tamu)';
+            } else if (currentLevelKey === 'penulis_profesional') {
+                label = 'Karya (di luar level Profesional)';
+            }
+            details.push({ 
+                key: 'writings', 
+                label: label, 
+                current: result.writingsCount, 
+                target: req.writings,
+                met: met,
+                icon: '✍️'
+            });
+        }
+
+        if (req.books !== undefined) {
+            const met = result.booksCount >= req.books;
+            requirementStatus.books = met;
+            if (!met) canLevelUp = false;
+            let label = 'Buku (ISBN/QRCBN)';
+            if (currentLevelKey === 'penulis_profesional') {
+                label = 'Buku (di luar level Profesional)';
+            }
+            details.push({ 
+                key: 'books', 
+                label: label, 
+                current: result.booksCount, 
+                target: req.books,
+                met: met,
+                icon: '📚'
+            });
+        }
+
+        if (req.mentoring !== undefined) {
+            const met = result.mentoringCount >= req.mentoring;
+            requirementStatus.mentoring = met;
+            if (!met) canLevelUp = false;
+            let label = 'Mentoring';
+            if (currentLevelKey === 'penulis') {
+                label = 'Mentoring (di luar level Tamu)';
+            } else if (currentLevelKey === 'penulis_profesional') {
+                label = 'Mentoring (di luar level Profesional)';
+            }
+            details.push({ 
+                key: 'mentoring', 
+                label: label, 
+                current: result.mentoringCount, 
+                target: req.mentoring,
+                met: met,
+                icon: '🎓'
+            });
+        }
+
+        if (req.speakerInternal !== undefined) {
+            const met = result.speakerInternalCount >= req.speakerInternal;
+            requirementStatus.speakerInternal = met;
+            if (!met) canLevelUp = false;
+            let label = 'Pembicara Internal YATTA';
+            if (currentLevelKey === 'penulis') {
+                label = 'Pembicara Internal (di luar level Tamu)';
+            } else if (currentLevelKey === 'penulis_profesional') {
+                label = 'Pembicara Internal (di luar level Profesional)';
+            }
+            details.push({ 
+                key: 'speakerInternal', 
+                label: label, 
+                current: result.speakerInternalCount, 
+                target: req.speakerInternal,
+                met: met,
+                icon: '🎤'
+            });
+        }
+
+        if (req.speakerExternal !== undefined) {
+            const met = result.speakerExternalCount >= req.speakerExternal;
+            requirementStatus.speakerExternal = met;
+            if (!met) canLevelUp = false;
+            let label = 'Pembicara Eksternal';
+            if (currentLevelKey === 'penulis_profesional') {
+                label = 'Pembicara Eksternal (di luar level Profesional)';
+            }
+            details.push({ 
+                key: 'speakerExternal', 
+                label: label, 
+                current: result.speakerExternalCount, 
+                target: req.speakerExternal,
+                met: met,
+                icon: '🌟'
+            });
+        }
+
+        if (req.createMentoring !== undefined) {
+            const met = result.createMentoringCount >= req.createMentoring;
+            requirementStatus.createMentoring = met;
+            if (!met) canLevelUp = false;
+            let label = 'Membuat Kelas Mentoring';
+            if (currentLevelKey === 'penulis') {
+                label = 'Membuat Kelas Mentoring (di luar level Tamu)';
+            } else if (currentLevelKey === 'penulis_profesional') {
+                label = 'Membuat Kelas Mentoring (di luar level Profesional)';
+            }
+            details.push({ 
+                key: 'createMentoring', 
+                label: label, 
+                current: result.createMentoringCount, 
+                target: req.createMentoring,
+                met: met,
+                icon: '📝'
+            });
+        }
+
+        if (req.certification !== undefined) {
+            const met = result.certificationCount >= req.certification;
+            requirementStatus.certification = met;
+            if (!met) canLevelUp = false;
+            let label = 'Sertifikasi';
+            if (currentLevelKey === 'penulis') {
+                label = 'Training Sertifikasi Penulis';
+            } else if (currentLevelKey === 'penulis_profesional') {
+                label = 'Training Sertifikasi Penulis Profesional';
+            }
+            details.push({ 
+                key: 'certification', 
+                label: label, 
+                current: result.certificationCount, 
+                target: req.certification,
+                met: met,
+                icon: '📜'
+            });
+        }
+
+        const targetLevelName = getLevelName(targetLevel);
+        const message = canLevelUp ? 
+            `✅ Semua syarat terpenuhi! Ajukan naik ke "${targetLevelName}" sekarang.` :
+            `📋 ${details.filter(d => !d.met).map(d => `${d.current}/${d.target} ${d.label}`).join(' • ')}`;
+
+        return {
+            canLevelUp: canLevelUp,
+            requirements: requirementStatus,
+            details: details,
+            currentLevel: currentLevelKey,
+            targetLevel: targetLevel,
+            targetLevelName: targetLevelName,
+            message: message,
+            isMaxLevel: false,
+            ...result
+        };
+
+    } catch (err) {
+        console.error('❌ Check level requirements error:', err);
+        return {
+            canLevelUp: false,
+            requirements: {},
+            details: [],
+            message: '❌ Gagal mengecek syarat: ' + err.message,
+            isMaxLevel: false
+        };
+    }
+}
+
+// ============================================
+// 🔥 GET LEVEL PROGRESS
+// ============================================
+
+function getLevelProgress(levelKey, requirements) {
+    const level = LEVELS[levelKey];
+    
+    if (!level || !level.nextLevel) {
+        return {
+            progress: 100,
+            text: '🏆 Anda sudah di level tertinggi!',
+            details: [],
+            nextLevelName: null,
+            nextLevelIcon: null
+        };
+    }
+
+    const req = level.nextRequirements;
+    if (!req) {
+        return {
+            progress: 100,
+            text: '🏆 Anda sudah di level tertinggi!',
+            details: [],
+            nextLevelName: null,
+            nextLevelIcon: null
+        };
+    }
+
+    const detailItems = requirements.details || [];
+    const total = detailItems.length;
+    const achieved = detailItems.filter(d => d.met).length;
+    const progress = total > 0 ? Math.round((achieved / total) * 100) : 0;
+
+    const nextLevel = LEVELS[level.nextLevel];
+    const nextLevelName = nextLevel ? nextLevel.name : 'Level Tertinggi';
+    const nextLevelIcon = nextLevel ? nextLevel.icon : '🏆';
+
+    const summary = detailItems.map(d => 
+        `${d.current}/${d.target} ${d.label}`
+    ).join(' • ');
+
+    return {
+        progress: Math.min(progress, 100),
+        text: summary || 'Semua syarat terpenuhi!',
+        details: detailItems,
+        nextLevelName: nextLevelName,
+        nextLevelIcon: nextLevelIcon
+    };
+}
+
+// ============================================
+// 🔥 UPDATE UI LEVEL
+// ============================================
+
+async function updateLevelUI(userId) {
+    try {
+        const supabase = getSupabaseClient();
+        if (!supabase) return null;
+
+        const { data: profile, error: profileError } = await supabase
+            .from('yata_profiles')
+            .select('member_level, level_status, rejection_reason')
+            .eq('id', userId)
+            .single();
+
+        if (profileError) throw profileError;
+
+        // 🔥 OTOMATIS: Reset level_status jika status approved tapi sudah mencapai level
+        if (profile.level_status === 'approved') {
+            const { data: history, error: histError } = await supabase
+                .from('yata_level_history')
+                .select('new_level')
+                .eq('user_id', userId)
+                .eq('status', 'approved')
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            if (!histError && history && history.length > 0) {
+                if (history[0].new_level === profile.member_level) {
+                    await supabase
+                        .from('yata_profiles')
+                        .update({ level_status: null })
+                        .eq('id', userId);
+                    // Refresh profile
+                    const { data: fresh } = await supabase
+                        .from('yata_profiles')
+                        .select('level_status')
+                        .eq('id', userId)
+                        .single();
+                    if (fresh) profile.level_status = fresh.level_status;
+                }
+            }
+        }
+
+        const requirements = await checkLevelUpRequirements(userId);
+        const currentLevelKey = getLevelKey(profile.member_level);
+        const progress = getLevelProgress(currentLevelKey, requirements);
+
+        // Update Progress Bar
+        const progressBar = document.getElementById('levelProgressBar');
+        const progressLabel = document.getElementById('levelProgressText');
+        const nextInfo = document.getElementById('levelNextInfo');
+
+        if (progressBar) {
+            progressBar.style.width = progress.progress + '%';
+            if (progress.progress >= 100) {
+                progressBar.className = 'bg-emerald-600 h-2.5 rounded-full transition-all duration-500';
+            } else if (progress.progress >= 50) {
+                progressBar.className = 'bg-yellow-500 h-2.5 rounded-full transition-all duration-500';
+            } else {
+                progressBar.className = 'bg-amber-500 h-2.5 rounded-full transition-all duration-500';
+            }
+        }
+        if (progressLabel) {
+            progressLabel.textContent = progress.progress + '%';
+        }
+        if (nextInfo) {
+            nextInfo.textContent = progress.text || 'Semua syarat terpenuhi!';
+        }
+
+        // Update Detail Progress
+        const detailsContainer = document.getElementById('progressDetails');
+        if (detailsContainer && progress.details) {
+            let html = '';
+            for (let i = 0; i < progress.details.length; i++) {
+                const item = progress.details[i];
+                const statusClass = item.met ? 'done' : 'incomplete';
+                const statusText = item.met ? '✅ Selesai' : '⏳ Belum';
+                html += `
+                    <div class="progress-item">
+                        <span class="icon">${item.icon}</span>
+                        <span class="label">${item.label}</span>
+                        <span class="text-xs font-bold text-yellow-400">${item.current}</span>
+                        <span class="text-xs text-white/30">/</span>
+                        <span class="text-xs font-medium text-white/50">${item.target}</span>
+                        <span class="status ${statusClass}">${statusText}</span>
+                    </div>
+                `;
+            }
+            detailsContainer.innerHTML = html;
+        }
+
+        // Update Tombol
+        await updateLevelUpButtonUI(userId, requirements, profile);
+
+        // Update info level
+        const levelNameEl = document.getElementById('levelName');
+        const levelIconEl = document.getElementById('levelIcon');
+        if (levelNameEl) levelNameEl.textContent = profile.member_level || 'Tamu';
+        if (levelIconEl) levelIconEl.textContent = LEVELS[currentLevelKey]?.icon || '🌱';
+
+        // Update Big Level
+        const bigLevelName = document.getElementById('levelBigName');
+        const bigLevelIcon = document.getElementById('levelBigIcon');
+        const bigLevelDesc = document.getElementById('levelBigDesc');
+        if (bigLevelName) bigLevelName.textContent = profile.member_level || 'Tamu';
+        if (bigLevelIcon) bigLevelIcon.textContent = LEVELS[currentLevelKey]?.icon || '🌱';
+        if (bigLevelDesc) bigLevelDesc.textContent = LEVELS[currentLevelKey]?.description || 'Masih belajar dan menemukan gaya menulis.';
+
+        // Update Level Status Badge di Profile
+        const statusBadge = document.getElementById('profileLevelStatus');
+        if (statusBadge) {
+            if (profile.level_status === 'pending') {
+                statusBadge.textContent = '⏳ Menunggu Verifikasi Admin';
+                statusBadge.className = 'level-status-badge level-status-pending';
+                statusBadge.classList.remove('hidden');
+            } else if (profile.level_status === 'approved') {
+                statusBadge.textContent = '✅ Level Disetujui!';
+                statusBadge.className = 'level-status-badge level-status-approved';
+                statusBadge.classList.remove('hidden');
+            } else if (profile.level_status === 'rejected') {
+                statusBadge.textContent = '❌ Ditolak';
+                statusBadge.className = 'level-status-badge level-status-rejected';
+                statusBadge.classList.remove('hidden');
+                const rejectContainer = document.getElementById('rejectionReasonContainer');
+                const rejectText = document.getElementById('rejectionReasonText');
+                if (rejectContainer && rejectText) {
+                    rejectContainer.classList.remove('hidden');
+                    rejectText.textContent = profile.rejection_reason || 'Belum memenuhi syarat publikasi.';
+                }
+            } else if (requirements.canLevelUp) {
+                statusBadge.textContent = '✅ Syarat Terpenuhi!';
+                statusBadge.className = 'level-status-badge level-status-approved';
+                statusBadge.classList.remove('hidden');
+            } else {
+                statusBadge.textContent = '⏳ Syarat Belum Terpenuhi';
+                statusBadge.className = 'level-status-badge level-status-pending';
+                statusBadge.classList.remove('hidden');
+            }
+        }
+
+        // Update Profile Level Progress (khusus profile.html)
+        const progressIcon = document.getElementById('levelProgressIcon');
+        const currentName = document.getElementById('currentLevelName');
+        const nextName = document.getElementById('nextLevelName');
+        const progressPercent = document.getElementById('levelProgressPercent');
+        const progressSummary = document.getElementById('levelProgressSummary');
+
+        if (progressIcon) progressIcon.textContent = LEVELS[currentLevelKey]?.icon || '🌱';
+        if (currentName) currentName.textContent = profile.member_level || 'Tamu';
+        if (nextName) nextName.textContent = progress.nextLevelName || 'Level Tertinggi';
+        if (progressPercent) progressPercent.textContent = progress.progress + '%';
+        if (progressSummary) progressSummary.textContent = progress.text || 'Semua syarat terpenuhi!';
+
+        return { requirements, progress };
+
+    } catch (err) {
+        console.error('❌ Update Level UI Error:', err);
+        return null;
+    }
+}
+
+// ============================================
+// 🔥 UPDATE TOMBOL NAIK LEVEL
+// ============================================
+
+async function updateLevelUpButtonUI(userId, requirements, profile) {
+    const btn = document.getElementById('btnLevelUp');
+    const statusEl = document.getElementById('levelUpStatus');
+    if (!btn) return;
+
+    btn.disabled = false;
+    btn.className = 'w-full bg-yellow-400 hover:bg-yellow-300 text-emerald-900 font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2';
+
+    const levelStatus = profile?.level_status || '';
+
+    if (levelStatus === 'pending') {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ Menunggu Verifikasi';
+        btn.className = 'w-full bg-yellow-400 text-emerald-900 font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2 cursor-not-allowed';
+        if (statusEl) {
+            statusEl.textContent = '⏳ Pengajuan Anda sedang diproses admin.';
+            statusEl.className = 'text-xs text-yellow-600 mt-1 text-center block';
+        }
+        return;
+    }
+
+    if (levelStatus === 'approved') {
+        btn.disabled = true;
+        btn.innerHTML = '✅ Level Disetujui!';
+        btn.className = 'w-full bg-emerald-400 text-white font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2 cursor-not-allowed';
+        if (statusEl) {
+            statusEl.textContent = '✅ Selamat! Level Anda sudah naik.';
+            statusEl.className = 'text-xs text-emerald-600 mt-1 text-center block';
+        }
+        return;
+    }
+
+    if (levelStatus === 'rejected') {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
+        if (statusEl) {
+            const reason = profile?.rejection_reason || 'Belum memenuhi syarat.';
+            statusEl.textContent = '❌ Pengajuan ditolak. ' + reason;
+            statusEl.className = 'text-xs text-red-600 mt-1 text-center block';
+        }
+        return;
+    }
+
+    if (requirements?.canLevelUp) {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level ke "${requirements.targetLevelName || 'Penulis'}"`;
+        if (statusEl) {
+            statusEl.textContent = '✅ Semua syarat terpenuhi!';
+            statusEl.className = 'text-xs text-emerald-600 mt-1 text-center block';
+        }
+    } else if (requirements?.isMaxLevel) {
+        btn.disabled = true;
+        btn.innerHTML = '🏆 Level Tertinggi!';
+        btn.className = 'w-full bg-amber-400 text-amber-900 font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2 cursor-not-allowed';
+        if (statusEl) {
+            statusEl.textContent = '🌟 Anda sudah mencapai puncak karir literasi!';
+            statusEl.className = 'text-xs text-amber-600 mt-1 text-center block';
+        }
+    } else {
+        btn.disabled = true;
+        btn.innerHTML = '🔒 Syarat Belum Terpenuhi';
+        btn.className = 'w-full bg-slate-300 text-slate-500 font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2 cursor-not-allowed';
+        if (statusEl) {
+            const missing = requirements?.details?.filter(d => !d.met) || [];
+            const summary = missing.map(d => `${d.label}: ${d.current}/${d.target}`).join(' • ');
+            statusEl.textContent = `⚠️ ${summary || 'Selesaikan semua syarat'}`;
+            statusEl.className = 'text-xs text-amber-600 mt-1 text-center block';
+        }
+    }
+}
+
+// ============================================
+// 🔥 AJUKAN NAIK LEVEL
+// ============================================
+
+async function submitLevelUpRequest() {
+    const btn = document.getElementById('btnLevelUp');
+    const statusEl = document.getElementById('levelUpStatus');
+    
+    if (statusEl) {
+        statusEl.className = 'text-xs text-slate-500 mt-1 text-center hidden';
+    }
+    
+    try {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            if (statusEl) {
+                statusEl.textContent = 'Gagal terhubung ke server.';
+                statusEl.className = 'text-xs text-red-500 mt-1 text-center block';
+            }
+            return;
+        }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            if (statusEl) {
+                statusEl.textContent = 'Silakan login terlebih dahulu.';
+                statusEl.className = 'text-xs text-red-500 mt-1 text-center block';
+            }
+            return;
+        }
+
+        const userId = session.user.id;
+
+        const { data: profile, error: profileError } = await supabase
+            .from('yata_profiles')
+            .select('member_level, level_status, rejection_reason')
+            .eq('id', userId)
+            .single();
+
+        if (profileError) {
+            if (statusEl) {
+                statusEl.textContent = 'Gagal memuat data profil.';
+                statusEl.className = 'text-xs text-red-400 mt-1 text-center block';
+            }
+            return;
+        }
+
+        if (profile.level_status === 'pending') {
+            if (statusEl) {
+                statusEl.textContent = '⏳ Pengajuan Anda sedang diproses oleh admin.';
+                statusEl.className = 'text-xs text-yellow-600 mt-1 text-center block';
+            }
+            return;
+        }
+
+        if (profile.level_status === 'approved') {
+            if (statusEl) {
+                statusEl.textContent = '✅ Pengajuan Anda sudah disetujui!';
+                statusEl.className = 'text-xs text-emerald-600 mt-1 text-center block';
+            }
+            return;
+        }
+
+        const requirements = await checkLevelUpRequirements(userId);
+        
+        if (!requirements.canLevelUp) {
+            if (statusEl) {
+                const missing = requirements.details?.filter(d => !d.met) || [];
+                const summary = missing.map(d => `${d.label}: ${d.current}/${d.target}`).join(' • ');
+                statusEl.textContent = `⚠️ Syarat belum terpenuhi. ${summary}`;
+                statusEl.className = 'text-xs text-amber-600 mt-1 text-center block';
+            }
+            return;
+        }
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+        }
+
+        const targetLevel = requirements.targetLevelName || 'Penulis';
+        const currentLevel = profile.member_level || 'Tamu';
+
+        // Catat history
+        await supabase
+            .from('yata_level_history')
+            .insert([{
+                user_id: userId,
+                old_level: currentLevel,
+                new_level: targetLevel,
+                status: 'pending',
+                created_at: new Date().toISOString()
+            }]);
+
+        // Notifikasi ke admin
+        const { data: admins } = await supabase
+            .from('yata_profiles')
+            .select('id')
+            .eq('role', 'admin');
+
+        if (admins && admins.length > 0) {
+            const detailSummary = requirements.details?.map(d => 
+                `${d.icon} ${d.label}: ${d.current}/${d.target} ${d.met ? '✅' : '❌'}`
+            ).join('\n') || '';
+
+            const notifContent = `📢 Member mengajukan naik level.
+
+📊 Data:
+- Level saat ini: ${currentLevel}
+- Target: ${targetLevel}
+- User: ${session.user.email || userId}
+
+📋 Syarat:
+${detailSummary}
+
+📌 Silakan verifikasi pengajuan ini.`;
+
+            const { data: notifData, error: notifError } = await supabase
+                .from('yata_notifications')
+                .insert([{
+                    title: '📢 Pengajuan Naik Level',
+                    content: notifContent,
+                    type: 'campaign'
+                }])
+                .select()
+                .single();
+
+            if (!notifError && notifData) {
+                const entries = admins.map(admin => ({
+                    notification_id: notifData.id,
+                    user_id: admin.id,
+                    is_read: false
+                }));
+                await supabase
+                    .from('yata_user_notifications')
+                    .insert(entries);
+            }
+        }
+
+        // Update status
+        await supabase
+            .from('yata_profiles')
+            .update({ 
+                level_status: 'pending',
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', userId);
+
+        // Notifikasi ke user
+        await sendNotification(
+            userId,
+            '⭐ Pengajuan Naik Level Dikirim!',
+            `Pengajuan naik level dari "${currentLevel}" ke "${targetLevel}" telah dikirim ke admin. Mohon tunggu verifikasi.`,
+            'campaign'
+        );
+
+        if (statusEl) {
+            statusEl.textContent = `✅ Pengajuan naik level ke "${targetLevel}" telah dikirim ke admin!`;
+            statusEl.className = 'text-xs text-emerald-600 mt-1 text-center block';
+        }
+        if (btn) {
+            btn.innerHTML = '✅ Terkirim!';
+        }
+
+        setTimeout(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
+            }
+            if (typeof updateLevelUI === 'function') {
+                updateLevelUI(userId);
+            }
+        }, 3000);
+
+    } catch (err) {
+        console.error('Submit level up error:', err);
+        if (statusEl) {
+            statusEl.textContent = '❌ Gagal mengajukan: ' + err.message;
+            statusEl.className = 'text-xs text-red-400 mt-1 text-center block';
+        }
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-arrow-up"></i> Ajukan Naik Level';
+        }
+    }
+}
+
+// ============================================
+// 🔥 APPROVE / REJECT LEVEL UP (UNTUK ADMIN)
+// ============================================
+
+async function approveLevelUp(userId) {
+    try {
+        const supabase = getSupabaseClient();
+        if (!supabase) return false;
+
+        const { data: profile, error: profileError } = await supabase
+            .from('yata_profiles')
+            .select('member_level, member_id')
+            .eq('id', userId)
+            .single();
+
+        if (profileError) throw profileError;
+
+        const currentLevelKey = getLevelKey(profile.member_level);
+        const currentLevel = LEVELS[currentLevelKey];
+        
+        if (!currentLevel || !currentLevel.nextLevel) {
+            throw new Error('Tidak ada level selanjutnya');
+        }
+
+        const targetLevelName = getLevelName(currentLevel.nextLevel);
+        const targetLevelKey = currentLevel.nextLevel;
+        const targetLevel = LEVELS[targetLevelKey];
+
+        let newMemberId = profile.member_id;
+        if (newMemberId) {
+            const parts = newMemberId.split('-');
+            const numberPart = parts.slice(2).join('-') || parts[1] || '0001';
+            newMemberId = targetLevel.idPrefix + '-' + numberPart;
+        } else {
+            const now = new Date();
+            const tanggal = String(now.getDate()).padStart(2, '0');
+            const bulan = String(now.getMonth() + 1).padStart(2, '0');
+            const tahun = String(now.getFullYear()).slice(-2);
+            newMemberId = targetLevel.idPrefix + '-01' + tanggal + bulan + tahun;
+        }
+
+        await supabase
+            .from('yata_profiles')
+            .update({
+                member_level: targetLevelName,
+                level_status: 'approved',
+                member_id: newMemberId,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', userId);
+
+        await supabase
+            .from('yata_level_history')
+            .update({
+                status: 'approved',
+                approved_at: new Date().toISOString()
+            })
+            .eq('user_id', userId)
+            .eq('new_level', targetLevelName)
+            .eq('status', 'pending');
+
+        await sendNotification(
+            userId,
+            '🎉 Selamat! Level Anda Naik!',
+            `Selamat! Level Anda telah naik dari "${profile.member_level}" menjadi "${targetLevelName}".\n\n🆔 ID Anggota baru Anda: ${newMemberId}\n\nTerus berkarya dan tingkatkan potensi Anda!`,
+            'success'
+        );
+
+        return true;
+
+    } catch (err) {
+        console.error('Approve level up error:', err);
+        return false;
+    }
+}
+
+async function rejectLevelUp(userId, reason) {
+    try {
+        const supabase = getSupabaseClient();
+        if (!supabase) return false;
+
+        await supabase
+            .from('yata_profiles')
+            .update({
+                level_status: 'rejected',
+                rejection_reason: reason,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', userId);
+
+        await supabase
+            .from('yata_level_history')
+            .update({
+                status: 'rejected',
+                rejection_reason: reason,
+                updated_at: new Date().toISOString()
+            })
+            .eq('user_id', userId)
+            .eq('status', 'pending');
+
+        await sendNotification(
+            userId,
+            '❌ Pengajuan Naik Level Ditolak',
+            `Pengajuan naik level Anda ditolak dengan alasan: ${reason}`,
+            'warning'
+        );
+
+        return true;
+
+    } catch (err) {
+        console.error('Reject level up error:', err);
+        return false;
+    }
 }
 
 // ============================================
@@ -367,7 +1493,7 @@ async function ensureGuestProfile(userId) {
 }
 
 // ============================================
-// 🔥 FUNGSI FAVORIT (DIPERBAIKI)
+// 🔥 FUNGSI FAVORIT
 // ============================================
 
 async function toggleFavorite(writingId, userId) {
@@ -378,7 +1504,6 @@ async function toggleFavorite(writingId, userId) {
             throw new Error('Supabase client not available');
         }
         
-        // Cek apakah sudah difavorit
         const { data: existing, error: checkError } = await supabase
             .from('yata_favorites')
             .select('id')
@@ -392,7 +1517,6 @@ async function toggleFavorite(writingId, userId) {
         }
 
         if (existing) {
-            // Hapus favorit
             const { error: deleteError } = await supabase
                 .from('yata_favorites')
                 .delete()
@@ -404,7 +1528,6 @@ async function toggleFavorite(writingId, userId) {
             }
             return { action: 'removed', message: '✅ Dihapus dari favorit' };
         } else {
-            // Tambah favorit
             const { error: insertError } = await supabase
                 .from('yata_favorites')
                 .insert([{ user_id: userId, writing_id: writingId }]);
@@ -711,6 +1834,46 @@ function generateMentoringSlug(title) {
 
 function isValidMentoringSlug(slug) {
     return /^[a-z0-9-]+$/.test(slug) && slug.length >= 3;
+}
+
+// ============================================
+// 🔥 KIRIM NOTIFIKASI
+// ============================================
+
+async function sendNotification(userId, title, content, type = 'info') {
+    try {
+        const supabase = getSupabaseClient();
+        if (!supabase) return false;
+
+        const { data: notifData, error } = await supabase
+            .from('yata_notifications')
+            .insert([{
+                title: title,
+                content: content,
+                type: type
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('❌ Insert notif error:', error);
+            return false;
+        }
+
+        if (notifData && userId) {
+            await supabase
+                .from('yata_user_notifications')
+                .insert([{
+                    notification_id: notifData.id,
+                    user_id: userId,
+                    is_read: false
+                }]);
+        }
+        return true;
+    } catch (err) {
+        console.error('❌ Send notification error:', err);
+        return false;
+    }
 }
 
 // ============================================
