@@ -3214,7 +3214,7 @@
         });
 
         // ============================================
-        // 34. LOAD PENGAJUAN NAIK LEVEL
+        // 34. LOAD PENGAJUAN NAIK LEVEL - 🔥 DIPERBAIKI
         // ============================================
         async function loadLevelRequests() {
             var container = document.getElementById('levelRequestList');
@@ -3261,20 +3261,29 @@
                 for (var i = 0; i < profiles.length; i++) {
                     var p = profiles[i];
                     
+                    // 🔥 HITUNG KARYA
                     var writingsCountResult = await _supabase
                         .from('yata_writings')
                         .select('*', { count: 'exact', head: true })
                         .eq('author_id', p.id)
                         .eq('status', 'published');
+                    var totalWritings = writingsCountResult.count || 0;
 
-                    var mentoringCountResult = await _supabase
+                    // 🔥 HITUNG MENTORING (HANYA YANG ONBOARDING ATAU MANDATORY)
+                    var mentoringResult = await _supabase
                         .from('yata_mentoring_participants')
-                        .select('*', { count: 'exact', head: true })
+                        .select('*, session:session_id(is_onboarding, is_mandatory)')
                         .eq('user_id', p.id)
                         .eq('attended', true);
+                    
+                    var totalMentoring = 0;
+                    if (mentoringResult.data) {
+                        totalMentoring = mentoringResult.data.filter(function(m) {
+                            return m.session && (m.session.is_onboarding === true || m.session.is_mandatory === true);
+                        }).length;
+                    }
 
-                    var totalWritings = writingsCountResult.count || 0;
-                    var totalMentoring = mentoringCountResult.count || 0;
+                    console.log('📊 User:', p.full_name, 'Karya:', totalWritings, 'Mentoring:', totalMentoring);
 
                     var levelMap = {
                         'Tamu': 'Penulis',
@@ -3285,7 +3294,8 @@
 
                     var requirementsMet = true;
                     var reqDetails = [];
-                    
+
+                    // 🔥 CEK SYARAT BERDASARKAN LEVEL
                     if (p.member_level === 'Tamu') {
                         if (totalWritings < 5) {
                             requirementsMet = false;

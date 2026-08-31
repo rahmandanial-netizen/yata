@@ -88,6 +88,7 @@ function getReputationLevel(reputation) {
     return REPUTATION_LEVELS.limited;
 }
 
+// 🔥 DIPERBAIKI: calculateReputation dengan better error handling
 async function calculateReputation(userId) {
     try {
         const supabase = getSupabaseClient();
@@ -102,7 +103,10 @@ async function calculateReputation(userId) {
             .eq('author_id', userId)
             .eq('status', 'published');
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching writings:', error);
+            return { reputation: 100, totalWritings: 0, totalViews: 0, totalLikes: 0 };
+        }
 
         let reputation = 100;
         let totalWritings = writings?.length || 0;
@@ -135,7 +139,7 @@ async function calculateReputation(userId) {
 
         reputation = Math.max(0, Math.min(200, Math.round(reputation)));
 
-        await supabase
+        const { error: updateError } = await supabase
             .from('yata_profiles')
             .update({ 
                 reputation: reputation,
@@ -146,6 +150,10 @@ async function calculateReputation(userId) {
             })
             .eq('id', userId);
 
+        if (updateError) {
+            console.error('Error updating reputation:', updateError);
+        }
+
         return { reputation, totalWritings, totalViews, totalLikes };
 
     } catch (err) {
@@ -154,6 +162,7 @@ async function calculateReputation(userId) {
     }
 }
 
+// 🔥 DIPERBAIKI: checkPublishEligibility dengan maybeSingle()
 async function checkPublishEligibility(userId) {
     try {
         const supabase = getSupabaseClient();
@@ -173,9 +182,20 @@ async function checkPublishEligibility(userId) {
             .from('yata_profiles')
             .select('reputation')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Error fetching profile:', error);
+            return {
+                allowed: true,
+                remaining: '∞',
+                dailyLimit: '∞',
+                used: 0,
+                reputation: 100,
+                level: getReputationLevel(100),
+                message: '⚠️ Gagal mengecek reputasi'
+            };
+        }
 
         const reputation = profile?.reputation || 100;
         const level = getReputationLevel(reputation);
@@ -190,7 +210,18 @@ async function checkPublishEligibility(userId) {
             .eq('status', 'published')
             .gte('created_at', today.toISOString());
 
-        if (countError) throw countError;
+        if (countError) {
+            console.error('Error counting writings:', countError);
+            return {
+                allowed: true,
+                remaining: '∞',
+                dailyLimit: '∞',
+                used: 0,
+                reputation: reputation,
+                level: level,
+                message: '⚠️ Gagal menghitung karya'
+            };
+        }
 
         const used = count || 0;
         const dailyLimit = level.dailyLimit === Infinity ? Infinity : level.dailyLimit;
@@ -1519,17 +1550,6 @@ function getKTAValidDate() {
         month: 'short', 
         year: 'numeric' 
     });
-}
-
-function formatMemberId(memberId) {
-    if (!memberId) {
-        const now = new Date();
-        const tanggal = String(now.getDate()).padStart(2, '0');
-        const bulan = String(now.getMonth() + 1).padStart(2, '0');
-        const tahun = String(now.getFullYear()).slice(-2);
-        return `Yatta-T-1${tanggal}${bulan}${tahun}`;
-    }
-    return memberId;
 }
 
 // ============================================
