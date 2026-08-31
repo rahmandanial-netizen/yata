@@ -1,5 +1,5 @@
 // ============================================
-// UTILS.JS - VERSI LENGKAP (FINAL - OTOMATIS)
+// UTILS.JS - VERSI LENGKAP (FINAL)
 // ============================================
 
 // ============================================
@@ -88,7 +88,6 @@ function getReputationLevel(reputation) {
     return REPUTATION_LEVELS.limited;
 }
 
-// 🔥 DIPERBAIKI: calculateReputation dengan better error handling
 async function calculateReputation(userId) {
     try {
         const supabase = getSupabaseClient();
@@ -162,7 +161,6 @@ async function calculateReputation(userId) {
     }
 }
 
-// 🔥 DIPERBAIKI: checkPublishEligibility dengan maybeSingle()
 async function checkPublishEligibility(userId) {
     try {
         const supabase = getSupabaseClient();
@@ -301,7 +299,7 @@ function getLevelName(levelKey) {
 }
 
 // ============================================
-// 🔥 CEK SYARAT NAIK LEVEL - DIPERBAIKI (RESET PER LEVEL)
+// 🔥 CEK SYARAT NAIK LEVEL - DIPERBAIKI (VERSI FINAL)
 // ============================================
 
 async function checkLevelUpRequirements(userId) {
@@ -352,175 +350,98 @@ async function checkLevelUpRequirements(userId) {
         }
 
         // ============================================
-        // 🔥 FUNGSI UNTUK MENDAPATKAN CUTOFF DATE (RESET)
+        // 🔥 QUERY 1: Ambil semua partisipasi mentoring (tanpa join!)
         // ============================================
-        async function getCutoffDate(userId, currentLevelKey) {
-            // Jika masih di level Tamu, tidak perlu reset
-            if (currentLevelKey === 'tamu') {
-                return null; // Tidak perlu filter
-            }
-
-            const levelName = getLevelName(currentLevelKey);
-            
-            // 🔥 Cari tanggal naik ke level SAAT INI
-            const { data: levelHistory, error: histError } = await supabase
-                .from('yata_level_history')
-                .select('created_at')
-                .eq('user_id', userId)
-                .eq('new_level', levelName)
-                .eq('status', 'approved')
-                .order('created_at', { ascending: false })
-                .limit(1);
-
-            if (!histError && levelHistory && levelHistory.length > 0) {
-                // ✅ Berhasil: reset dari tanggal naik ke level ini
-                console.log(`📅 [Reset] Level "${levelName}" dicapai pada:`, levelHistory[0].created_at);
-                return new Date(levelHistory[0].created_at);
-            }
-
-            // 🔥 Fallback: Cari level sebelumnya
-            const levelKeys = ['tamu', 'penulis', 'penulis_profesional', 'mentor'];
-            const currentIndex = levelKeys.indexOf(currentLevelKey);
-            
-            if (currentIndex > 0) {
-                const previousLevelKey = levelKeys[currentIndex - 1];
-                const previousLevelName = getLevelName(previousLevelKey);
-                
-                const { data: prevHistory, error: prevError } = await supabase
-                    .from('yata_level_history')
-                    .select('created_at')
-                    .eq('user_id', userId)
-                    .eq('new_level', previousLevelName)
-                    .eq('status', 'approved')
-                    .order('created_at', { ascending: false })
-                    .limit(1);
-                
-                if (!prevError && prevHistory && prevHistory.length > 0) {
-                    // ✅ Gunakan tanggal naik ke level sebelumnya
-                    console.log(`📅 [Reset] Level sebelumnya "${previousLevelName}" dicapai pada:`, prevHistory[0].created_at);
-                    return new Date(prevHistory[0].created_at);
-                }
-            }
-
-            // 🔥 Ultimate fallback: Gunakan created_at profil
-            const { data: profileData } = await supabase
-                .from('yata_profiles')
-                .select('created_at')
-                .eq('id', userId)
-                .single();
-            
-            const fallbackDate = profileData ? new Date(profileData.created_at) : null;
-            console.log(`📅 [Reset] Fallback menggunakan created_at:`, fallbackDate);
-            return fallbackDate;
-        }
-
-        const cutoffDate = await getCutoffDate(userId, currentLevelKey);
-        console.log(`📅 [Reset] Final Cutoff Date:`, cutoffDate);
-
-        // ============================================
-        // AMBIL DATA DENGAN CUTOFF DATE
-        // ============================================
-
-        // 2a. Ambil partisipasi mentoring (attended = true)
-        let queryParticipants = supabase
+        const { data: participants, error: partError } = await supabase
             .from('yata_mentoring_participants')
-            .select('session_id, session:session_id(is_onboarding, is_mandatory, is_mentor_created), registered_at, attended')
+            .select('session_id, attended')
             .eq('user_id', userId)
             .eq('attended', true);
 
-        // 🔥 FILTER BERDASARKAN CUTOFF DATE
-        let participants = [];
-        if (cutoffDate) {
-            const { data, error } = await queryParticipants.gte('registered_at', cutoffDate.toISOString());
-            if (error) {
-                console.error('❌ Error get participants with cutoff:', error);
-            } else {
-                participants = data || [];
-            }
-        } else {
-            const { data, error } = await queryParticipants;
-            if (error) {
-                console.error('❌ Error get participants:', error);
-            } else {
-                participants = data || [];
+        if (partError) {
+            console.error('❌ Error get participants:', partError);
+        }
+
+        const participantSessions = participants || [];
+        console.log(`📊 Total attended mentoring: ${participantSessions.length}`);
+
+        // 🔥 QUERY 2: Ambil detail session dari session_id yang didapat
+        let sessionDetails = [];
+        if (participantSessions.length > 0) {
+            const sessionIds = participantSessions.map(p => p.session_id);
+            
+            const { data: sessions, error: sessionError } = await supabase
+                .from('yata_mentoring_sessions')
+                .select('id, is_onboarding, is_mandatory')
+                .in('id', sessionIds);
+
+            if (!sessionError && sessions) {
+                sessionDetails = sessions;
             }
         }
 
-        console.log(`📊 Participants setelah reset (${cutoffDate ? 'dari ' + cutoffDate.toISOString() : 'semua'}):`, participants.length);
+        console.log('📊 Session details:', sessionDetails);
 
-        // 2b. Ambil karya published DENGAN CUTOFF DATE
-        let queryWritings = supabase
+        // 🔥 HITUNG MENTORING
+        const onboardingCount = sessionDetails.filter(s => s.is_onboarding === true).length;
+        const mandatoryCount = sessionDetails.filter(s => 
+            s.is_onboarding === false && s.is_mandatory === true
+        ).length;
+        const totalMentoringCount = onboardingCount + mandatoryCount;
+
+        console.log(`📊 Onboarding: ${onboardingCount}, Mandatory: ${mandatoryCount}, Total: ${totalMentoringCount}`);
+
+        // 🔥 QUERY 3: Ambil karya published
+        const { count: totalWritings, error: wError } = await supabase
             .from('yata_writings')
             .select('*', { count: 'exact', head: true })
             .eq('author_id', userId)
             .eq('status', 'published');
 
-        if (cutoffDate) {
-            queryWritings = queryWritings.gte('created_at', cutoffDate.toISOString());
-        }
-
-        const { count: totalWritings, error: wError } = await queryWritings;
         if (wError) {
             console.error('❌ Error count writings:', wError);
         }
 
-        console.log(`📊 Writings setelah reset:`, totalWritings || 0);
+        console.log(`📊 Writings: ${totalWritings || 0}`);
 
-        // 2c. Buku published DENGAN CUTOFF DATE
-        let queryBooks = supabase
+        // 🔥 QUERY 4: Buku published
+        const { data: booksData, error: bError } = await supabase
             .from('yata_book_projects')
-            .select('id, created_at, status')
+            .select('id')
             .eq('author_id', userId)
             .eq('status', 'published');
 
-        if (cutoffDate) {
-            queryBooks = queryBooks.gte('created_at', cutoffDate.toISOString());
-        }
-
-        const { data: booksData, error: bError } = await queryBooks;
         if (bError) {
             console.error('❌ Error get books:', bError);
         }
 
-        console.log(`📊 Books setelah reset:`, booksData?.length || 0);
+        console.log(`📊 Books: ${booksData?.length || 0}`);
 
-        // 2d. Speaker events DENGAN CUTOFF DATE
-        let querySpeaker = supabase
+        // 🔥 QUERY 5: Speaker events
+        const { data: speakerEvents, error: sError } = await supabase
             .from('yata_speaker_events')
-            .select('event_type, created_at')
+            .select('event_type')
             .eq('user_id', userId)
             .eq('status', 'approved');
 
-        if (cutoffDate) {
-            querySpeaker = querySpeaker.gte('created_at', cutoffDate.toISOString());
-        }
-
-        const { data: speakerEvents, error: sError } = await querySpeaker;
         if (sError) {
             console.error('❌ Error get speaker events:', sError);
         }
 
-        // 2e. Create mentoring DENGAN CUTOFF DATE
-        let queryCreatedMentoring = supabase
+        // 🔥 QUERY 6: Create mentoring
+        const { data: createdMentoring, error: cmError } = await supabase
             .from('yata_mentoring_sessions')
-            .select('id, created_at, is_onboarding, is_mandatory, is_mentor_created')
+            .select('id')
             .eq('mentor_id', userId)
             .eq('is_onboarding', false)
             .eq('is_mandatory', false)
             .eq('is_mentor_created', true);
 
-        if (cutoffDate) {
-            queryCreatedMentoring = queryCreatedMentoring.gte('created_at', cutoffDate.toISOString());
-        }
-
-        const { data: createdMentoring, error: cmError } = await queryCreatedMentoring;
         if (cmError) {
             console.error('❌ Error get created mentoring:', cmError);
         }
 
-        console.log(`📊 Created Mentoring setelah reset:`, createdMentoring?.length || 0);
-
-        // 2f. Sertifikasi (tidak perlu filter cutoff)
+        // 🔥 QUERY 7: Sertifikasi
         const { count: certCount, error: cError } = await supabase
             .from('yata_certifications')
             .select('*', { count: 'exact', head: true })
@@ -535,18 +456,19 @@ async function checkLevelUpRequirements(userId) {
         // HASIL AKHIR
         // ============================================
         const result = {
-            onboardingCount: participants.filter(p => p.session && p.session.is_onboarding === true).length,
-            mandatoryMentoringCount: participants.filter(p => p.session && p.session.is_onboarding === false && p.session.is_mandatory === true).length,
+            onboardingCount: onboardingCount,
+            mandatoryMentoringCount: mandatoryCount,
+            totalMentoringCount: totalMentoringCount,
             writingsCount: totalWritings || 0,
             booksCount: booksData?.length || 0,
-            mentoringCount: participants.length,
+            mentoringCount: participantSessions.length,
             speakerInternalCount: (speakerEvents || []).filter(e => e.event_type === 'internal').length,
             speakerExternalCount: (speakerEvents || []).filter(e => e.event_type === 'external').length,
             createMentoringCount: createdMentoring?.length || 0,
             certificationCount: certCount || 0
         };
 
-        console.log('📊 Final Result setelah reset:', result);
+        console.log('📊 Final Result:', result);
 
         // ============================================
         // CEK SYARAT
@@ -555,174 +477,325 @@ async function checkLevelUpRequirements(userId) {
         const requirementStatus = {};
         const details = [];
 
-        if (req.onboarding !== undefined) {
-            const met = result.onboardingCount >= req.onboarding;
-            requirementStatus.onboarding = met;
-            if (!met) canLevelUp = false;
-            details.push({ 
-                key: 'onboarding', 
-                label: 'Onboarding', 
-                current: result.onboardingCount, 
-                target: req.onboarding,
-                met: met,
+        // 🔥 SYARAT UNTUK TAMU → PENULIS
+        if (currentLevelKey === 'tamu') {
+            const onboardingMet = result.onboardingCount >= 1;
+            requirementStatus.onboarding = onboardingMet;
+            if (!onboardingMet) canLevelUp = false;
+            details.push({
+                key: 'onboarding',
+                label: 'Onboarding YATTA',
+                current: result.onboardingCount,
+                target: 1,
+                met: onboardingMet,
                 icon: '🎓'
             });
-        }
 
-        if (req.mandatoryMentoring !== undefined) {
-            const met = result.mandatoryMentoringCount >= req.mandatoryMentoring;
-            requirementStatus.mandatoryMentoring = met;
-            if (!met) canLevelUp = false;
-            details.push({ 
-                key: 'mandatoryMentoring', 
-                label: 'Mentoring Admin (Wajib)', 
-                current: result.mandatoryMentoringCount, 
-                target: req.mandatoryMentoring,
-                met: met,
+            const mandatoryMet = result.mandatoryMentoringCount >= 2;
+            requirementStatus.mandatoryMentoring = mandatoryMet;
+            if (!mandatoryMet) canLevelUp = false;
+            details.push({
+                key: 'mandatoryMentoring',
+                label: 'Mentoring Admin (Wajib)',
+                current: result.mandatoryMentoringCount,
+                target: 2,
+                met: mandatoryMet,
                 icon: '📖'
             });
-        }
 
-        if (req.writings !== undefined) {
-            const met = result.writingsCount >= req.writings;
-            requirementStatus.writings = met;
-            if (!met) canLevelUp = false;
-            let label = 'Karya';
-            if (currentLevelKey === 'penulis') {
-                label = 'Karya (di luar level Tamu)';
-            } else if (currentLevelKey === 'penulis_profesional') {
-                label = 'Karya (di luar level Profesional)';
-            }
-            details.push({ 
-                key: 'writings', 
-                label: label, 
-                current: result.writingsCount, 
-                target: req.writings,
-                met: met,
+            const writingsMet = result.writingsCount >= 5;
+            requirementStatus.writings = writingsMet;
+            if (!writingsMet) canLevelUp = false;
+            details.push({
+                key: 'writings',
+                label: 'Karya Dipublikasikan',
+                current: result.writingsCount,
+                target: 5,
+                met: writingsMet,
                 icon: '✍️'
             });
-        }
+        } 
+        // 🔥 SYARAT UNTUK PENULIS → PENULIS PROFESIONAL
+        else if (currentLevelKey === 'penulis') {
+            const writingsMet = result.writingsCount >= 20;
+            requirementStatus.writings = writingsMet;
+            if (!writingsMet) canLevelUp = false;
+            details.push({
+                key: 'writings',
+                label: 'Karya (di luar level Tamu)',
+                current: result.writingsCount,
+                target: 20,
+                met: writingsMet,
+                icon: '✍️'
+            });
 
-        if (req.books !== undefined) {
-            const met = result.booksCount >= req.books;
-            requirementStatus.books = met;
-            if (!met) canLevelUp = false;
-            let label = 'Buku (ISBN/QRCBN)';
-            if (currentLevelKey === 'penulis_profesional') {
-                label = 'Buku (di luar level Profesional)';
-            }
-            details.push({ 
-                key: 'books', 
-                label: label, 
-                current: result.booksCount, 
-                target: req.books,
-                met: met,
+            const booksMet = result.booksCount >= 1;
+            requirementStatus.books = booksMet;
+            if (!booksMet) canLevelUp = false;
+            details.push({
+                key: 'books',
+                label: 'Buku Diterbitkan (ISBN/QRCBN)',
+                current: result.booksCount,
+                target: 1,
+                met: booksMet,
                 icon: '📚'
             });
-        }
 
-        if (req.mentoring !== undefined) {
-            const met = result.mentoringCount >= req.mentoring;
-            requirementStatus.mentoring = met;
-            if (!met) canLevelUp = false;
-            let label = 'Mentoring';
-            if (currentLevelKey === 'penulis') {
-                label = 'Mentoring (di luar level Tamu)';
-            } else if (currentLevelKey === 'penulis_profesional') {
-                label = 'Mentoring (di luar level Profesional)';
-            }
-            details.push({ 
-                key: 'mentoring', 
-                label: label, 
-                current: result.mentoringCount, 
-                target: req.mentoring,
-                met: met,
+            const mentoringMet = result.totalMentoringCount >= 5;
+            requirementStatus.mentoring = mentoringMet;
+            if (!mentoringMet) canLevelUp = false;
+            details.push({
+                key: 'mentoring',
+                label: 'Mentoring (di luar level Tamu)',
+                current: result.totalMentoringCount,
+                target: 5,
+                met: mentoringMet,
                 icon: '🎓'
             });
-        }
 
-        if (req.speakerInternal !== undefined) {
-            const met = result.speakerInternalCount >= req.speakerInternal;
-            requirementStatus.speakerInternal = met;
-            if (!met) canLevelUp = false;
-            let label = 'Pembicara Internal YATTA';
-            if (currentLevelKey === 'penulis') {
-                label = 'Pembicara Internal (di luar level Tamu)';
-            } else if (currentLevelKey === 'penulis_profesional') {
-                label = 'Pembicara Internal (di luar level Profesional)';
-            }
-            details.push({ 
-                key: 'speakerInternal', 
-                label: label, 
-                current: result.speakerInternalCount, 
-                target: req.speakerInternal,
-                met: met,
+            const speakerInternalMet = result.speakerInternalCount >= 1;
+            requirementStatus.speakerInternal = speakerInternalMet;
+            if (!speakerInternalMet) canLevelUp = false;
+            details.push({
+                key: 'speakerInternal',
+                label: 'Pembicara Internal YATTA',
+                current: result.speakerInternalCount,
+                target: 1,
+                met: speakerInternalMet,
                 icon: '🎤'
             });
-        }
 
-        if (req.speakerExternal !== undefined) {
-            const met = result.speakerExternalCount >= req.speakerExternal;
-            requirementStatus.speakerExternal = met;
-            if (!met) canLevelUp = false;
-            let label = 'Pembicara Eksternal';
-            if (currentLevelKey === 'penulis_profesional') {
-                label = 'Pembicara Eksternal (di luar level Profesional)';
-            }
-            details.push({ 
-                key: 'speakerExternal', 
-                label: label, 
-                current: result.speakerExternalCount, 
-                target: req.speakerExternal,
-                met: met,
-                icon: '🌟'
-            });
-        }
-
-        if (req.createMentoring !== undefined) {
-            const met = result.createMentoringCount >= req.createMentoring;
-            requirementStatus.createMentoring = met;
-            if (!met) canLevelUp = false;
-            let label = 'Membuat Kelas Mentoring';
-            if (currentLevelKey === 'penulis') {
-                label = 'Membuat Kelas Mentoring (di luar level Tamu)';
-            } else if (currentLevelKey === 'penulis_profesional') {
-                label = 'Membuat Kelas Mentoring (di luar level Profesional)';
-            }
-            details.push({ 
-                key: 'createMentoring', 
-                label: label, 
-                current: result.createMentoringCount, 
-                target: req.createMentoring,
-                met: met,
+            const createMentoringMet = result.createMentoringCount >= 3;
+            requirementStatus.createMentoring = createMentoringMet;
+            if (!createMentoringMet) canLevelUp = false;
+            details.push({
+                key: 'createMentoring',
+                label: 'Membuat Kelas Mentoring',
+                current: result.createMentoringCount,
+                target: 3,
+                met: createMentoringMet,
                 icon: '📝'
             });
-        }
 
-        if (req.certification !== undefined) {
-            const met = result.certificationCount >= req.certification;
-            requirementStatus.certification = met;
-            if (!met) canLevelUp = false;
-            let label = 'Sertifikasi';
-            if (currentLevelKey === 'penulis') {
-                label = 'Training Sertifikasi Penulis';
-            } else if (currentLevelKey === 'penulis_profesional') {
-                label = 'Training Sertifikasi Penulis Profesional';
-            }
-            details.push({ 
-                key: 'certification', 
-                label: label, 
-                current: result.certificationCount, 
-                target: req.certification,
-                met: met,
+            const certMet = result.certificationCount >= 1;
+            requirementStatus.certification = certMet;
+            if (!certMet) canLevelUp = false;
+            details.push({
+                key: 'certification',
+                label: 'Training Sertifikasi Penulis',
+                current: result.certificationCount,
+                target: 1,
+                met: certMet,
                 icon: '📜'
             });
+        }
+        // 🔥 SYARAT UNTUK PENULIS PROFESIONAL → MENTOR
+        else if (currentLevelKey === 'penulis_profesional') {
+            const writingsMet = result.writingsCount >= 50;
+            requirementStatus.writings = writingsMet;
+            if (!writingsMet) canLevelUp = false;
+            details.push({
+                key: 'writings',
+                label: 'Karya (di luar level Profesional)',
+                current: result.writingsCount,
+                target: 50,
+                met: writingsMet,
+                icon: '✍️'
+            });
+
+            const booksMet = result.booksCount >= 3;
+            requirementStatus.books = booksMet;
+            if (!booksMet) canLevelUp = false;
+            details.push({
+                key: 'books',
+                label: 'Buku Diterbitkan (di luar level Profesional)',
+                current: result.booksCount,
+                target: 3,
+                met: booksMet,
+                icon: '📚'
+            });
+
+            const speakerInternalMet = result.speakerInternalCount >= 5;
+            requirementStatus.speakerInternal = speakerInternalMet;
+            if (!speakerInternalMet) canLevelUp = false;
+            details.push({
+                key: 'speakerInternal',
+                label: 'Pembicara Internal YATTA',
+                current: result.speakerInternalCount,
+                target: 5,
+                met: speakerInternalMet,
+                icon: '🎤'
+            });
+
+            const speakerExternalMet = result.speakerExternalCount >= 3;
+            requirementStatus.speakerExternal = speakerExternalMet;
+            if (!speakerExternalMet) canLevelUp = false;
+            details.push({
+                key: 'speakerExternal',
+                label: 'Pembicara Eksternal',
+                current: result.speakerExternalCount,
+                target: 3,
+                met: speakerExternalMet,
+                icon: '🌟'
+            });
+
+            const createMentoringMet = result.createMentoringCount >= 5;
+            requirementStatus.createMentoring = createMentoringMet;
+            if (!createMentoringMet) canLevelUp = false;
+            details.push({
+                key: 'createMentoring',
+                label: 'Membuat Kelas Mentoring',
+                current: result.createMentoringCount,
+                target: 5,
+                met: createMentoringMet,
+                icon: '📝'
+            });
+
+            const certMet = result.certificationCount >= 1;
+            requirementStatus.certification = certMet;
+            if (!certMet) canLevelUp = false;
+            details.push({
+                key: 'certification',
+                label: 'Training Sertifikasi Penulis Profesional',
+                current: result.certificationCount,
+                target: 1,
+                met: certMet,
+                icon: '📜'
+            });
+        }
+        // 🔥 FALLBACK UNTUK LEVEL LAIN
+        else {
+            if (req.onboarding !== undefined) {
+                const met = result.onboardingCount >= req.onboarding;
+                requirementStatus.onboarding = met;
+                if (!met) canLevelUp = false;
+                details.push({
+                    key: 'onboarding',
+                    label: 'Onboarding',
+                    current: result.onboardingCount,
+                    target: req.onboarding,
+                    met: met,
+                    icon: '🎓'
+                });
+            }
+
+            if (req.mandatoryMentoring !== undefined) {
+                const met = result.mandatoryMentoringCount >= req.mandatoryMentoring;
+                requirementStatus.mandatoryMentoring = met;
+                if (!met) canLevelUp = false;
+                details.push({
+                    key: 'mandatoryMentoring',
+                    label: 'Mentoring Admin (Wajib)',
+                    current: result.mandatoryMentoringCount,
+                    target: req.mandatoryMentoring,
+                    met: met,
+                    icon: '📖'
+                });
+            }
+
+            if (req.writings !== undefined) {
+                const met = result.writingsCount >= req.writings;
+                requirementStatus.writings = met;
+                if (!met) canLevelUp = false;
+                details.push({
+                    key: 'writings',
+                    label: 'Karya',
+                    current: result.writingsCount,
+                    target: req.writings,
+                    met: met,
+                    icon: '✍️'
+                });
+            }
+
+            if (req.books !== undefined) {
+                const met = result.booksCount >= req.books;
+                requirementStatus.books = met;
+                if (!met) canLevelUp = false;
+                details.push({
+                    key: 'books',
+                    label: 'Buku (ISBN/QRCBN)',
+                    current: result.booksCount,
+                    target: req.books,
+                    met: met,
+                    icon: '📚'
+                });
+            }
+
+            if (req.mentoring !== undefined) {
+                const met = result.totalMentoringCount >= req.mentoring;
+                requirementStatus.mentoring = met;
+                if (!met) canLevelUp = false;
+                details.push({
+                    key: 'mentoring',
+                    label: 'Mentoring',
+                    current: result.totalMentoringCount,
+                    target: req.mentoring,
+                    met: met,
+                    icon: '🎓'
+                });
+            }
+
+            if (req.speakerInternal !== undefined) {
+                const met = result.speakerInternalCount >= req.speakerInternal;
+                requirementStatus.speakerInternal = met;
+                if (!met) canLevelUp = false;
+                details.push({
+                    key: 'speakerInternal',
+                    label: 'Pembicara Internal YATTA',
+                    current: result.speakerInternalCount,
+                    target: req.speakerInternal,
+                    met: met,
+                    icon: '🎤'
+                });
+            }
+
+            if (req.speakerExternal !== undefined) {
+                const met = result.speakerExternalCount >= req.speakerExternal;
+                requirementStatus.speakerExternal = met;
+                if (!met) canLevelUp = false;
+                details.push({
+                    key: 'speakerExternal',
+                    label: 'Pembicara Eksternal',
+                    current: result.speakerExternalCount,
+                    target: req.speakerExternal,
+                    met: met,
+                    icon: '🌟'
+                });
+            }
+
+            if (req.createMentoring !== undefined) {
+                const met = result.createMentoringCount >= req.createMentoring;
+                requirementStatus.createMentoring = met;
+                if (!met) canLevelUp = false;
+                details.push({
+                    key: 'createMentoring',
+                    label: 'Membuat Kelas Mentoring',
+                    current: result.createMentoringCount,
+                    target: req.createMentoring,
+                    met: met,
+                    icon: '📝'
+                });
+            }
+
+            if (req.certification !== undefined) {
+                const met = result.certificationCount >= req.certification;
+                requirementStatus.certification = met;
+                if (!met) canLevelUp = false;
+                details.push({
+                    key: 'certification',
+                    label: 'Sertifikasi',
+                    current: result.certificationCount,
+                    target: req.certification,
+                    met: met,
+                    icon: '📜'
+                });
+            }
         }
 
         const targetLevelName = getLevelName(targetLevel);
         const message = canLevelUp ? 
             `✅ Semua syarat terpenuhi! Ajukan naik ke "${targetLevelName}" sekarang.` :
-            `📋 ${details.filter(d => !d.met).map(d => `${d.current}/${d.target} ${d.label}`).join(' • ')}`;
+            `📋 ${details.filter(d => !d.met).map(d => `${d.label}: ${d.current}/${d.target}`).join(' • ')}`;
 
         return {
             canLevelUp: canLevelUp,
@@ -1352,8 +1425,6 @@ async function rejectLevelUp(userId, reason) {
 
 // ============================================
 // 🔥 GENERATE MEMBER ID - FORMAT BARU
-// Format: Yatta-{Level}-{NomorUrut}{DDMMYY}
-// Contoh: Yatta-T-17300826
 // ============================================
 
 async function generateMemberId(levelKey) {
@@ -1366,7 +1437,6 @@ async function generateMemberId(levelKey) {
     
     const prefix = prefixMap[levelKey] || 'Yatta-T';
     
-    // Format tanggal: DDMMYY
     const now = new Date();
     const tanggal = String(now.getDate()).padStart(2, '0');
     const bulan = String(now.getMonth() + 1).padStart(2, '0');
@@ -1379,7 +1449,6 @@ async function generateMemberId(levelKey) {
             return `${prefix}-1${dateSuffix}`;
         }
 
-        // Hitung jumlah user pada hari yang sama
         const { data, error } = await supabase
             .from('yata_profiles')
             .select('member_id')
@@ -1390,7 +1459,6 @@ async function generateMemberId(levelKey) {
             return `${prefix}-1${dateSuffix}`;
         }
 
-        // Cari nomor urut tertinggi pada hari yang sama
         let maxNumber = 0;
         if (data && data.length > 0) {
             data.forEach(record => {
@@ -1419,7 +1487,6 @@ async function generateMemberId(levelKey) {
 
 // ============================================
 // UPDATE MEMBER ID SAAT NAIK LEVEL
-// Hanya mengubah prefix, nomor & tanggal tetap
 // ============================================
 
 async function updateMemberIdOnLevelUp(userId, newLevelKey) {
@@ -1427,7 +1494,6 @@ async function updateMemberIdOnLevelUp(userId, newLevelKey) {
     if (!supabase) return false;
 
     try {
-        // Ambil member ID saat ini
         const { data: profile, error: profileError } = await supabase
             .from('yata_profiles')
             .select('member_id')
@@ -1436,7 +1502,6 @@ async function updateMemberIdOnLevelUp(userId, newLevelKey) {
 
         if (profileError) throw profileError;
 
-        // Ekstrak nomor urut dan tanggal dari member ID saat ini
         let numberPart = '';
         let datePart = '';
         
@@ -1449,7 +1514,6 @@ async function updateMemberIdOnLevelUp(userId, newLevelKey) {
             }
         }
 
-        // Jika tidak ada ID atau format lama, generate baru (fallback)
         if (!numberPart || !datePart || numberPart === 'undefined') {
             const now = new Date();
             const tanggal = String(now.getDate()).padStart(2, '0');
@@ -1463,7 +1527,6 @@ async function updateMemberIdOnLevelUp(userId, newLevelKey) {
             numberPart = String((count || 0) + 1);
         }
 
-        // Buat member ID baru dengan prefix level baru
         const prefixMap = {
             'tamu': 'Yatta-T',
             'penulis': 'Yatta-P',
@@ -1474,7 +1537,6 @@ async function updateMemberIdOnLevelUp(userId, newLevelKey) {
         const newPrefix = prefixMap[newLevelKey] || 'Yatta-P';
         const newMemberId = `${newPrefix}-${numberPart}${datePart}`;
 
-        // Update profil
         const { error: updateError } = await supabase
             .from('yata_profiles')
             .update({ 
@@ -1499,7 +1561,6 @@ async function updateMemberIdOnLevelUp(userId, newLevelKey) {
 // ============================================
 
 function formatMemberId(memberId) {
-    // Jika ID kosong atau undefined, buat default
     if (!memberId || memberId === 'undefined' || memberId === 'null' || memberId === '') {
         const now = new Date();
         const tanggal = String(now.getDate()).padStart(2, '0');
@@ -1508,17 +1569,14 @@ function formatMemberId(memberId) {
         return `Yatta-T-1${tanggal}${bulan}${tahun}`;
     }
     
-    // Cek apakah format sudah baru (ada tanggal 6 digit di akhir)
     const parts = memberId.split('-');
     if (parts.length === 3) {
         const idPart = parts[2];
-        // Cek apakah 6 digit terakhir adalah angka (format DDMMYY)
         if (idPart.length >= 6 && !isNaN(parseInt(idPart.slice(-6)))) {
-            return memberId; // Sudah format baru
+            return memberId;
         }
     }
     
-    // Format lama, konversi ke format baru
     const now = new Date();
     const tanggal = String(now.getDate()).padStart(2, '0');
     const bulan = String(now.getMonth() + 1).padStart(2, '0');
@@ -1527,7 +1585,6 @@ function formatMemberId(memberId) {
     
     if (parts.length === 3) {
         const idPart = parts[2];
-        // Ambil angka dari ID lama
         const num = parseInt(idPart.replace(/\D/g, ''));
         if (!isNaN(num) && num > 0) {
             return `${parts[0]}-${parts[1]}-${num}${dateSuffix}`;
