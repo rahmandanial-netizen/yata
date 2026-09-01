@@ -665,12 +665,46 @@
                 empty.classList.add('hidden');
                 document.getElementById('sessionCount').textContent = allSessions.length + ' sesi';
 
-                // Ambil data peserta per sesi
-                const sessionIds = allSessions.map(s => s.id);
-                const { data: participants, error: participantError } = await _supabase
-                    .from('yata_mentoring_participants')
-                    .select('session_id, status')
-                    .in('session_id', sessionIds);
+                // 🔥 AMBIL DATA PESERTA PER SESI (DENGAN COUNT)
+const sessionIds = allSessions.map(s => s.id);
+
+// Ambil semua peserta untuk session_ids
+const { data: participants, error: participantError } = await _supabase
+    .from('yata_mentoring_participants')
+    .select('session_id, status, attended')
+    .in('session_id', sessionIds);
+
+// 🔥 HITUNG STATISTIK PER SESI
+const participantCounts = {};
+if (!participantError && participants) {
+    participants.forEach(p => {
+        if (!participantCounts[p.session_id]) {
+            participantCounts[p.session_id] = { 
+                total: 0, 
+                pending: 0, 
+                approved: 0, 
+                rejected: 0,
+                attended: 0
+            };
+        }
+        participantCounts[p.session_id].total++;
+        if (p.status === 'pending') participantCounts[p.session_id].pending++;
+        if (p.status === 'approved') participantCounts[p.session_id].approved++;
+        if (p.status === 'rejected') participantCounts[p.session_id].rejected++;
+        if (p.attended === true) participantCounts[p.session_id].attended++;
+    });
+}
+
+// 🔥 UPDATE allSessions DENGAN STATISTIK
+allSessions.forEach(s => {
+    s.participant_stats = participantCounts[s.id] || { 
+        total: 0, 
+        pending: 0, 
+        approved: 0, 
+        rejected: 0,
+        attended: 0
+    };
+});
 
                 if (!participantError && participants) {
                     const participantCounts = {};
