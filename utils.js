@@ -428,14 +428,27 @@ async function checkLevelUpRequirements(userId) {
             console.error('❌ Error get speaker events:', sError);
         }
 
-        // 🔥 QUERY 6: Create mentoring
-        const { data: createdMentoring, error: cmError } = await supabase
-            .from('yata_mentoring_sessions')
-            .select('id')
-            .eq('mentor_id', userId)
-            .eq('is_onboarding', false)
-            .eq('is_mandatory', false)
-            .eq('is_mentor_created', true);
+        // 🔥 QUERY 6: Create mentoring (hanya yang memiliki minimal 1 peserta selesai dan rating >= 4.0)
+const { data: createdMentoring, error: cmError } = await supabase
+    .from('yata_mentoring_sessions')
+    .select(`
+        id,
+        title,
+        current_participants,
+        avg_rating,
+        total_reviews
+    `)
+    .eq('mentor_id', userId)
+    .eq('is_onboarding', false)
+    .eq('is_mandatory', false);
+
+// 🔥 FILTER: Hanya kelas yang memiliki minimal 1 peserta dan rating >= 4.0
+const validMentoring = (createdMentoring || []).filter(s => 
+    (s.current_participants || 0) >= 1 && 
+    (s.avg_rating || 0) >= 4.0
+);
+
+const createMentoringCount = validMentoring.length;
 
         if (cmError) {
             console.error('❌ Error get created mentoring:', cmError);
@@ -456,17 +469,18 @@ async function checkLevelUpRequirements(userId) {
         // HASIL AKHIR
         // ============================================
         const result = {
-            onboardingCount: onboardingCount,
-            mandatoryMentoringCount: mandatoryCount,
-            totalMentoringCount: totalMentoringCount,
-            writingsCount: totalWritings || 0,
-            booksCount: booksData?.length || 0,
-            mentoringCount: participantSessions.length,
-            speakerInternalCount: (speakerEvents || []).filter(e => e.event_type === 'internal').length,
-            speakerExternalCount: (speakerEvents || []).filter(e => e.event_type === 'external').length,
-            createMentoringCount: createdMentoring?.length || 0,
-            certificationCount: certCount || 0
-        };
+    onboardingCount: onboardingCount,
+    mandatoryMentoringCount: mandatoryCount,
+    totalMentoringCount: totalMentoringCount,
+    writingsCount: totalWritings || 0,
+    booksCount: booksData?.length || 0,
+    mentoringCount: participantSessions.length,
+    speakerInternalCount: (speakerEvents || []).filter(e => e.event_type === 'internal').length,
+    speakerExternalCount: (speakerEvents || []).filter(e => e.event_type === 'external').length,
+    createMentoringCount: createMentoringCount,
+    validMentoringCount: validMentoring.length,
+    certificationCount: certCount || 0
+};
 
         console.log('📊 Final Result:', result);
 
