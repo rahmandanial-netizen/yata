@@ -1129,6 +1129,15 @@ renderMaterials(session.materials || [], isCompleted);
                 };
                 return;
             }
+            // 🔥 CEK APAKAH USER ADALAH MENTOR (PEMBUAT KELAS)
+if (session.mentor_id === currentUser.id) {
+    registerBtn.textContent = '👑 Anda adalah Mentor';
+    registerBtn.disabled = true;
+    registerBtn.className = 'bg-purple-100 text-purple-700 font-bold px-6 py-3 rounded-xl text-sm transition cursor-default';
+    statusText.textContent = '💡 Anda tidak bisa mendaftar ke kelas yang Anda buat sendiri.';
+    statusText.classList.remove('hidden');
+    return;
+}
 
             if (!access.allowed) {
                 registerBtn.textContent = '🔒 Terkunci';
