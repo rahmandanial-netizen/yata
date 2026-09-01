@@ -618,52 +618,51 @@
         // ============================================
         // 5. VALIDASI FORM
         // ============================================
-        function validateForm(formData) {
-            const errors = {};
-            const fields = {};
+function validateForm() {
+    const errors = {};
 
-            // Ambil semua field
-            const title = formData.get('title')?.trim() || '';
-            const slug = formData.get('slug')?.trim().toLowerCase() || '';
-            const description = formData.get('description')?.trim() || '';
-            const price = parseInt(formData.get('price')) || 0;
-            const maxParticipants = parseInt(formData.get('maxParticipants')) || 10;
-            const meetingLink = formData.get('meetingLink')?.trim() || '';
+    // Ambil data LANGSUNG dari element DOM
+    const title = document.getElementById('title').value.trim();
+    const slug = document.getElementById('slug').value.trim().toLowerCase();
+    const description = document.getElementById('description').value.trim();
+    const price = parseInt(document.getElementById('price').value) || 0;
+    const maxParticipants = parseInt(document.getElementById('maxParticipants').value) || 10;
+    const meetingLink = document.getElementById('meetingLink').value.trim();
 
-            // Validasi title
-            if (!title || title.length < 5) {
-                errors.title = 'Judul wajib diisi (minimal 5 karakter).';
-            }
+    // Validasi title
+    if (!title || title.length < 5) {
+        errors.title = 'Judul wajib diisi (minimal 5 karakter).';
+    }
 
-            // Validasi slug
-            if (!slug || slug.length < 3) {
-                errors.slug = 'Slug wajib diisi (minimal 3 karakter).';
-            } else if (!/^[a-z0-9-]+$/.test(slug)) {
-                errors.slug = 'Slug hanya boleh huruf kecil, angka, dan tanda hubung (-).';
-            }
+    // Validasi slug
+    if (!slug || slug.length < 3) {
+        errors.slug = 'Slug wajib diisi (minimal 3 karakter).';
+    } else if (!/^[a-z0-9-]+$/.test(slug)) {
+        errors.slug = 'Slug hanya boleh huruf kecil, angka, dan tanda hubung (-).';
+    }
 
-            // Validasi description
-            if (!description || description.length < 20) {
-                errors.description = 'Deskripsi wajib diisi (minimal 20 karakter).';
-            }
+    // Validasi description
+    if (!description || description.length < 20) {
+        errors.description = 'Deskripsi wajib diisi (minimal 20 karakter).';
+    }
 
-            // Validasi price
-            if (price < 0) {
-                errors.price = 'Harga harus angka (minimal 0).';
-            }
+    // Validasi price
+    if (price < 0) {
+        errors.price = 'Harga harus angka (minimal 0).';
+    }
 
-            // Validasi maxParticipants
-            if (maxParticipants < 1 || maxParticipants > 100) {
-                errors.maxParticipants = 'Maksimal peserta harus antara 1-100.';
-            }
+    // Validasi maxParticipants
+    if (maxParticipants < 1 || maxParticipants > 100) {
+        errors.maxParticipants = 'Maksimal peserta harus antara 1-100.';
+    }
 
-            // Validasi meetingLink (jika diisi)
-            if (meetingLink && !isValidUrl(meetingLink)) {
-                errors.meetingLink = 'URL tidak valid.';
-            }
+    // Validasi meetingLink (jika diisi)
+    if (meetingLink && !isValidUrl(meetingLink)) {
+        errors.meetingLink = 'URL tidak valid.';
+    }
 
-            return { errors, valid: Object.keys(errors).length === 0 };
-        }
+    return { errors, valid: Object.keys(errors).length === 0 };
+}
 
         function isValidUrl(string) {
             try {
@@ -712,9 +711,9 @@
             showFormMessage('', '');
 
             // ============================================
-            // AMBIL DATA DARI FORM
-            // ============================================
-            const formData = new FormData(this);
+// AMBIL DATA DARI FORM
+// ============================================
+// const formData = new FormData(this); // TIDAK DIPAKAI LAGI
             
             const title = document.getElementById('title').value.trim();
             const slug = document.getElementById('slug').value.trim().toLowerCase();
@@ -731,21 +730,21 @@
             const isOnboarding = document.getElementById('isOnboarding').value === 'true';
             const isMandatory = document.getElementById('isMandatory').value === 'true';
 
-            // ============================================
-            // VALIDASI
-            // ============================================
-            const validation = validateForm(formData);
-            showFieldError(validation, 'title', document.getElementById('titleError'));
-            showFieldError(validation, 'slug', document.getElementById('slugError'));
-            showFieldError(validation, 'description', document.getElementById('descriptionError'));
-            showFieldError(validation, 'price', document.getElementById('priceError'));
-            showFieldError(validation, 'maxParticipants', document.getElementById('maxParticipantsError'));
-            showFieldError(validation, 'meetingLink', document.getElementById('meetingLinkError'));
+// ============================================
+// VALIDASI
+// ============================================
+const validation = validateForm();
+showFieldError(validation, 'title', document.getElementById('titleError'));
+showFieldError(validation, 'slug', document.getElementById('slugError'));
+showFieldError(validation, 'description', document.getElementById('descriptionError'));
+showFieldError(validation, 'price', document.getElementById('priceError'));
+showFieldError(validation, 'maxParticipants', document.getElementById('maxParticipantsError'));
+showFieldError(validation, 'meetingLink', document.getElementById('meetingLinkError'));
 
-            if (!validation.valid) {
-                showFormMessage(validation.errors[Object.keys(validation.errors)[0]], 'error');
-                return;
-            }
+if (!validation.valid) {
+    showFormMessage(validation.errors[Object.keys(validation.errors)[0]], 'error');
+    return;
+}
 
             // ============================================
             // CEK SLUG AVAILABILITY (DOUBLE CHECK)
