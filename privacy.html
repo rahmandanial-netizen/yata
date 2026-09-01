@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kebijakan Privasi — Yatta</title>
+
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
+    <link rel="apple-touch-icon" href="assets/favicon.png" />
+    <link rel="shortcut icon" href="assets/favicon.png" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6EE7B7',
+                        primaryDark: '#065F46',
+                        sage: '#A3E4D7',
+                        cream: '#FEF3C7',
+                        mint: '#B2F2BB',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
+
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px -12px rgba(6, 95, 70, 0.15);
+        }
+        .card-hover { transition: all 0.3s ease; }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- NAVBAR -->
+    <!-- ============================================ -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-emerald-100/60">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="index.html" class="flex items-center space-x-2 group">
+                    <img src="assets/favicon.png" alt="Yatta" class="h-9 w-9 rounded-xl object-cover shadow-md shadow-emerald-500/30 group-hover:scale-105 transition" />
+                    <span class="text-xl font-extrabold text-emerald-800">Yatta</span>
+                    <span class="hidden sm:inline text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Beta</span>
+                </a>
+
+                <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-600">
+                    <a href="explore.html" class="hover:text-emerald-600 transition">🌟 Jelajahi Yatta</a>
+                    <a href="feed.html" class="hover:text-emerald-600 transition">📖 Feed</a>
+                    <a href="campaigns.html" class="hover:text-emerald-600 transition">Kampanye</a>
+                    <a href="penulis.html" class="hover:text-emerald-600 transition">Penulis</a>
+                    <a href="mentoring.html" class="hover:text-emerald-600 transition">Mentoring</a>
+                    <a href="login.html" class="text-emerald-600 hover:text-emerald-700 font-semibold transition">Masuk</a>
+                    <a href="register.html" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2 rounded-full text-sm font-bold transition shadow-md shadow-emerald-500/25">
+                        <i class="fa-solid fa-user-plus mr-1"></i> Daftar
+                    </a>
+                </div>
+
+                <button id="menu-btn" class="md:hidden text-slate-600 hover:text-emerald-600 text-xl">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="md:hidden hidden bg-white border-t border-emerald-100 px-4 py-4 space-y-3">
+            <a href="explore.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">🌟 Jelajahi Yatta</a>
+            <a href="feed.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">📖 Feed</a>
+            <a href="campaigns.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Kampanye</a>
+            <a href="penulis.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Penulis</a>
+            <a href="mentoring.html" class="block text-sm font-medium text-slate-600 hover:text-emerald-600">Mentoring</a>
+            <a href="login.html" class="block text-sm font-medium text-emerald-600 hover:text-emerald-700">Masuk</a>
+            <a href="register.html" class="block bg-emerald-700 hover:bg-emerald-800 text-white text-center px-4 py-2.5 rounded-full text-sm font-bold transition">Daftar</a>
+        </div>
+    </nav>
+
+    <!-- ============================================ -->
+    <!-- HERO -->
+    <!-- ============================================ -->
+    <section class="pt-32 pb-10 bg-gradient-to-b from-emerald-50/50 to-white border-b border-emerald-100/60">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <span class="inline-block text-emerald-600 text-sm font-bold uppercase tracking-wider bg-emerald-100/80 px-4 py-1.5 rounded-full mb-4 border border-emerald-200/60">🔒 Privasi</span>
+            <h1 class="text-4xl sm:text-5xl font-black text-slate-800 mb-4">Kebijakan <span class="text-emerald-600">Privasi</span></h1>
+            <p class="text-lg text-slate-500 max-w-2xl mx-auto">Kami melindungi data pribadi Anda. Baca kebijakan privasi kami.</p>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- KONTEN -->
+    <!-- ============================================ -->
+    <section class="py-12 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white rounded-3xl p-6 md:p-8 border border-emerald-100/60 shadow-sm">
+                <p class="text-sm text-slate-500 mb-6">Terakhir diperbarui: <strong>1 September 2026</strong></p>
+
+                <div class="space-y-8">
+                    <!-- 1. Pendahuluan -->
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <span class="text-emerald-600">1.</span> Pendahuluan
+                        </h2>
+                        <p class="text-sm text-slate-600 mt-2 leading-relaxed">
+                            Yatta berkomitmen untuk melindungi privasi Anda. Kebijakan ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi informasi pribadi Anda saat menggunakan platform Yatta.
+                        </p>
+                    </div>
+
+                    <!-- 2. Informasi yang Dikumpulkan -->
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <span class="text-emerald-600">2.</span> Informasi yang Dikumpulkan
+                        </h2>
+                        <p class="text-sm text-slate-600 mt-2">Kami mengumpulkan informasi berikut:</p>
+                        <ul class="text-sm text-slate-600 mt-2 space-y-2 list-disc pl-5">
+                            <li><strong>Informasi Akun:</strong> Nama, alamat email, username, dan password.</li>
+                            <li><strong>Informasi Profil:</strong> Bio, foto profil, dan preferensi.</li>
+                            <li><strong>Konten:</strong> Karya yang Anda tulis dan publikasikan di Yatta.</li>
+                            <li><strong>Data Penggunaan:</strong> Aktivitas membaca, menyukai, berkomentar, dan interaksi lainnya.</li>
+                            <li><strong>Data Teknis:</strong> Alamat IP, jenis perangkat, dan browser yang digunakan.</li>
+                        </ul>
+                    </div>
+
+                    <!-- 3. Penggunaan Informasi -->
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <span class="text-emerald-600">3.</span> Penggunaan Informasi
+                        </h2>
+                        <p class="text-sm text-slate-600 mt-2">Informasi Anda digunakan untuk:</p>
+                        <ul class="text-sm text-slate-600 mt-2 space-y-2 list-disc pl-5">
+                            <li>Menyediakan dan meningkatkan layanan Yatta.</li>
+                            <li>Menampilkan karya dan konten yang relevan.</li>
+                            <li>Mengirim notifikasi penting terkait akun dan aktivitas.</li>
+                            <li>Menentukan level dan reputasi pengguna.</li>
+                            <li>Menganalisis penggunaan platform untuk perbaikan.</li>
+                        </ul>
+                    </div>
+
+                    <!-- 4. Perlindungan Data -->
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <span class="text-emerald-600">4.</span> Perlindungan Data
+                        </h2>
+                        <ul class="text-sm text-slate-600 mt-2 space-y-2 list-disc pl-5">
+                            <li>Kami menggunakan enkripsi untuk melindungi data Anda.</li>
+                            <li>Data disimpan di server yang aman dengan akses terbatas.</li>
+                            <li>Kami tidak menjual atau menyewakan data pribadi Anda kepada pihak ketiga.</li>
+                            <li>Kami hanya membagikan data jika diperlukan oleh hukum.</li>
+                        </ul>
+                    </div>
+
+                    <!-- 5. Hak Pengguna -->
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <span class="text-emerald-600">5.</span> Hak Pengguna
+                        </h2>
+                        <ul class="text-sm text-slate-600 mt-2 space-y-2 list-disc pl-5">
+                            <li><strong>Akses:</strong> Anda dapat melihat data pribadi yang kami simpan.</li>
+                            <li><strong>Perbaikan:</strong> Anda dapat memperbarui informasi akun kapan saja.</li>
+                            <li><strong>Penghapusan:</strong> Anda dapat meminta penghapusan akun dan data.</li>
+                            <li><strong>Kontrol:</strong> Anda dapat mengatur preferensi notifikasi.</li>
+                        </ul>
+                    </div>
+
+                    <!-- 6. Cookie -->
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <span class="text-emerald-600">6.</span> Cookie
+                        </h2>
+                        <p class="text-sm text-slate-600 mt-2 leading-relaxed">
+                            Yatta menggunakan cookie untuk meningkatkan pengalaman pengguna. Cookie membantu kami mengingat preferensi Anda dan menganalisis penggunaan platform. Anda dapat menonaktifkan cookie di pengaturan browser Anda.
+                        </p>
+                    </div>
+
+                    <!-- 7. Pihak Ketiga -->
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <span class="text-emerald-600">7.</span> Pihak Ketiga
+                        </h2>
+                        <ul class="text-sm text-slate-600 mt-2 space-y-2 list-disc pl-5">
+                            <li>Kami menggunakan Supabase sebagai penyedia database dan autentikasi.</li>
+                            <li>Kami tidak bertanggung jawab atas kebijakan privasi pihak ketiga.</li>
+                            <li>Kami tidak membagikan data Anda kepada pihak ketiga tanpa persetujuan.</li>
+                        </ul>
+                    </div>
+
+                    <!-- 8. Keamanan -->
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <span class="text-emerald-600">8.</span> Keamanan
+                        </h2>
+                        <p class="text-sm text-slate-600 mt-2 leading-relaxed">
+                            Kami mengambil langkah-langkah keamanan yang wajar untuk melindungi data Anda dari akses tidak sah, perubahan, atau pengungkapan. Namun, tidak ada metode transmisi data yang 100% aman.
+                        </p>
+                    </div>
+
+                    <!-- 9. Perubahan Kebijakan -->
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <span class="text-emerald-600">9.</span> Perubahan Kebijakan
+                        </h2>
+                        <p class="text-sm text-slate-600 mt-2 leading-relaxed">
+                            Yatta dapat memperbarui Kebijakan Privasi ini dari waktu ke waktu. Kami akan memberitahukan perubahan signifikan melalui platform atau email. Penggunaan berkelanjutan dianggap sebagai penerimaan terhadap kebijakan baru.
+                        </p>
+                    </div>
+
+                    <!-- 10. Hubungi Kami -->
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <span class="text-emerald-600">10.</span> Hubungi Kami
+                        </h2>
+                        <p class="text-sm text-slate-600 mt-2 leading-relaxed">
+                            Jika Anda memiliki pertanyaan tentang Kebijakan Privasi ini, silakan hubungi kami:
+                        </p>
+                        <div class="mt-3 flex flex-wrap gap-3">
+                            <a href="https://wa.me/62895620000033" target="_blank" class="inline-flex items-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2 rounded-xl text-sm transition">
+                                <i class="fa-brands fa-whatsapp text-lg"></i> +62 895-6200-00033
+                            </a>
+                            <a href="mailto:timyattaofficial@gmail.com" class="inline-flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold px-4 py-2 rounded-xl text-sm transition">
+                                <i class="fa-regular fa-envelope text-lg"></i> timyattaofficial@gmail.com
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 pt-6 border-t border-slate-200">
+                    <a href="index.html" class="text-sm text-slate-500 hover:text-emerald-600 transition flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-left"></i> Kembali ke Beranda
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================ -->
+    <footer class="bg-emerald-950 border-t border-emerald-800 py-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center space-x-2">
+                    <img src="assets/favicon.png" alt="Yatta" class="w-8 h-8 rounded-xl object-cover" />
+                    <span class="text-white font-bold text-lg">Yatta</span>
+                    <span class="text-xs text-emerald-400/60">Berkarya dengan Kata, Berkata dengan Karya</span>
+                </div>
+                <div class="flex space-x-4 text-emerald-400/60">
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-instagram text-lg"></i></a>
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-tiktok text-lg"></i></a>
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-twitter text-lg"></i></a>
+                    <a href="#" class="hover:text-emerald-300 transition"><i class="fa-brands fa-youtube text-lg"></i></a>
+                </div>
+                <p class="text-xs text-emerald-400/40">&copy; 2026 Yatta. Gerakan Literasi untuk Semua.</p>
+            </div>
+            <div class="border-t border-emerald-800/50 mt-6 pt-6 flex flex-wrap justify-center gap-6 text-xs text-emerald-400/40">
+                <a href="syarat-ketentuan.html" class="hover:text-emerald-300">Syarat &amp; Ketentuan</a>
+                <a href="privacy.html" class="hover:text-emerald-300">Kebijakan Privasi</a>
+                <a href="https://wa.me/62895620000033" target="_blank" class="hover:text-emerald-300">
+                    <i class="fa-brands fa-whatsapp mr-1"></i> Hubungi Kami
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+        const menuBtn = document.getElementById('menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        let menuOpen = false;
+
+        menuBtn.addEventListener('click', () => {
+            menuOpen = !menuOpen;
+            mobileMenu.classList.toggle('hidden');
+            menuBtn.innerHTML = menuOpen ? '<i class="fa-solid fa-xmark"></i>' : '<i class="fa-solid fa-bars"></i>';
+        });
+
+        document.querySelectorAll('#mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+                menuOpen = false;
+                menuBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
+            });
+        });
+    </script>
+
+</body>
+</html>
