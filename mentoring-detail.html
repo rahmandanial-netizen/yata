@@ -891,6 +891,7 @@
 
                 // Cek partisipasi user
                // Cek partisipasi user
+// Cek partisipasi user
 if (currentUser) {
     const { data: participant } = await _supabase
         .from('yata_mentoring_participants')
@@ -901,22 +902,21 @@ if (currentUser) {
 
     if (participant) {
         participantStatus = participant.status;
-        attended = participant.attended || false;  // 🔥 TAMBAHKAN BARIS INI
+        attended = participant.attended || false;
         if (participant.attended === true) {
             participantStatus = 'completed';
         }
     }
+
+    const { data: review } = await _supabase
+        .from('yata_onboarding_reviews')
+        .select('id')
+        .eq('user_id', currentUser.id)
+        .eq('session_id', sessionId)
+        .maybeSingle();
+
+    reviewStatus = review ? 'reviewed' : 'not_reviewed';
 }
-
-                    const { data: review } = await _supabase
-                        .from('yata_onboarding_reviews')
-                        .select('id')
-                        .eq('user_id', currentUser.id)
-                        .eq('session_id', sessionId)
-                        .maybeSingle();
-
-                    reviewStatus = review ? 'reviewed' : 'not_reviewed';
-                }
 
                 // Ambil materi
                 const { data: materials, error: materialError } = await _supabase
