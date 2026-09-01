@@ -890,20 +890,23 @@
                 };
 
                 // Cek partisipasi user
-                if (currentUser) {
-                    const { data: participant } = await _supabase
-                        .from('yata_mentoring_participants')
-                        .select('status, attended')
-                        .eq('session_id', sessionId)
-                        .eq('user_id', currentUser.id)
-                        .maybeSingle();
+               // Cek partisipasi user
+if (currentUser) {
+    const { data: participant } = await _supabase
+        .from('yata_mentoring_participants')
+        .select('status, attended')
+        .eq('session_id', sessionId)
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
 
-                    if (participant) {
-                        participantStatus = participant.status;
-                        if (participant.attended === true) {
-                            participantStatus = 'completed';
-                        }
-                    }
+    if (participant) {
+        participantStatus = participant.status;
+        attended = participant.attended || false;  // 🔥 TAMBAHKAN BARIS INI
+        if (participant.attended === true) {
+            participantStatus = 'completed';
+        }
+    }
+}
 
                     const { data: review } = await _supabase
                         .from('yata_onboarding_reviews')
@@ -1062,7 +1065,9 @@
             updateRegisterButton(session);
 
             // Materi
-            renderMaterials(session.materials || []);
+            // 🔥 CEK APAKAH USER SUDAH MENYELESAIKAN KELAS INI
+const isCompleted = participantStatus === 'completed' || participantStatus === 'approved' && attended === true;
+renderMaterials(session.materials || [], isCompleted);
             
             // Reviews
             renderReviews(session.reviews || []);
@@ -1218,47 +1223,63 @@
         // ============================================
         // 8. RENDER MATERIALS
         // ============================================
-        function renderMaterials(materials) {
-            const container = document.getElementById('materialList');
+        function renderMaterials(materials, isCompleted) {
+    const container = document.getElementById('materialList');
 
-            if (materials.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-4 text-slate-400 text-sm bg-slate-50 rounded-xl">
-                        <i class="fa-regular fa-file-lines text-2xl block mb-1"></i>
-                        Belum ada materi untuk kelas ini.
-                    </div>
-                `;
-                return;
-            }
+    // 🔥 CEK APAKAH USER SUDAH MENYELESAIKAN KELAS
+    const canAccessMaterials = isCompleted === true;
 
-            const fileIcons = {
-                pdf: 'fa-regular fa-file-pdf text-red-500',
-                docx: 'fa-regular fa-file-word text-blue-500',
-                image: 'fa-regular fa-file-image text-purple-500',
-                video: 'fa-regular fa-file-video text-orange-500',
-                default: 'fa-regular fa-file text-slate-400'
-            };
+    if (materials.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4 text-slate-400 text-sm bg-slate-50 rounded-xl">
+                <i class="fa-regular fa-file-lines text-2xl block mb-1"></i>
+                Belum ada materi untuk kelas ini.
+            </div>
+        `;
+        return;
+    }
 
-            container.innerHTML = materials.map(m => {
-                const icon = fileIcons[m.file_type] || fileIcons.default;
-                return `
-                    <div class="material-item flex items-center gap-3 p-3 rounded-xl border border-slate-100">
-                        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-lg">
-                            <i class="${icon}"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="font-semibold text-slate-800 text-sm">${m.title}</p>
-                            ${m.content ? `<p class="text-xs text-slate-500 line-clamp-1">${m.content}</p>` : ''}
-                        </div>
-                        ${m.file_url ? `
-                            <a href="${m.file_url}" target="_blank" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-3 py-1 rounded-full transition">
-                                <i class="fa-regular fa-download mr-1"></i> Unduh
-                            </a>
-                        ` : ''}
-                    </div>
-                `;
-            }).join('');
-        }
+    // 🔥 JIKA BELUM SELESAI, TAMPILKAN PESAN
+    if (!canAccessMaterials) {
+        container.innerHTML = `
+            <div class="text-center py-6 text-amber-600 text-sm bg-amber-50 rounded-xl border border-amber-200">
+                <i class="fa-solid fa-lock text-2xl block mb-2 text-amber-500"></i>
+                <p class="font-semibold">Materi Terkunci</p>
+                <p class="text-xs text-amber-500 mt-1">Materi akan tersedia setelah Anda menyelesaikan kelas ini.</p>
+                <p class="text-xs text-amber-400 mt-1">Ikuti kelas sampai selesai dan berikan ulasan untuk mengakses materi.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const fileIcons = {
+        pdf: 'fa-regular fa-file-pdf text-red-500',
+        docx: 'fa-regular fa-file-word text-blue-500',
+        image: 'fa-regular fa-file-image text-purple-500',
+        video: 'fa-regular fa-file-video text-orange-500',
+        default: 'fa-regular fa-file text-slate-400'
+    };
+
+    container.innerHTML = materials.map(m => {
+        const icon = fileIcons[m.file_type] || fileIcons.default;
+        return `
+            <div class="material-item flex items-center gap-3 p-3 rounded-xl border border-slate-100">
+                <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-lg">
+                    <i class="${icon}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-slate-800 text-sm">${m.title}</p>
+                    ${m.content ? `<p class="text-xs text-slate-500 line-clamp-1">${m.content}</p>` : ''}
+                </div>
+                ${m.file_url ? `
+                    <a href="${m.file_url}" target="_blank" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-3 py-1 rounded-full transition">
+                        <i class="fa-regular fa-download mr-1"></i> Unduh
+                    </a>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+}
 
         // ============================================
         // 9. RENDER REVIEWS

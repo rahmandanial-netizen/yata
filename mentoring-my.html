@@ -709,12 +709,9 @@
                     return false;
                 }
 
-                // 🔥 HANYA KELAS ADMIN (onboarding ATAU mandatory) YANG DAPAT SERTIFIKAT
-                const isAdminClass = session.is_onboarding === true || session.is_mandatory === true;
-                if (!isAdminClass) {
-                    console.log('ℹ️ Bukan kelas admin, tidak dapat sertifikat');
-                    return false;
-                }
+                // 🔥 SEMUA KELAS (termasuk reguler) DAPAT SERTIFIKAT
+// Tidak ada pengecekan isAdminClass lagi
+console.log('📚 Kelas:', session.title, '| Onboarding:', session.is_onboarding, '| Mandatory:', session.is_mandatory);
 
                 console.log(`📚 Kelas admin: ${session.title} (onboarding: ${session.is_onboarding}, mandatory: ${session.is_mandatory})`);
 
@@ -761,12 +758,14 @@
                 console.log('✅ User sudah hadir dan review, membuat sertifikat...');
 
                 // Tentukan tipe dan nama sertifikat
-                let certificateType = 'onboarding';
-                if (session.is_onboarding) {
-                    certificateType = 'onboarding';
-                } else if (session.is_mandatory) {
-                    certificateType = 'mandatory_mentoring';
-                }
+               let certificateType = 'mentoring';
+if (session.is_onboarding) {
+    certificateType = 'onboarding';
+} else if (session.is_mandatory) {
+    certificateType = 'mandatory_mentoring';
+} else {
+    certificateType = 'mentoring';
+}
 
                 // 🔥 GUNAKAN JUDUL KELAS SEBAGAI NAMA SERTIFIKAT
                 const certResult = await createCertificate(userId, certificateType, session.title);

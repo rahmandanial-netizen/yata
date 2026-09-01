@@ -886,49 +886,64 @@
                 };
 
                 container.innerHTML = `
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead>
-                                <tr class="bg-slate-50 text-left">
-                                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">No</th>
-                                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">Nama</th>
-                                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">Email</th>
-                                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">Status</th>
-                                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${participants.map((p, index) => `
-                                    <tr class="border-b border-slate-100 hover:bg-slate-50">
-                                        <td class="px-3 py-2 text-xs text-slate-400">${index + 1}</td>
-                                        <td class="px-3 py-2 text-xs font-medium text-slate-700">${p.profile?.full_name || 'User'}</td>
-                                        <td class="px-3 py-2 text-xs text-slate-500">${p.profile?.email || '-'}</td>
-                                        <td class="px-3 py-2 text-xs">
-                                            <span class="px-2 py-0.5 rounded-full ${statusClasses[p.status] || 'participant-status-pending'} text-[10px] font-semibold">
-                                                ${statusLabels[p.status] || '⏳ Menunggu'}
-                                            </span>
-                                        </td>
-                                        <td class="px-3 py-2 text-xs">
-                                            ${p.status === 'pending' ? `
-                                                <button onclick="updateParticipantStatus('${p.id}', 'approved')" class="text-emerald-600 hover:text-emerald-700 font-semibold mr-2">✅ Terima</button>
-                                                <button onclick="updateParticipantStatus('${p.id}', 'rejected')" class="text-red-600 hover:text-red-700 font-semibold">❌ Tolak</button>
-                                            ` : p.status === 'approved' ? `
-                                                <button onclick="updateParticipantStatus('${p.id}', 'completed')" class="text-blue-600 hover:text-blue-700 font-semibold">✅ Selesai</button>
-                                            ` : p.status === 'rejected' ? `
-                                                <span class="text-slate-400 text-[10px]">Ditolak</span>
-                                            ` : p.status === 'completed' ? `
-                                                <span class="text-emerald-600 text-[10px]">✅ Selesai</span>
-                                            ` : ''}
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="mt-3 text-xs text-slate-400">
-                        <p>💡 Alasan pendaftaran: ${participants.map(p => `${p.profile?.full_name || 'User'}: "${p.reason || '-'}"`).join(' • ')}</p>
-                    </div>
-                `;
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-slate-50 text-left">
+                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">No</th>
+                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">Nama</th>
+                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">Email</th>
+                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">Status</th>
+                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">Presensi</th>
+                    <th class="px-3 py-2 text-xs font-semibold text-slate-500">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${participants.map((p, index) => `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="px-3 py-2 text-xs text-slate-400">${index + 1}</td>
+                        <td class="px-3 py-2 text-xs font-medium text-slate-700">${p.profile?.full_name || 'User'}</td>
+                        <td class="px-3 py-2 text-xs text-slate-500">${p.profile?.email || '-'}</td>
+                        <td class="px-3 py-2 text-xs">
+                            <span class="px-2 py-0.5 rounded-full ${statusClasses[p.status] || 'participant-status-pending'} text-[10px] font-semibold">
+                                ${statusLabels[p.status] || '⏳ Menunggu'}
+                            </span>
+                        </td>
+                        <td class="px-3 py-2 text-center">
+                            ${p.attended ? 
+                                '<span class="text-emerald-600 text-xs font-semibold">✅ Hadir</span>' : 
+                                p.status === 'approved' ? `
+                                    <button onclick="markAttendanceFromManage('${p.id}', true)" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-2 py-1 rounded text-xs transition mr-1">
+                                        Hadir
+                                    </button>
+                                    <button onclick="markAttendanceFromManage('${p.id}', false)" class="bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-2 py-1 rounded text-xs transition">
+                                        Absen
+                                    </button>
+                                ` : 
+                                '<span class="text-slate-400 text-xs">-</span>'
+                            }
+                        </td>
+                        <td class="px-3 py-2 text-xs">
+                            ${p.status === 'pending' ? `
+                                <button onclick="updateParticipantStatus('${p.id}', 'approved')" class="text-emerald-600 hover:text-emerald-700 font-semibold mr-2">✅ Terima</button>
+                                <button onclick="updateParticipantStatus('${p.id}', 'rejected')" class="text-red-600 hover:text-red-700 font-semibold">❌ Tolak</button>
+                            ` : p.status === 'approved' ? `
+                                <button onclick="updateParticipantStatus('${p.id}', 'completed')" class="text-blue-600 hover:text-blue-700 font-semibold">✅ Selesai</button>
+                            ` : p.status === 'rejected' ? `
+                                <span class="text-slate-400 text-[10px]">Ditolak</span>
+                            ` : p.status === 'completed' ? `
+                                <span class="text-emerald-600 text-[10px]">✅ Selesai</span>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    </div>
+    <div class="mt-3 text-xs text-slate-400">
+        <p>💡 Alasan pendaftaran: ${participants.map(p => `${p.profile?.full_name || 'User'}: "${p.reason || '-'}"`).join(' • ')}</p>
+    </div>
+`;
 
             } catch (err) {
                 console.error('View participants error:', err);
@@ -1476,6 +1491,82 @@
                 if (e.target === this) closeEditSessionModal();
             });
         });
+        // ============================================
+// PRESENSI DARI HALAMAN KELOLA (MENTOR)
+// ============================================
+async function markAttendanceFromManage(participantId, isPresent) {
+    if (!confirm(isPresent ? 'Tandai peserta ini HADIR?' : 'Tandai peserta ini TIDAK HADIR?')) return;
+
+    try {
+        // Ambil data participant
+        const { data: participant, error: fetchError } = await _supabase
+            .from('yata_mentoring_participants')
+            .select('*, session:session_id(*)')
+            .eq('id', participantId)
+            .single();
+
+        if (fetchError) throw fetchError;
+
+        const sessionTitle = participant.session?.title || 'Kelas Mentoring';
+        const sessionId = participant.session_id;
+        const userId = participant.user_id;
+
+        // Update status attendance
+        const { error: updateError } = await _supabase
+            .from('yata_mentoring_participants')
+            .update({
+                attended: isPresent,
+                attendance_status: isPresent ? 'present' : 'absent',
+                attendance_time: isPresent ? new Date().toISOString() : null
+            })
+            .eq('id', participantId);
+
+        if (updateError) throw updateError;
+
+        // 🔥 KIRIM NOTIFIKASI KE PESERTA
+        if (isPresent) {
+            await sendNotification(
+                userId,
+                `✅ Kelas "${sessionTitle}" Selesai!`,
+                `Selamat! Anda telah menyelesaikan kelas "${sessionTitle}".
+
+📌 Langkah selanjutnya:
+1. Buka menu "Mentoring Saya"
+2. Klik tombol "Ulasan" pada kelas ini
+3. Berikan rating dan feedback
+4. Sertifikat akan otomatis tersedia!`,
+                'success'
+            );
+
+            // Update status participant
+            await _supabase
+                .from('yata_mentoring_participants')
+                .update({ 
+                    status: 'completed',
+                    completed_at: new Date().toISOString()
+                })
+                .eq('id', participantId);
+
+        } else {
+            await sendNotification(
+                userId,
+                `⚠️ Absen: ${sessionTitle}`,
+                `Anda tidak mengikuti kelas "${sessionTitle}" hari ini.`,
+                'warning'
+            );
+        }
+
+        alert('✅ Status presensi berhasil diperbarui!');
+        
+        // Refresh daftar peserta
+        await viewParticipants(currentParticipantSessionId);
+
+    } catch (err) {
+        console.error('Mark attendance error:', err);
+        alert('❌ Gagal mengupdate presensi: ' + err.message);
+    }
+}
+
     </script>
 
 </body>
