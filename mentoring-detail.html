@@ -357,7 +357,7 @@
                                 <span id="priceDisplay" class="font-bold text-emerald-600">🆓 Gratis</span>
                             </div>
 
-                            <!-- 🔥 ACCESS STATUS MESSAGE -->
+                            <!-- ACCESS STATUS MESSAGE -->
                             <div id="accessMessageContainer" class="mt-3"></div>
                         </div>
                         <div class="flex flex-col items-end gap-2 flex-shrink-0" id="actionButtons">
@@ -696,57 +696,10 @@
         }
 
         // ============================================
-        // 3. KIRIM NOTIFIKASI
-        // ============================================
-        async function sendNotification(userId, title, content, type = 'success') {
-            try {
-                const { data: notifData, error } = await _supabase
-                    .from('yata_notifications')
-                    .insert([{
-                        title: title,
-                        content: content,
-                        type: type
-                    }])
-                    .select()
-                    .single();
-
-                if (error) {
-                    console.error('❌ Insert notif error:', error);
-                    return false;
-                }
-
-                if (notifData && userId) {
-                    const { error: linkError } = await _supabase
-                        .from('yata_user_notifications')
-                        .insert([{
-                            notification_id: notifData.id,
-                            user_id: userId,
-                            is_read: false
-                        }]);
-
-                    if (linkError) {
-                        console.error('❌ Link notif error:', linkError);
-                        return false;
-                    }
-                }
-
-                console.log(`✅ Notifikasi ke user ${userId}: ${title}`);
-                return true;
-
-            } catch (err) {
-                console.error('❌ Send notification error:', err);
-                return false;
-            }
-        }
-
-        // ============================================
-        // 🔥 CEK AKSES KELAS (DIPERBAIKI)
+        // 3. CEK AKSES KELAS
         // ============================================
         async function checkClassAccess(sessionId, userId) {
             try {
-                console.log('🔍 [checkClassAccess] Dipanggil untuk user:', userId, 'session:', sessionId);
-                
-                // 1. Ambil data kelas
                 const { data: session, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('is_onboarding, is_mandatory, title')
@@ -754,7 +707,7 @@
                     .single();
 
                 if (sessionError) {
-                    console.error('❌ Error ambil sesi:', sessionError);
+                    console.error('Error ambil sesi:', sessionError);
                     return {
                         allowed: false,
                         message: 'Gagal memuat data kelas.',
@@ -763,9 +716,7 @@
                     };
                 }
 
-                console.log('📚 Session data:', session);
-
-                // 2. KALAU INI KELAS ONBOARDING → TERBUKA
+                // KALAU INI KELAS ONBOARDING → TERBUKA
                 if (session.is_onboarding === true) {
                     return {
                         allowed: true,
@@ -775,7 +726,7 @@
                     };
                 }
 
-                // 3. CEK APAKAH USER SUDAH ONBOARDING
+                // CEK APAKAH USER SUDAH ONBOARDING
                 const { data: onboardingData, error: onboardingError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('id, attended, session_id')
@@ -783,7 +734,7 @@
                     .eq('attended', true);
 
                 if (onboardingError) {
-                    console.error('❌ Error cek onboarding:', onboardingError);
+                    console.error('Error cek onboarding:', onboardingError);
                     return {
                         allowed: false,
                         message: 'Gagal mengecek status onboarding.',
@@ -792,9 +743,6 @@
                     };
                 }
 
-                console.log('📊 Onboarding data:', onboardingData);
-
-                // Cek apakah user sudah menyelesaikan onboarding
                 let hasOnboarding = false;
                 if (onboardingData && onboardingData.length > 0) {
                     const onboardingSessionIds = onboardingData.map(p => p.session_id);
@@ -810,8 +758,6 @@
                     }
                 }
 
-                console.log('📊 HasOnboarding:', hasOnboarding);
-
                 if (!hasOnboarding) {
                     return {
                         allowed: false,
@@ -822,7 +768,6 @@
                     };
                 }
 
-                // 4. SUDAH ONBOARDING → BEBAS AKSES SEMUA KELAS!
                 return {
                     allowed: true,
                     message: '✅ Anda sudah onboarding, bebas ikut kelas ini.',
@@ -831,7 +776,7 @@
                 };
 
             } catch (err) {
-                console.error('❌ Check class access error:', err);
+                console.error('Check class access error:', err);
                 return {
                     allowed: false,
                     message: 'Gagal mengecek akses kelas: ' + err.message,
@@ -890,33 +835,31 @@
                 };
 
                 // Cek partisipasi user
-               // Cek partisipasi user
-// Cek partisipasi user
-if (currentUser) {
-    const { data: participant } = await _supabase
-        .from('yata_mentoring_participants')
-        .select('status, attended')
-        .eq('session_id', sessionId)
-        .eq('user_id', currentUser.id)
-        .maybeSingle();
+                if (currentUser) {
+                    const { data: participant } = await _supabase
+                        .from('yata_mentoring_participants')
+                        .select('status, attended')
+                        .eq('session_id', sessionId)
+                        .eq('user_id', currentUser.id)
+                        .maybeSingle();
 
-    if (participant) {
-        participantStatus = participant.status;
-        attended = participant.attended || false;
-        if (participant.attended === true) {
-            participantStatus = 'completed';
-        }
-    }
+                    if (participant) {
+                        participantStatus = participant.status;
+                        attended = participant.attended || false;
+                        if (participant.attended === true) {
+                            participantStatus = 'completed';
+                        }
+                    }
 
-    const { data: review } = await _supabase
-        .from('yata_onboarding_reviews')
-        .select('id')
-        .eq('user_id', currentUser.id)
-        .eq('session_id', sessionId)
-        .maybeSingle();
+                    const { data: review } = await _supabase
+                        .from('yata_onboarding_reviews')
+                        .select('id')
+                        .eq('user_id', currentUser.id)
+                        .eq('session_id', sessionId)
+                        .maybeSingle();
 
-    reviewStatus = review ? 'reviewed' : 'not_reviewed';
-}
+                    reviewStatus = review ? 'reviewed' : 'not_reviewed';
+                }
 
                 // Ambil materi
                 const { data: materials, error: materialError } = await _supabase
@@ -1061,13 +1004,12 @@ if (currentUser) {
                 meetingContainer.classList.add('hidden');
             }
 
-            // 🔥 TOMBOL REGISTER & ACCESS STATUS
+            // TOMBOL REGISTER & ACCESS STATUS
             updateRegisterButton(session);
 
             // Materi
-            // 🔥 CEK APAKAH USER SUDAH MENYELESAIKAN KELAS INI
-const isCompleted = participantStatus === 'completed' || participantStatus === 'approved' && attended === true;
-renderMaterials(session.materials || [], isCompleted);
+            const isCompleted = participantStatus === 'completed' || participantStatus === 'approved' && attended === true;
+            renderMaterials(session.materials || [], isCompleted);
             
             // Reviews
             renderReviews(session.reviews || []);
@@ -1086,9 +1028,8 @@ renderMaterials(session.materials || [], isCompleted);
             if (currentUser) {
                 try {
                     access = await checkClassAccess(sessionId, currentUser.id);
-                    console.log('📊 Access result:', access);
                 } catch (err) {
-                    console.error('❌ Error checking access:', err);
+                    console.error('Error checking access:', err);
                     access = {
                         allowed: false,
                         message: 'Gagal mengecek akses. Silakan refresh halaman.',
@@ -1129,15 +1070,16 @@ renderMaterials(session.materials || [], isCompleted);
                 };
                 return;
             }
-            // 🔥 CEK APAKAH USER ADALAH MENTOR (PEMBUAT KELAS)
-if (session.mentor_id === currentUser.id) {
-    registerBtn.textContent = '👑 Anda adalah Mentor';
-    registerBtn.disabled = true;
-    registerBtn.className = 'bg-purple-100 text-purple-700 font-bold px-6 py-3 rounded-xl text-sm transition cursor-default';
-    statusText.textContent = '💡 Anda tidak bisa mendaftar ke kelas yang Anda buat sendiri.';
-    statusText.classList.remove('hidden');
-    return;
-}
+
+            // CEK APAKAH USER ADALAH MENTOR (PEMBUAT KELAS)
+            if (session.mentor_id === currentUser.id) {
+                registerBtn.textContent = '👑 Anda adalah Mentor';
+                registerBtn.disabled = true;
+                registerBtn.className = 'bg-purple-100 text-purple-700 font-bold px-6 py-3 rounded-xl text-sm transition cursor-default';
+                statusText.textContent = '💡 Anda tidak bisa mendaftar ke kelas yang Anda buat sendiri.';
+                statusText.classList.remove('hidden');
+                return;
+            }
 
             if (!access.allowed) {
                 registerBtn.textContent = '🔒 Terkunci';
@@ -1233,62 +1175,60 @@ if (session.mentor_id === currentUser.id) {
         // 8. RENDER MATERIALS
         // ============================================
         function renderMaterials(materials, isCompleted) {
-    const container = document.getElementById('materialList');
+            const container = document.getElementById('materialList');
 
-    // 🔥 CEK APAKAH USER SUDAH MENYELESAIKAN KELAS
-    const canAccessMaterials = isCompleted === true;
+            const canAccessMaterials = isCompleted === true;
 
-    if (materials.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-4 text-slate-400 text-sm bg-slate-50 rounded-xl">
-                <i class="fa-regular fa-file-lines text-2xl block mb-1"></i>
-                Belum ada materi untuk kelas ini.
-            </div>
-        `;
-        return;
-    }
+            if (materials.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-slate-400 text-sm bg-slate-50 rounded-xl">
+                        <i class="fa-regular fa-file-lines text-2xl block mb-1"></i>
+                        Belum ada materi untuk kelas ini.
+                    </div>
+                `;
+                return;
+            }
 
-    // 🔥 JIKA BELUM SELESAI, TAMPILKAN PESAN
-    if (!canAccessMaterials) {
-        container.innerHTML = `
-            <div class="text-center py-6 text-amber-600 text-sm bg-amber-50 rounded-xl border border-amber-200">
-                <i class="fa-solid fa-lock text-2xl block mb-2 text-amber-500"></i>
-                <p class="font-semibold">Materi Terkunci</p>
-                <p class="text-xs text-amber-500 mt-1">Materi akan tersedia setelah Anda menyelesaikan kelas ini.</p>
-                <p class="text-xs text-amber-400 mt-1">Ikuti kelas sampai selesai dan berikan ulasan untuk mengakses materi.</p>
-            </div>
-        `;
-        return;
-    }
+            if (!canAccessMaterials) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-amber-600 text-sm bg-amber-50 rounded-xl border border-amber-200">
+                        <i class="fa-solid fa-lock text-2xl block mb-2 text-amber-500"></i>
+                        <p class="font-semibold">Materi Terkunci</p>
+                        <p class="text-xs text-amber-500 mt-1">Materi akan tersedia setelah Anda menyelesaikan kelas ini.</p>
+                        <p class="text-xs text-amber-400 mt-1">Ikuti kelas sampai selesai dan berikan ulasan untuk mengakses materi.</p>
+                    </div>
+                `;
+                return;
+            }
 
-    const fileIcons = {
-        pdf: 'fa-regular fa-file-pdf text-red-500',
-        docx: 'fa-regular fa-file-word text-blue-500',
-        image: 'fa-regular fa-file-image text-purple-500',
-        video: 'fa-regular fa-file-video text-orange-500',
-        default: 'fa-regular fa-file text-slate-400'
-    };
+            const fileIcons = {
+                pdf: 'fa-regular fa-file-pdf text-red-500',
+                docx: 'fa-regular fa-file-word text-blue-500',
+                image: 'fa-regular fa-file-image text-purple-500',
+                video: 'fa-regular fa-file-video text-orange-500',
+                default: 'fa-regular fa-file text-slate-400'
+            };
 
-    container.innerHTML = materials.map(m => {
-        const icon = fileIcons[m.file_type] || fileIcons.default;
-        return `
-            <div class="material-item flex items-center gap-3 p-3 rounded-xl border border-slate-100">
-                <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-lg">
-                    <i class="${icon}"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-slate-800 text-sm">${m.title}</p>
-                    ${m.content ? `<p class="text-xs text-slate-500 line-clamp-1">${m.content}</p>` : ''}
-                </div>
-                ${m.file_url ? `
-                    <a href="${m.file_url}" target="_blank" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-3 py-1 rounded-full transition">
-                        <i class="fa-regular fa-download mr-1"></i> Unduh
-                    </a>
-                ` : ''}
-            </div>
-        `;
-    }).join('');
-}
+            container.innerHTML = materials.map(m => {
+                const icon = fileIcons[m.file_type] || fileIcons.default;
+                return `
+                    <div class="material-item flex items-center gap-3 p-3 rounded-xl border border-slate-100">
+                        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-lg">
+                            <i class="${icon}"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-semibold text-slate-800 text-sm">${m.title}</p>
+                            ${m.content ? `<p class="text-xs text-slate-500 line-clamp-1">${m.content}</p>` : ''}
+                        </div>
+                        ${m.file_url ? `
+                            <a href="${m.file_url}" target="_blank" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-3 py-1 rounded-full transition">
+                                <i class="fa-regular fa-download mr-1"></i> Unduh
+                            </a>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
 
         // ============================================
         // 9. RENDER REVIEWS
@@ -1347,7 +1287,7 @@ if (session.mentor_id === currentUser.id) {
                 return;
             }
 
-            // 🔥 CEK AKSES DULU!
+            // CEK AKSES DULU!
             const access = await checkClassAccess(sessionId, currentUser.id);
             
             if (!access.allowed) {
@@ -1435,7 +1375,36 @@ if (session.mentor_id === currentUser.id) {
         }
 
         // ============================================
-        // 12. SUBMIT REGISTER
+        // 12. UPDATE QUOTA
+        // ============================================
+        async function updateQuota(sessionId) {
+            try {
+                const { count, error: countError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('session_id', sessionId)
+                    .in('status', ['approved', 'pending']);
+
+                if (countError) throw countError;
+
+                const { error: updateError } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .update({ current_participants: count || 0 })
+                    .eq('id', sessionId);
+
+                if (updateError) throw updateError;
+
+                console.log('✅ Kuota berhasil diupdate ke:', count || 0);
+                return true;
+
+            } catch (err) {
+                console.error('❌ Update kuota error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // 13. SUBMIT REGISTER - AUTO APPROVE UNTUK SEMUA KELAS
         // ============================================
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1498,7 +1467,7 @@ if (session.mentor_id === currentUser.id) {
                     return;
                 }
 
-                // Daftar
+                // 🔥 DAFTAR - STATUS LANGSUNG APPROVED UNTUK SEMUA KELAS
                 const { error: insertError } = await _supabase
                     .from('yata_mentoring_participants')
                     .insert([{
@@ -1506,7 +1475,7 @@ if (session.mentor_id === currentUser.id) {
                         user_id: session.user.id,
                         reason: reason || null,
                         phone: phone,
-                        status: 'approved'
+                        status: 'approved'  // <-- LANGSUNG APPROVED
                     }]);
 
                 if (insertError) {
@@ -1568,35 +1537,6 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
                 type === 'error' ? 'text-red-600' :
                 ''
             }`;
-        }
-
-        // ============================================
-        // 13. UPDATE QUOTA
-        // ============================================
-        async function updateQuota(sessionId) {
-            try {
-                const { count, error: countError } = await _supabase
-                    .from('yata_mentoring_participants')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('session_id', sessionId)
-                    .eq('status', 'approved');
-
-                if (countError) throw countError;
-
-                const { error: updateError } = await _supabase
-                    .from('yata_mentoring_sessions')
-                    .update({ current_participants: count || 0 })
-                    .eq('id', sessionId);
-
-                if (updateError) throw updateError;
-
-                console.log('✅ Kuota berhasil diupdate ke:', count || 0);
-                return true;
-
-            } catch (err) {
-                console.error('❌ Update kuota error:', err);
-                return false;
-            }
         }
 
         // ============================================
