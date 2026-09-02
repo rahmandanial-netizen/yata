@@ -506,6 +506,55 @@
         </div>
     </div>
 
+    <!-- ============================================ -->
+    <!-- 🔥 TAMBAHAN: MODAL PEMBAYARAN -->
+    <!-- ============================================ -->
+    <div id="paymentModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter max-h-[90vh] overflow-y-auto">
+            <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-amber-600 text-sm font-bold uppercase tracking-wider">Pembayaran</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">Konfirmasi Pembayaran</h3>
+                <p id="paymentSubtitle" class="text-xs text-slate-500 mt-1">Lakukan transfer dan upload bukti.</p>
+            </div>
+
+            <form id="paymentForm" class="space-y-4">
+                <input type="hidden" id="paymentSessionId" value="" />
+
+                <!-- Detail Pembayaran -->
+                <div class="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                    <p class="text-sm font-semibold text-slate-700" id="paymentClassName">Kelas</p>
+                    <p class="text-sm text-slate-600">Harga: <strong id="paymentPrice">Rp0</strong></p>
+                    <div class="mt-2 p-2 bg-white rounded-lg border border-slate-200">
+                        <p class="text-xs text-slate-500">Transfer ke:</p>
+                        <p id="paymentBankInfo" class="text-sm font-semibold">Bank - 1234567890 a.n. Nama</p>
+                    </div>
+                </div>
+
+                <!-- Upload Bukti -->
+                <div>
+                    <label for="paymentProof" class="block text-xs font-semibold text-slate-700 mb-1">Upload Bukti Transfer <span class="text-red-500">*</span></label>
+                    <input type="file" id="paymentProof" accept="image/*" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm file:mr-2 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100" />
+                    <p class="text-xs text-slate-400 mt-1">Foto bukti transfer (JPG/PNG, maks 5MB)</p>
+                </div>
+
+                <div>
+                    <label for="paymentNotes" class="block text-xs font-semibold text-slate-700 mb-1">Catatan (opsional)</label>
+                    <textarea id="paymentNotes" rows="2" placeholder="Contoh: Nama pengirim, bank asal..." class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm resize-none"></textarea>
+                </div>
+
+                <button type="submit" id="paymentSubmitBtn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-regular fa-paper-plane mr-1"></i> Kirim Konfirmasi
+                </button>
+
+                <div id="paymentMessage" class="text-sm text-center hidden"></div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL POPUP KUOTA PENUH -->
     <div id="quotaFullModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter quota-popup">
@@ -716,7 +765,6 @@
                     };
                 }
 
-                // KALAU INI KELAS ONBOARDING → TERBUKA
                 if (session.is_onboarding === true) {
                     return {
                         allowed: true,
@@ -726,7 +774,6 @@
                     };
                 }
 
-                // CEK APAKAH USER SUDAH ONBOARDING
                 const { data: onboardingData, error: onboardingError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('id, attended, session_id')
@@ -825,7 +872,6 @@
 
                 sessionData = session;
 
-                // Set mentor name
                 const mentorName = session.mentor_name || 'Mentor YATTA';
                 session.mentor = {
                     full_name: mentorName,
@@ -834,7 +880,6 @@
                     avatar_url: null
                 };
 
-                // Cek partisipasi user
                 if (currentUser) {
                     const { data: participant } = await _supabase
                         .from('yata_mentoring_participants')
@@ -861,7 +906,6 @@
                     reviewStatus = review ? 'reviewed' : 'not_reviewed';
                 }
 
-                // Ambil materi
                 const { data: materials, error: materialError } = await _supabase
                     .from('yata_mentoring_materials')
                     .select('*')
@@ -872,7 +916,6 @@
                     session.materials = materials || [];
                 }
 
-                // Ambil ulasan
                 const { data: reviews, error: reviewError } = await _supabase
                     .from('yata_onboarding_reviews')
                     .select('*, profile:user_id(full_name)')
@@ -926,7 +969,6 @@
                 lanjutan: 'level-lanjutan'
             };
 
-            // Status
             document.getElementById('sessionStatus').textContent = statusLabels[session.status] || '📝 Draft';
             document.getElementById('sessionStatus').className = `status-badge ${statusClasses[session.status] || 'status-draft'}`;
             document.getElementById('sessionLevel').textContent = levelLabels[session.level] || '🌱 Pemula';
@@ -935,10 +977,8 @@
             document.getElementById('sessionTitle').textContent = session.title;
             document.getElementById('sessionDescription').textContent = session.description || 'Tidak ada deskripsi.';
 
-            // Rating
             renderRating(session);
 
-            // Badge
             const onboardingBadge = document.getElementById('onboardingBadge');
             const mandatoryBadge = document.getElementById('mandatoryBadge');
             
@@ -956,7 +996,6 @@
                 mandatoryBadge.classList.add('hidden');
             }
 
-            // Mentor
             const mentor = session.mentor || {};
             const avatarEl = document.getElementById('mentorAvatar');
             avatarEl.textContent = (mentor.full_name || 'M').charAt(0).toUpperCase();
@@ -964,24 +1003,38 @@
             document.getElementById('mentorName').textContent = mentor.full_name || 'Mentor YATTA';
             document.getElementById('mentorLevel').textContent = session.is_onboarding ? 'Admin YATTA' : 'Mentor YATTA';
 
-            // Info kelas
             document.getElementById('participantCount').textContent = session.current_participants || 0;
             document.getElementById('maxParticipants').textContent = session.max_participants || '∞';
             document.getElementById('startDate').textContent = session.start_date ? new Date(session.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'TBA';
             document.getElementById('schedule').textContent = session.schedule || 'TBA';
 
             const isFree = session.price === 0;
-            document.getElementById('priceDisplay').textContent = isFree ? '🆓 Gratis' : '💰 Rp' + (session.price || 0).toLocaleString();
-            document.getElementById('priceDisplay').className = `font-bold ${isFree ? 'text-emerald-600' : 'text-purple-600'}`;
+            const isPaid = session.price > 0;
 
-            // Info sidebar
+            // 🔥 TAMBAHAN: Tampilkan harga dengan warna berbeda untuk berbayar
+            const priceDisplay = document.getElementById('priceDisplay');
+            if (isPaid) {
+                priceDisplay.textContent = '💰 Rp' + (session.price || 0).toLocaleString();
+                priceDisplay.className = 'font-bold text-amber-600';
+            } else {
+                priceDisplay.textContent = '🆓 Gratis';
+                priceDisplay.className = 'font-bold text-emerald-600';
+            }
+
             document.getElementById('infoLevel').textContent = levelLabels[session.level] || '🌱 Pemula';
-            document.getElementById('infoPrice').textContent = isFree ? '🆓 Gratis' : '💰 Rp' + (session.price || 0).toLocaleString();
-            document.getElementById('infoPrice').className = `font-semibold ${isFree ? 'text-emerald-600' : 'text-purple-600'}`;
+            
+            const infoPrice = document.getElementById('infoPrice');
+            if (isPaid) {
+                infoPrice.textContent = '💰 Rp' + (session.price || 0).toLocaleString();
+                infoPrice.className = 'font-semibold text-amber-600';
+            } else {
+                infoPrice.textContent = '🆓 Gratis';
+                infoPrice.className = 'font-semibold text-emerald-600';
+            }
+            
             document.getElementById('infoQuota').textContent = `${session.current_participants || 0} / ${session.max_participants || '∞'}`;
             document.getElementById('infoSchedule').textContent = session.schedule || 'TBA';
 
-            // Jenis kelas
             const classTypeLabel = document.getElementById('classTypeLabel');
             if (session.is_onboarding) {
                 classTypeLabel.textContent = '🎓 Onboarding (Wajib)';
@@ -994,7 +1047,6 @@
                 classTypeLabel.className = 'font-semibold text-sm text-emerald-600';
             }
 
-            // Meeting link
             const meetingContainer = document.getElementById('meetingLinkContainer');
             if ((participantStatus === 'approved' || participantStatus === 'completed') && session.meeting_link) {
                 meetingContainer.classList.remove('hidden');
@@ -1004,19 +1056,58 @@
                 meetingContainer.classList.add('hidden');
             }
 
-            // TOMBOL REGISTER & ACCESS STATUS
+            // 🔥 TAMBAHAN: Render info pembayaran di bawah deskripsi
+            const descContainer = document.getElementById('sessionDescription');
+            if (descContainer) {
+                // Cek apakah sudah ada elemen payment info sebelumnya, hapus jika ada
+                const existingPaymentInfo = document.getElementById('paymentInfoWrapper');
+                if (existingPaymentInfo) {
+                    existingPaymentInfo.remove();
+                }
+
+                if (isPaid && session.mentor_bank_account) {
+                    const paymentHtml = `
+                        <div id="paymentInfoWrapper" class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                            <h4 class="font-semibold text-amber-700 flex items-center gap-2">
+                                <i class="fa-solid fa-coins"></i> Informasi Pembayaran
+                            </h4>
+                            <p class="text-sm text-slate-600 mt-1">
+                                Transfer ke rekening mentor sebesar <strong>Rp${(session.price || 0).toLocaleString()}</strong>
+                            </p>
+                            <div class="mt-2 p-3 bg-white rounded-xl border border-slate-200">
+                                <p class="text-sm font-semibold">${session.mentor_bank_name || 'Bank'}</p>
+                                <p class="text-lg font-mono font-bold text-slate-800">${session.mentor_bank_account}</p>
+                                <p class="text-sm text-slate-500">a.n. ${session.mentor_bank_holder || 'Mentor'}</p>
+                            </div>
+                            <p class="text-xs text-amber-600 mt-2">
+                                ⚠️ Setelah transfer, upload bukti untuk verifikasi.
+                            </p>
+                        </div>
+                    `;
+                    descContainer.insertAdjacentHTML('afterend', paymentHtml);
+                } else if (isPaid && !session.mentor_bank_account) {
+                    const paymentHtml = `
+                        <div id="paymentInfoWrapper" class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                            <p class="text-sm text-yellow-700">
+                                ⚠️ Kelas ini berbayar namun rekening mentor belum diisi.
+                                <br>Silakan hubungi admin untuk informasi pembayaran.
+                            </p>
+                        </div>
+                    `;
+                    descContainer.insertAdjacentHTML('afterend', paymentHtml);
+                }
+            }
+
+            // 🔥 TAMBAHAN: Update tombol register
             updateRegisterButton(session);
 
-            // Materi
             const isCompleted = participantStatus === 'completed' || participantStatus === 'approved' && attended === true;
             renderMaterials(session.materials || [], isCompleted);
-            
-            // Reviews
             renderReviews(session.reviews || []);
         }
 
         // ============================================
-        // 6. UPDATE REGISTER BUTTON
+        // 🔥 TAMBAHAN: UPDATE REGISTER BUTTON
         // ============================================
         async function updateRegisterButton(session) {
             const registerBtn = document.getElementById('registerBtn');
@@ -1071,7 +1162,6 @@
                 return;
             }
 
-            // CEK APAKAH USER ADALAH MENTOR (PEMBUAT KELAS)
             if (session.mentor_id === currentUser.id) {
                 registerBtn.textContent = '👑 Anda adalah Mentor';
                 registerBtn.disabled = true;
@@ -1090,26 +1180,17 @@
                 return;
             }
 
-            // Cek kuota
+            // CEK KUOTA
             if (session.max_participants > 0 && session.current_participants >= session.max_participants) {
                 registerBtn.textContent = '🔴 Kuota Penuh';
                 registerBtn.disabled = true;
                 registerBtn.className = 'bg-slate-100 text-slate-400 font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
-                statusText.textContent = '⚠️ Maaf, kuota peserta sudah penuh. Silakan mendaftar di Kelas Onboarding Pekan Berikutnya.';
+                statusText.textContent = '⚠️ Maaf, kuota peserta sudah penuh.';
                 statusText.classList.remove('hidden');
                 return;
             }
 
-            // Cek status partisipasi
-            if (participantStatus === 'pending') {
-                registerBtn.textContent = '⏳ Menunggu Konfirmasi';
-                registerBtn.disabled = true;
-                registerBtn.className = 'bg-yellow-500 text-white font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed';
-                statusText.textContent = '⏳ Pendaftaran Anda sedang diproses.';
-                statusText.classList.remove('hidden');
-                return;
-            }
-
+            // CEK SUDAH TERDAFTAR
             if (participantStatus === 'approved' || participantStatus === 'completed') {
                 registerBtn.textContent = '✅ Terdaftar';
                 registerBtn.disabled = true;
@@ -1119,6 +1200,17 @@
                 return;
             }
 
+            // CEK MENUNGGU KONFIRMASI (khusus berbayar)
+            if (participantStatus === 'pending_payment') {
+                registerBtn.textContent = '⏳ Menunggu Konfirmasi';
+                registerBtn.disabled = true;
+                registerBtn.className = 'bg-yellow-500 text-white font-bold px-6 py-3 rounded-xl text-sm transition cursor-not-allowed';
+                statusText.textContent = '⏳ Pembayaran Anda sedang diverifikasi mentor.';
+                statusText.classList.remove('hidden');
+                return;
+            }
+
+            // CEK DITOLAK
             if (participantStatus === 'rejected') {
                 registerBtn.textContent = '❌ Ditolak';
                 registerBtn.disabled = true;
@@ -1128,16 +1220,27 @@
                 return;
             }
 
-            // Default: bisa daftar
-            registerBtn.textContent = '📝 Daftar Sekarang';
-            registerBtn.disabled = false;
-            registerBtn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition';
-            registerBtn.onclick = openRegisterModal;
+            // 🔥 TOMBOL UTAMA: BEDA ANTARA GRATIS & BERBAYAR
+            const isPaid = session.price > 0;
+
+            if (isPaid) {
+                registerBtn.textContent = '💳 Bayar & Daftar';
+                registerBtn.className = 'bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition';
+                registerBtn.onclick = function() {
+                    openPaymentModal(session);
+                };
+            } else {
+                registerBtn.textContent = '📝 Daftar Sekarang';
+                registerBtn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition';
+                registerBtn.onclick = function() {
+                    openRegisterModal(session);
+                };
+            }
             statusText.classList.add('hidden');
         }
 
         // ============================================
-        // 7. RENDER RATING
+        // 6. RENDER RATING
         // ============================================
         function renderRating(session) {
             const avgRating = session.avg_rating || 0;
@@ -1172,7 +1275,7 @@
         }
 
         // ============================================
-        // 8. RENDER MATERIALS
+        // 7. RENDER MATERIALS
         // ============================================
         function renderMaterials(materials, isCompleted) {
             const container = document.getElementById('materialList');
@@ -1231,7 +1334,7 @@
         }
 
         // ============================================
-        // 9. RENDER REVIEWS
+        // 8. RENDER REVIEWS
         // ============================================
         function renderReviews(reviews) {
             const container = document.getElementById('reviewList');
@@ -1278,16 +1381,18 @@
         }
 
         // ============================================
-        // 10. OPEN REGISTER MODAL
+        // 9. OPEN REGISTER MODAL
         // ============================================
-        async function openRegisterModal() {
+        async function openRegisterModal(session) {
             if (!currentUser) {
                 document.getElementById('loginPopupModal').classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
                 return;
             }
 
-            // CEK AKSES DULU!
+            const sessionToUse = session || sessionData;
+            if (!sessionToUse) return;
+
             const access = await checkClassAccess(sessionId, currentUser.id);
             
             if (!access.allowed) {
@@ -1297,9 +1402,8 @@
                 return;
             }
 
-            // Cek kuota
-            if (sessionData.max_participants > 0 && sessionData.current_participants >= sessionData.max_participants) {
-                await showQuotaFullPopup(sessionData);
+            if (sessionToUse.max_participants > 0 && sessionToUse.current_participants >= sessionToUse.max_participants) {
+                await showQuotaFullPopup(sessionToUse);
                 return;
             }
 
@@ -1311,7 +1415,7 @@
                     .single();
 
                 document.getElementById('registerSessionId').value = sessionId;
-                document.getElementById('registerSubtitle').textContent = `Bergabung sebagai peserta "${sessionData?.title || 'Kelas'}"`;
+                document.getElementById('registerSubtitle').textContent = `Bergabung sebagai peserta "${sessionToUse?.title || 'Kelas'}"`;
                 
                 document.getElementById('registerName').value = profile?.full_name || '';
                 document.getElementById('registerEmail').value = profile?.email || currentUser.email || '';
@@ -1347,7 +1451,7 @@
         }
 
         // ============================================
-        // 11. POPUP KUOTA PENUH
+        // 10. POPUP KUOTA PENUH
         // ============================================
         async function showQuotaFullPopup(currentSession) {
             const currentInfo = document.getElementById('currentSessionInfo');
@@ -1375,7 +1479,7 @@
         }
 
         // ============================================
-        // 12. UPDATE QUOTA
+        // 11. UPDATE QUOTA
         // ============================================
         async function updateQuota(sessionId) {
             try {
@@ -1404,7 +1508,7 @@
         }
 
         // ============================================
-        // 13. SUBMIT REGISTER - AUTO APPROVE UNTUK SEMUA KELAS
+        // 12. SUBMIT REGISTER (GRATIS)
         // ============================================
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1439,10 +1543,9 @@
                     return;
                 }
 
-                // Cek kuota lagi
                 const { data: currentSession, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
-                    .select('current_participants, max_participants, title, meeting_link, is_onboarding')
+                    .select('current_participants, max_participants, title, meeting_link, price')
                     .eq('id', sessionId)
                     .single();
 
@@ -1454,7 +1557,6 @@
                     return;
                 }
 
-                // Cek apakah sudah terdaftar
                 const { data: existing, error: checkError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('id')
@@ -1467,7 +1569,12 @@
                     return;
                 }
 
-                // 🔥 DAFTAR - STATUS LANGSUNG APPROVED UNTUK SEMUA KELAS
+                // 🔥 CEK APAKAH KELAS BERBAYAR - Jika price > 0, seharusnya tidak masuk ke sini
+                if (currentSession.price > 0) {
+                    showRegisterMessage('⚠️ Kelas ini berbayar. Silakan gunakan tombol "Bayar & Daftar".', 'error');
+                    return;
+                }
+
                 const { error: insertError } = await _supabase
                     .from('yata_mentoring_participants')
                     .insert([{
@@ -1475,18 +1582,13 @@
                         user_id: session.user.id,
                         reason: reason || null,
                         phone: phone,
-                        status: 'approved'  // <-- LANGSUNG APPROVED
+                        status: 'approved'
                     }]);
 
-                if (insertError) {
-                    showRegisterMessage('Gagal mendaftar: ' + insertError.message, 'error');
-                    return;
-                }
+                if (insertError) throw insertError;
 
-                // Update kuota
                 await updateQuota(sessionId);
 
-                // Kirim notifikasi ke user
                 const isOnboarding = currentSession.is_onboarding || false;
                 const notifTitle = isOnboarding ? 
                     '🎓 Pendaftaran Onboarding Berhasil!' : 
@@ -1532,15 +1634,150 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
         function showRegisterMessage(text, type) {
             const msg = document.getElementById('registerMessage');
             msg.textContent = text;
-            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
-                type === 'success' ? 'text-emerald-600' :
-                type === 'error' ? 'text-red-600' :
-                ''
-            }`;
+            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-red-600' : ''}`;
         }
 
         // ============================================
-        // 14. RATING FUNCTIONS FOR REVIEW
+        // 🔥 TAMBAHAN: PEMBAYARAN - OPEN MODAL
+        // ============================================
+        let currentPaymentSession = null;
+
+        function openPaymentModal(session) {
+            currentPaymentSession = session;
+            
+            document.getElementById('paymentSessionId').value = session.id;
+            document.getElementById('paymentClassName').textContent = session.title;
+            document.getElementById('paymentPrice').textContent = 'Rp' + (session.price || 0).toLocaleString();
+            document.getElementById('paymentBankInfo').textContent = 
+                `${session.mentor_bank_name || 'Bank'} - ${session.mentor_bank_account || 'N/A'} a.n. ${session.mentor_bank_holder || 'Mentor'}`;
+            
+            document.getElementById('paymentModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            document.getElementById('paymentMessage').className = 'text-sm text-center hidden';
+            document.getElementById('paymentForm').reset();
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentPaymentSession = null;
+        }
+
+        // ============================================
+        // 🔥 TAMBAHAN: SUBMIT PEMBAYARAN
+        // ============================================
+        document.getElementById('paymentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const sessionId = document.getElementById('paymentSessionId').value;
+            const fileInput = document.getElementById('paymentProof');
+            const notes = document.getElementById('paymentNotes').value.trim();
+            
+            if (!fileInput.files || !fileInput.files[0]) {
+                showPaymentMessage('Harap upload bukti transfer.', 'error');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            if (file.size > 5 * 1024 * 1024) {
+                showPaymentMessage('Ukuran file maksimal 5MB.', 'error');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('paymentSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+            showPaymentMessage('', '');
+            
+            try {
+                const session = await checkAuth();
+                if (!session) return;
+                
+                // Upload bukti ke storage
+                const fileExt = file.name.split('.').pop();
+                const fileName = `payment-${sessionId}-${Date.now()}.${fileExt}`;
+                const filePath = `payment-proofs/${fileName}`;
+                
+                const { error: uploadError } = await _supabase.storage
+                    .from('payment-proofs')
+                    .upload(filePath, file);
+                
+                if (uploadError) throw uploadError;
+                
+                const { data: urlData } = _supabase.storage
+                    .from('payment-proofs')
+                    .getPublicUrl(filePath);
+                
+                const proofUrl = urlData.publicUrl;
+                
+                // Update participant dengan status pending payment
+                const { error: updateError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .update({
+                        payment_status: 'pending',
+                        payment_proof_url: proofUrl,
+                        payment_notes: notes || null,
+                        status: 'pending_payment'
+                    })
+                    .eq('session_id', sessionId)
+                    .eq('user_id', session.user.id);
+                
+                if (updateError) throw updateError;
+                
+                // Kirim notifikasi ke mentor
+                const { data: sessionData } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('mentor_id, title')
+                    .eq('id', sessionId)
+                    .single();
+                
+                if (sessionData && sessionData.mentor_id) {
+                    const { data: notifData } = await _supabase
+                        .from('yata_notifications')
+                        .insert([{
+                            title: '💳 Ada Pembayaran Baru!',
+                            content: `Peserta mengirim bukti pembayaran untuk kelas "${sessionData.title}". Silakan verifikasi di dashboard.`,
+                            type: 'warning'
+                        }])
+                        .select()
+                        .single();
+                    
+                    if (notifData) {
+                        await _supabase
+                            .from('yata_user_notifications')
+                            .insert([{
+                                notification_id: notifData.id,
+                                user_id: sessionData.mentor_id,
+                                is_read: false
+                            }]);
+                    }
+                }
+                
+                showPaymentMessage('✅ Bukti pembayaran terkirim! Menunggu konfirmasi mentor.', 'success');
+                submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Terkirim!';
+                
+                setTimeout(() => {
+                    closePaymentModal();
+                    loadSessionDetail();
+                }, 2000);
+                
+            } catch (err) {
+                console.error('Payment error:', err);
+                showPaymentMessage('❌ Gagal mengirim: ' + err.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Konfirmasi';
+            }
+        });
+
+        function showPaymentMessage(text, type) {
+            const msg = document.getElementById('paymentMessage');
+            msg.textContent = text;
+            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-red-600' : ''}`;
+        }
+
+        // ============================================
+        // 13. RATING FUNCTIONS
         // ============================================
         let materialRatingValue = 0;
         let platformRatingValue = 0;
@@ -1607,7 +1844,7 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
         }
 
         // ============================================
-        // 15. SUBMIT REVIEW
+        // 14. SUBMIT REVIEW
         // ============================================
         document.getElementById('reviewForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1646,7 +1883,6 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
                 showReviewMessage('✅ Ulasan berhasil dikirim!', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
 
-                // Update rating kelas
                 await updateSessionRating(sessionId);
 
                 setTimeout(() => {
@@ -1666,15 +1902,11 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
         function showReviewMessage(text, type) {
             const msg = document.getElementById('reviewMessage');
             msg.textContent = text;
-            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
-                type === 'success' ? 'text-emerald-600' :
-                type === 'error' ? 'text-red-600' :
-                ''
-            }`;
+            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-red-600' : ''}`;
         }
 
         // ============================================
-        // 16. UPDATE SESSION RATING
+        // 15. UPDATE SESSION RATING
         // ============================================
         async function updateSessionRating(sessionId) {
             try {
@@ -1705,6 +1937,39 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
                 }
             } catch (err) {
                 console.error('Update rating error:', err);
+            }
+        }
+
+        // ============================================
+        // 16. NOTIFICATION HELPER
+        // ============================================
+        async function sendNotification(userId, title, content, type = 'info') {
+            try {
+                const { data: notifData, error } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: title,
+                        content: content,
+                        type: type
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                if (notifData) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+                }
+                return true;
+            } catch (err) {
+                console.error('Send notification error:', err);
+                return false;
             }
         }
 
@@ -1754,6 +2019,10 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
 
             document.getElementById('registerModal').addEventListener('click', function(e) {
                 if (e.target === this) closeRegisterModal();
+            });
+
+            document.getElementById('paymentModal').addEventListener('click', function(e) {
+                if (e.target === this) closePaymentModal();
             });
 
             document.getElementById('reviewModal').addEventListener('click', function(e) {

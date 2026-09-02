@@ -54,6 +54,7 @@
         .participant-status-approved { background: #D1FAE5; color: #065F46; }
         .participant-status-rejected { background: #FEE2E2; color: #991B1B; }
         .participant-status-completed { background: #E0E7FF; color: #3730A3; }
+        .participant-status-pending-payment { background: #FEF3C7; color: #92400E; }
         .modal-enter { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-20px); }
@@ -250,6 +251,26 @@
                 <a href="mentoring-create.html" class="inline-block mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
                     <i class="fa-solid fa-plus mr-1"></i> Buat Kelas Pertama
                 </a>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- 🔥 TAMBAHAN: TAB VERIFIKASI PEMBAYARAN -->
+            <!-- ============================================ -->
+            <div id="paymentVerificationSection" class="mt-8 bg-white rounded-2xl p-6 border border-emerald-100/60 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">💳</span>
+                        <h2 class="text-lg font-bold text-slate-800">Verifikasi Pembayaran</h2>
+                        <span id="pendingPaymentCount" class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">0</span>
+                    </div>
+                    <span class="text-xs text-slate-400">Konfirmasi pembayaran peserta</span>
+                </div>
+                
+                <div id="pendingPaymentsList" class="space-y-4">
+                    <div class="text-center py-8 text-slate-400 text-sm">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat pembayaran...
+                    </div>
+                </div>
             </div>
 
         </div>
@@ -533,7 +554,7 @@
         }
 
         // ============================================
-        // 1. CEK LOGIN & LEVEL - DIPERBAIKI
+        // 1. CEK LOGIN & LEVEL
         // ============================================
         async function checkAuthAndLevel() {
             try {
@@ -585,13 +606,10 @@
         }
 
         // ============================================
-        // 2. LOAD SESSIONS - DIPERBAIKI DENGAN DEBUG LENGKAP
+        // 2. LOAD SESSIONS
         // ============================================
         async function loadSessions() {
             console.log('🔍 ====== loadSessions DIPANGGIL ======');
-            console.log('🔍 currentUser:', currentUser);
-            console.log('🔍 currentUser.id:', currentUser?.id);
-            console.log('🔍 allSessions SEBELUM diisi:', allSessions);
             
             const container = document.getElementById('sessionList');
             const empty = document.getElementById('emptyState');
@@ -629,19 +647,12 @@
                     </div>
                 `;
 
-                // 🔥 QUERY LANGSUNG TANPA KONDISI
                 const { data: sessions, error } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('*')
                     .eq('mentor_id', currentUser.id)
                     .order('created_at', { ascending: false });
 
-                console.log('🔍 Hasil query sessions:', sessions);
-                console.log('🔍 Tipe sessions:', typeof sessions);
-                console.log('🔍 Apakah sessions array?', Array.isArray(sessions));
-                console.log('🔍 Error:', error);
-
-                // 🔥 PERBAIKAN: Pastikan sessions adalah array
                 if (!sessions || !Array.isArray(sessions)) {
                     console.error('❌ sessions BUKAN ARRAY!', sessions);
                     allSessions = [];
@@ -649,7 +660,6 @@
                     allSessions = sessions;
                 }
 
-                console.log('🔍 allSessions SETELAH diisi:', allSessions);
                 console.log('🔍 allSessions length:', allSessions.length);
 
                 if (allSessions.length === 0) {
@@ -662,18 +672,13 @@
                 empty.classList.add('hidden');
                 document.getElementById('sessionCount').textContent = allSessions.length + ' sesi';
 
-                // Ambil data peserta per sesi
                 const sessionIds = allSessions.map(s => s.id);
-                console.log('🔍 sessionIds:', sessionIds);
                 
                 if (sessionIds.length > 0) {
                     const { data: participants, error: participantError } = await _supabase
                         .from('yata_mentoring_participants')
                         .select('session_id, status')
                         .in('session_id', sessionIds);
-
-                    console.log('🔍 Participants data:', participants);
-                    console.log('🔍 Participant error:', participantError);
 
                     if (!participantError && participants) {
                         const participantCounts = {};
@@ -689,10 +694,6 @@
                         allSessions.forEach(s => {
                             s.participant_stats = participantCounts[s.id] || { total: 0, pending: 0, approved: 0, rejected: 0 };
                         });
-                        console.log('📊 Participant stats:', allSessions.map(s => ({ 
-                            title: s.title, 
-                            stats: s.participant_stats 
-                        })));
                     }
                 }
 
@@ -713,26 +714,15 @@
         }
 
         // ============================================
-        // 3. RENDER SESSIONS - DIPERBAIKI
+        // 3. RENDER SESSIONS
         // ============================================
         function renderSessions() {
-            console.log('🔍 ====== renderSessions DIPANGGIL ======');
-            console.log('🔍 allSessions:', allSessions);
-            console.log('🔍 allSessions length:', allSessions?.length);
-            console.log('🔍 allSessions is array?', Array.isArray(allSessions));
-            
             const container = document.getElementById('sessionList');
             const empty = document.getElementById('emptyState');
 
-            // 🔥 PERBAIKAN: Jika allSessions bukan array atau kosong
             if (!allSessions || !Array.isArray(allSessions) || allSessions.length === 0) {
-                console.warn('⚠️ allSessions kosong atau bukan array!');
-                if (container) {
-                    container.innerHTML = '';
-                }
-                if (empty) {
-                    empty.classList.remove('hidden');
-                }
+                if (container) container.innerHTML = '';
+                if (empty) empty.classList.remove('hidden');
                 document.getElementById('sessionCount').textContent = '0 sesi';
                 return;
             }
@@ -859,7 +849,7 @@
         }
 
         // ============================================
-        // 5. VIEW PARTICIPANTS - DIPERBAIKI
+        // 5. VIEW PARTICIPANTS
         // ============================================
         async function viewParticipants(sessionId) {
             console.log('🔍 ====== viewParticipants DIPANGGIL ======');
@@ -884,17 +874,11 @@
             container.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat peserta...</div>';
 
             try {
-                // 🔥 QUERY 1: Ambil semua peserta
-                console.log('🔍 Query peserta untuk session:', sessionId);
-                
                 const { data: participants, error } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*')
                     .eq('session_id', sessionId)
                     .order('registered_at', { ascending: false });
-
-                console.log('🔍 Data peserta (mentah):', participants);
-                console.log('🔍 Error:', error);
 
                 if (error) {
                     console.error('❌ Error get participants:', error);
@@ -919,46 +903,37 @@
                     return;
                 }
 
-                // 🔥 QUERY 2: Ambil profil user (terpisah)
                 const userIds = participants.map(p => p.user_id).filter(id => id);
                 let profileMap = {};
                 
                 if (userIds.length > 0) {
-                    console.log('🔍 Ambil profil untuk user IDs:', userIds);
-                    
                     const { data: profiles, error: profileError } = await _supabase
                         .from('yata_profiles')
                         .select('id, full_name, email, username')
                         .in('id', userIds);
-
-                    console.log('🔍 Profiles:', profiles);
-                    console.log('🔍 Profile error:', profileError);
 
                     if (!profileError && profiles) {
                         profiles.forEach(p => {
                             profileMap[p.id] = p;
                         });
                     }
-                    console.log('📊 Profile map:', profileMap);
                 }
 
-                // 🔥 Gabungkan data
                 const participantsWithProfile = participants.map(p => ({
                     ...p,
                     profile: profileMap[p.user_id] || { full_name: 'User', email: '-' }
                 }));
 
-                console.log('📊 Data peserta (lengkap):', participantsWithProfile);
-
-                // 🔥 Render tabel
                 const statusLabels = {
                     pending: '⏳ Menunggu',
+                    pending_payment: '💳 Menunggu Pembayaran',
                     approved: '✅ Diterima',
                     rejected: '❌ Ditolak',
                     completed: '✅ Selesai'
                 };
                 const statusClasses = {
                     pending: 'participant-status-pending',
+                    pending_payment: 'participant-status-pending-payment',
                     approved: 'participant-status-approved',
                     rejected: 'participant-status-rejected',
                     completed: 'participant-status-completed'
@@ -1286,11 +1261,7 @@
         function showMaterialMessage(text, type) {
             const msg = document.getElementById('materialMessage');
             msg.textContent = text;
-            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
-                type === 'success' ? 'text-emerald-600' :
-                type === 'error' ? 'text-red-600' :
-                ''
-            }`;
+            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-red-600' : ''}`;
         }
 
         // ============================================
@@ -1483,11 +1454,7 @@
         function showEditSessionMessage(text, type) {
             const msg = document.getElementById('editSessionMessage');
             msg.textContent = text;
-            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${
-                type === 'success' ? 'text-emerald-600' :
-                type === 'error' ? 'text-red-600' :
-                ''
-            }`;
+            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-red-600' : ''}`;
         }
 
         // ============================================
@@ -1623,11 +1590,214 @@
         }
 
         // ============================================
+        // 🔥 TAMBAHAN: LOAD PENDING PAYMENTS
+        // ============================================
+        async function loadPendingPayments() {
+            const container = document.getElementById('pendingPaymentsList');
+            const countEl = document.getElementById('pendingPaymentCount');
+            
+            try {
+                const session = await checkAuthAndLevel();
+                if (!session) return;
+                
+                // Ambil semua sesi milik mentor
+                const { data: sessions, error: sessionError } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('id, title, price')
+                    .eq('mentor_id', currentUser.id);
+                
+                if (sessionError) throw sessionError;
+                
+                if (!sessions || sessions.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-slate-400 text-sm bg-slate-50 rounded-xl">
+                            <i class="fa-regular fa-check-circle text-2xl block mb-2"></i>
+                            Tidak ada pembayaran yang menunggu verifikasi.
+                        </div>
+                    `;
+                    if (countEl) countEl.textContent = '0';
+                    return;
+                }
+                
+                const sessionIds = sessions.map(s => s.id);
+                
+                // Ambil participant dengan status pending_payment
+                const { data: participants, error: partError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('*, profile:user_id(full_name, email)')
+                    .in('session_id', sessionIds)
+                    .eq('status', 'pending_payment')
+                    .order('created_at', { ascending: true });
+                
+                if (partError) throw partError;
+                
+                if (!participants || participants.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-slate-400 text-sm bg-slate-50 rounded-xl">
+                            <i class="fa-regular fa-check-circle text-2xl block mb-2"></i>
+                            Tidak ada pembayaran yang menunggu verifikasi.
+                        </div>
+                    `;
+                    if (countEl) countEl.textContent = '0';
+                    return;
+                }
+                
+                if (countEl) countEl.textContent = participants.length;
+                
+                // Buat map session
+                const sessionMap = {};
+                sessions.forEach(s => {
+                    sessionMap[s.id] = s;
+                });
+                
+                container.innerHTML = participants.map(p => {
+                    const session = sessionMap[p.session_id];
+                    const userName = p.profile?.full_name || 'User';
+                    const userEmail = p.profile?.email || '-';
+                    
+                    return `
+                        <div class="bg-white rounded-xl p-4 border border-amber-200 shadow-sm">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <h4 class="font-bold text-slate-800 text-sm">${session?.title || 'Kelas'}</h4>
+                                        <span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">⏳ Menunggu</span>
+                                    </div>
+                                    <p class="text-sm text-slate-600">${userName} (${userEmail})</p>
+                                    <p class="text-xs text-slate-400">Harga: <strong>Rp${(session?.price || 0).toLocaleString()}</strong></p>
+                                    ${p.payment_notes ? `<p class="text-xs text-slate-500 mt-1">📝 ${p.payment_notes}</p>` : ''}
+                                    ${p.payment_proof_url ? `
+                                        <a href="${p.payment_proof_url}" target="_blank" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold">
+                                            <i class="fa-regular fa-image mr-1"></i> Lihat Bukti
+                                        </a>
+                                    ` : ''}
+                                    <p class="text-xs text-slate-400 mt-1">Dikirim: ${timeAgo(p.created_at)}</p>
+                                </div>
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    <button onclick="confirmPayment('${p.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-xs transition">
+                                        <i class="fa-solid fa-check mr-1"></i> Konfirmasi
+                                    </button>
+                                    <button onclick="rejectPayment('${p.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-4 py-2 rounded-xl text-xs transition">
+                                        <i class="fa-solid fa-xmark mr-1"></i> Tolak
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (err) {
+                console.error('Load pending payments error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-8 text-red-400 text-sm">
+                        Gagal memuat pembayaran: ${err.message}
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // 🔥 TAMBAHAN: KONFIRMASI PEMBAYARAN
+        // ============================================
+        async function confirmPayment(participantId) {
+            if (!confirm('Konfirmasi pembayaran ini? Peserta akan langsung terdaftar di kelas.')) return;
+            
+            try {
+                const session = await checkAuthAndLevel();
+                if (!session) return;
+                
+                const { error } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .update({
+                        status: 'approved',
+                        payment_status: 'paid',
+                        confirmed_by: currentUser.id,
+                        confirmed_at: new Date().toISOString()
+                    })
+                    .eq('id', participantId);
+                
+                if (error) throw error;
+                
+                // Ambil data untuk notifikasi
+                const { data: participant } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('user_id, session:session_id(title)')
+                    .eq('id', participantId)
+                    .single();
+                
+                if (participant) {
+                    await sendNotification(
+                        participant.user_id,
+                        '✅ Pembayaran Dikonfirmasi!',
+                        `Pembayaran Anda untuk kelas "${participant.session?.title || 'Kelas'}" telah dikonfirmasi. Anda sekarang terdaftar sebagai peserta.`,
+                        'success'
+                    );
+                }
+                
+                alert('✅ Pembayaran dikonfirmasi! Peserta sekarang terdaftar.');
+                loadPendingPayments();
+                loadSessions();
+                
+            } catch (err) {
+                console.error('Confirm payment error:', err);
+                alert('❌ Gagal konfirmasi: ' + err.message);
+            }
+        }
+
+        // ============================================
+        // 🔥 TAMBAHAN: TOLAK PEMBAYARAN
+        // ============================================
+        async function rejectPayment(participantId) {
+            const reason = prompt('Berikan alasan penolakan (opsional):');
+            if (reason === null) return;
+            
+            if (!confirm('Tolak pembayaran ini?')) return;
+            
+            try {
+                const { error } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .update({
+                        status: 'rejected',
+                        payment_status: 'rejected',
+                        payment_notes: reason || 'Pembayaran ditolak'
+                    })
+                    .eq('id', participantId);
+                
+                if (error) throw error;
+                
+                // Ambil data untuk notifikasi
+                const { data: participant } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('user_id, session:session_id(title)')
+                    .eq('id', participantId)
+                    .single();
+                
+                if (participant) {
+                    await sendNotification(
+                        participant.user_id,
+                        '❌ Pembayaran Ditolak',
+                        `Pembayaran Anda untuk kelas "${participant.session?.title || 'Kelas'}" ditolak. Alasan: ${reason || 'Tidak ada alasan'}. Silakan hubungi mentor.`,
+                        'warning'
+                    );
+                }
+                
+                alert('✅ Pembayaran ditolak.');
+                loadPendingPayments();
+                loadSessions();
+                
+            } catch (err) {
+                console.error('Reject payment error:', err);
+                alert('❌ Gagal menolak: ' + err.message);
+            }
+        }
+
+        // ============================================
         // 14. EVENT LISTENERS
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🚀 DOM Content Loaded - Memanggil loadSessions()');
             loadSessions();
+            loadPendingPayments();
 
             document.getElementById('btnLogout').addEventListener('click', handleLogout);
             document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);

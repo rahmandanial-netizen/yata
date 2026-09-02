@@ -98,6 +98,14 @@
         .admin-only.visible {
             display: block;
         }
+
+        /* 🔥 TAMBAHAN: Untuk menyembunyikan elemen */
+        .hidden-if-penulis {
+            display: block;
+        }
+        .hidden-if-penulis.hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -212,6 +220,11 @@
                 </div>
             </div>
 
+            <!-- 🔥 TAMBAHAN: Info Level -->
+            <div id="levelInfo" class="mb-4">
+                <!-- Akan diisi JavaScript -->
+            </div>
+
             <!-- Form -->
             <div id="createFormContainer" class="bg-white rounded-3xl p-6 md:p-8 border border-emerald-100/60 shadow-sm">
                 <form id="createForm" class="space-y-5">
@@ -263,8 +276,10 @@
                         </div>
                     </div>
 
-                    <!-- Harga & Kuota -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- ============================================ -->
+                    <!-- 🔥 TAMBAHAN: PRICE SECTION DENGAN ID -->
+                    <!-- ============================================ -->
+                    <div id="priceSection" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="price" class="form-label">Harga (Rp)</label>
                             <input type="number" id="price" placeholder="0 untuk gratis" value="0" min="0" class="form-input" />
@@ -277,6 +292,13 @@
                             <div id="maxParticipantsError" class="error-message">Maksimal peserta harus antara 1-100.</div>
                             <p class="text-xs text-slate-400 mt-1">Maksimal 100 peserta.</p>
                         </div>
+                    </div>
+
+                    <!-- 🔥 TAMBAHAN: PESAN UNTUK LEVEL PENULIS -->
+                    <div id="penulisPriceInfo" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-700 mt-4">
+                        <i class="fa-solid fa-info-circle mr-1"></i> 
+                        Level <strong>Penulis</strong> hanya bisa membuat kelas <strong>GRATIS</strong>.
+                        <br><span class="text-xs text-blue-500">📈 Naik ke <strong>Penulis Profesional</strong> untuk membuat kelas berbayar.</span>
                     </div>
 
                     <!-- Jadwal -->
@@ -299,8 +321,48 @@
                         <p class="text-xs text-slate-400 mt-1">Link akan diberikan ke peserta setelah pendaftaran disetujui.</p>
                     </div>
 
+                    <!-- ============================================ -->
+                    <!-- 🔥 TAMBAHAN: INFORMASI REKENING (UNTUK KELAS BERBAYAR) -->
+                    <!-- ============================================ -->
+                    <div id="bankInfoSection" class="border-t border-slate-200 pt-4 mt-4">
+                        <p class="text-xs font-semibold text-emerald-600 mb-3">💰 Informasi Rekening</p>
+                        <p class="text-xs text-amber-600 mb-3">
+                            ⚠️ Hanya untuk level <strong>Penulis Profesional</strong> dan <strong>Mentor</strong>.
+                            Anda akan mendapatkan 100% pendapatan dari kelas berbayar.
+                        </p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label for="mentorBankName" class="form-label">Nama Bank</label>
+                                <select id="mentorBankName" class="form-input form-select">
+                                    <option value="">-- Pilih Bank --</option>
+                                    <option value="BCA">BCA</option>
+                                    <option value="Mandiri">Bank Mandiri</option>
+                                    <option value="BNI">BNI</option>
+                                    <option value="BRI">BRI</option>
+                                    <option value="BSI">BSI</option>
+                                    <option value="CIMB">CIMB Niaga</option>
+                                    <option value="Danamon">Danamon</option>
+                                    <option value="Permata">Permata</option>
+                                    <option value="Other">Lainnya</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="mentorBankAccount" class="form-label">Nomor Rekening</label>
+                                <input type="text" id="mentorBankAccount" placeholder="1234567890" class="form-input" />
+                            </div>
+                            <div>
+                                <label for="mentorBankHolder" class="form-label">Nama Pemilik Rekening</label>
+                                <input type="text" id="mentorBankHolder" placeholder="Nama sesuai rekening" class="form-input" />
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2">
+                            💡 Data rekening akan ditampilkan ke peserta saat mereka mendaftar.
+                        </p>
+                    </div>
+
                     <!-- ========================================== -->
-                    <!-- 🔥 TAMBAHAN: Jenis Kelas (Admin Only) -->
+                    <!-- ADMIN ONLY: Jenis Kelas -->
                     <!-- ========================================== -->
                     <div id="adminClassTypeContainer" class="admin-only">
                         <div class="border-t border-slate-200 pt-4 mt-2">
@@ -509,7 +571,7 @@
                 currentProfile = profile;
                 isAdmin = profile.role === 'admin';
 
-                // 🔥 Tampilkan opsi admin jika user adalah admin
+                // Tampilkan opsi admin jika user adalah admin
                 const adminContainer = document.getElementById('adminClassTypeContainer');
                 if (isAdmin) {
                     adminContainer.classList.add('visible');
@@ -517,17 +579,97 @@
                     adminContainer.classList.remove('visible');
                 }
 
-                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
-                const hasAccess = allowedLevels.includes(profile.member_level) || isAdmin;
+                // ============================================================
+                // 🔥 TAMBAHAN: Kontrol tampilan harga berdasarkan level
+                // ============================================================
+                const level = profile.member_level || 'Tamu';
+                const canCreatePaidClass = ['Penulis Profesional', 'Mentor'].includes(level);
+                const isPenulis = level === 'Penulis';
 
-                if (!hasAccess) {
-                    document.getElementById('accessWarning').classList.remove('hidden');
-                    document.getElementById('userLevelDisplay').textContent = profile.member_level || 'Tamu';
-                    document.getElementById('createFormContainer').classList.add('opacity-50', 'pointer-events-none');
-                    document.getElementById('submitBtn').disabled = true;
+                const priceSection = document.getElementById('priceSection');
+                const penulisInfo = document.getElementById('penulisPriceInfo');
+                const priceInput = document.getElementById('price');
+                const bankSection = document.getElementById('bankInfoSection');
+                const levelInfo = document.getElementById('levelInfo');
+
+                if (isPenulis) {
+                    // Sembunyikan kolom harga
+                    if (priceSection) {
+                        priceSection.style.display = 'none';
+                    }
+                    // Tampilkan info
+                    if (penulisInfo) {
+                        penulisInfo.classList.remove('hidden');
+                    }
+                    // Set price = 0 dan disable
+                    if (priceInput) {
+                        priceInput.value = '0';
+                        priceInput.disabled = true;
+                    }
+                    // Sembunyikan field rekening
+                    if (bankSection) {
+                        bankSection.style.display = 'none';
+                    }
+                    // Tampilkan info level di atas form
+                    if (levelInfo) {
+                        levelInfo.innerHTML = `
+                            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700">
+                                <div class="flex items-start gap-3">
+                                    <i class="fa-solid fa-info-circle text-blue-500 mt-0.5"></i>
+                                    <div>
+                                        <p class="font-semibold">📈 Level Anda: <strong>Penulis</strong></p>
+                                        <p class="text-xs text-blue-600 mt-1">
+                                            Anda hanya bisa membuat kelas <strong>GRATIS</strong>.
+                                            Naik ke <strong>Penulis Profesional</strong> untuk membuat kelas berbayar.
+                                        </p>
+                                        <a href="dashboard.html#level" class="inline-block mt-2 text-blue-600 hover:text-blue-700 font-semibold text-xs">
+                                            Lihat syarat naik level →
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else if (canCreatePaidClass) {
+                    // Tampilkan kolom harga
+                    if (priceSection) {
+                        priceSection.style.display = 'grid';
+                    }
+                    if (penulisInfo) {
+                        penulisInfo.classList.add('hidden');
+                    }
+                    if (priceInput) {
+                        priceInput.disabled = false;
+                    }
+                    // Tampilkan field rekening
+                    if (bankSection) {
+                        bankSection.style.display = 'block';
+                    }
+                    // Tampilkan info level
+                    if (levelInfo) {
+                        levelInfo.innerHTML = `
+                            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-sm text-emerald-700">
+                                <i class="fa-solid fa-check-circle mr-1"></i> 
+                                Level <strong>${level}</strong> - Anda bisa membuat kelas <strong>GRATIS</strong> dan <strong>BERBAYAR</strong>.
+                                <br><span class="text-xs text-emerald-500">💡 Anda akan mendapatkan 100% pendapatan dari kelas berbayar.</span>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // Level di bawah Penulis (Tamu) - tidak bisa buat kelas
+                    const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
+                    const hasAccess = allowedLevels.includes(level) || isAdmin;
+
+                    if (!hasAccess) {
+                        document.getElementById('accessWarning').classList.remove('hidden');
+                        document.getElementById('userLevelDisplay').textContent = level;
+                        document.getElementById('createFormContainer').classList.add('opacity-50', 'pointer-events-none');
+                        document.getElementById('submitBtn').disabled = true;
+                        return false;
+                    }
                 }
 
-                return hasAccess;
+                return true;
 
             } catch (err) {
                 console.error('Auth check error:', err);
@@ -618,51 +760,62 @@
         // ============================================
         // 5. VALIDASI FORM
         // ============================================
-function validateForm() {
-    const errors = {};
+        function validateForm() {
+            const errors = {};
 
-    // Ambil data LANGSUNG dari element DOM
-    const title = document.getElementById('title').value.trim();
-    const slug = document.getElementById('slug').value.trim().toLowerCase();
-    const description = document.getElementById('description').value.trim();
-    const price = parseInt(document.getElementById('price').value) || 0;
-    const maxParticipants = parseInt(document.getElementById('maxParticipants').value) || 10;
-    const meetingLink = document.getElementById('meetingLink').value.trim();
+            const title = document.getElementById('title').value.trim();
+            const slug = document.getElementById('slug').value.trim().toLowerCase();
+            const description = document.getElementById('description').value.trim();
+            const price = parseInt(document.getElementById('price').value) || 0;
+            const maxParticipants = parseInt(document.getElementById('maxParticipants').value) || 10;
+            const meetingLink = document.getElementById('meetingLink').value.trim();
 
-    // Validasi title
-    if (!title || title.length < 5) {
-        errors.title = 'Judul wajib diisi (minimal 5 karakter).';
-    }
+            // 🔥 TAMBAHAN: Ambil data rekening
+            const mentorBankName = document.getElementById('mentorBankName').value;
+            const mentorBankAccount = document.getElementById('mentorBankAccount').value.trim();
+            const mentorBankHolder = document.getElementById('mentorBankHolder').value.trim();
 
-    // Validasi slug
-    if (!slug || slug.length < 3) {
-        errors.slug = 'Slug wajib diisi (minimal 3 karakter).';
-    } else if (!/^[a-z0-9-]+$/.test(slug)) {
-        errors.slug = 'Slug hanya boleh huruf kecil, angka, dan tanda hubung (-).';
-    }
+            // Validasi title
+            if (!title || title.length < 5) {
+                errors.title = 'Judul wajib diisi (minimal 5 karakter).';
+            }
 
-    // Validasi description
-    if (!description || description.length < 20) {
-        errors.description = 'Deskripsi wajib diisi (minimal 20 karakter).';
-    }
+            // Validasi slug
+            if (!slug || slug.length < 3) {
+                errors.slug = 'Slug wajib diisi (minimal 3 karakter).';
+            } else if (!/^[a-z0-9-]+$/.test(slug)) {
+                errors.slug = 'Slug hanya boleh huruf kecil, angka, dan tanda hubung (-).';
+            }
 
-    // Validasi price
-    if (price < 0) {
-        errors.price = 'Harga harus angka (minimal 0).';
-    }
+            // Validasi description
+            if (!description || description.length < 20) {
+                errors.description = 'Deskripsi wajib diisi (minimal 20 karakter).';
+            }
 
-    // Validasi maxParticipants
-    if (maxParticipants < 1 || maxParticipants > 100) {
-        errors.maxParticipants = 'Maksimal peserta harus antara 1-100.';
-    }
+            // Validasi price
+            if (price < 0) {
+                errors.price = 'Harga harus angka (minimal 0).';
+            }
 
-    // Validasi meetingLink (jika diisi)
-    if (meetingLink && !isValidUrl(meetingLink)) {
-        errors.meetingLink = 'URL tidak valid.';
-    }
+            // 🔥 TAMBAHAN: Validasi rekening untuk kelas berbayar
+            if (price > 0) {
+                if (!mentorBankName || !mentorBankAccount || !mentorBankHolder) {
+                    errors.bank = 'Untuk kelas berbayar, data rekening wajib diisi.';
+                }
+            }
 
-    return { errors, valid: Object.keys(errors).length === 0 };
-}
+            // Validasi maxParticipants
+            if (maxParticipants < 1 || maxParticipants > 100) {
+                errors.maxParticipants = 'Maksimal peserta harus antara 1-100.';
+            }
+
+            // Validasi meetingLink (jika diisi)
+            if (meetingLink && !isValidUrl(meetingLink)) {
+                errors.meetingLink = 'URL tidak valid.';
+            }
+
+            return { errors, valid: Object.keys(errors).length === 0 };
+        }
 
         function isValidUrl(string) {
             try {
@@ -685,19 +838,10 @@ function validateForm() {
         }
 
         // ============================================
-        // 6. SUBMIT FORM DENGAN VALIDASI & RATE LIMITING
+        // 6. SUBMIT FORM
         // ============================================
         document.getElementById('createForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
-            // ============================================
-            // RATE LIMITING - CREATE MENTORING
-            // ============================================
-            const rateCheck = checkRateLimit('create_mentoring');
-            if (!rateCheck.allowed) {
-                showFormMessage(rateCheck.message, 'error');
-                return;
-            }
 
             const hasAccess = await checkAuthAndLevel();
             if (!hasAccess) {
@@ -710,11 +854,7 @@ function validateForm() {
             document.querySelectorAll('.form-input').forEach(el => el.classList.remove('error'));
             showFormMessage('', '');
 
-            // ============================================
-// AMBIL DATA DARI FORM
-// ============================================
-// const formData = new FormData(this); // TIDAK DIPAKAI LAGI
-            
+            // Ambil data dari form
             const title = document.getElementById('title').value.trim();
             const slug = document.getElementById('slug').value.trim().toLowerCase();
             const description = document.getElementById('description').value.trim();
@@ -725,30 +865,45 @@ function validateForm() {
             const startDate = document.getElementById('startDate').value || null;
             const schedule = document.getElementById('schedule').value.trim() || null;
             const meetingLink = document.getElementById('meetingLink').value.trim() || null;
-            
-            // 🔥 FIELD ADMIN
+
+            // 🔥 TAMBAHAN: Ambil data rekening
+            const mentorBankName = document.getElementById('mentorBankName').value;
+            const mentorBankAccount = document.getElementById('mentorBankAccount').value.trim();
+            const mentorBankHolder = document.getElementById('mentorBankHolder').value.trim();
+
+            // 🔥 TAMBAHAN: Field admin
             const isOnboarding = document.getElementById('isOnboarding').value === 'true';
             const isMandatory = document.getElementById('isMandatory').value === 'true';
 
-// ============================================
-// VALIDASI
-// ============================================
-const validation = validateForm();
-showFieldError(validation, 'title', document.getElementById('titleError'));
-showFieldError(validation, 'slug', document.getElementById('slugError'));
-showFieldError(validation, 'description', document.getElementById('descriptionError'));
-showFieldError(validation, 'price', document.getElementById('priceError'));
-showFieldError(validation, 'maxParticipants', document.getElementById('maxParticipantsError'));
-showFieldError(validation, 'meetingLink', document.getElementById('meetingLinkError'));
+            // Validasi
+            const validation = validateForm();
+            showFieldError(validation, 'title', document.getElementById('titleError'));
+            showFieldError(validation, 'slug', document.getElementById('slugError'));
+            showFieldError(validation, 'description', document.getElementById('descriptionError'));
+            showFieldError(validation, 'price', document.getElementById('priceError'));
+            showFieldError(validation, 'maxParticipants', document.getElementById('maxParticipantsError'));
+            showFieldError(validation, 'meetingLink', document.getElementById('meetingLinkError'));
 
-if (!validation.valid) {
-    showFormMessage(validation.errors[Object.keys(validation.errors)[0]], 'error');
-    return;
-}
+            // 🔥 TAMBAHAN: Tampilkan error rekening
+            if (validation.errors.bank) {
+                const bankError = document.getElementById('mentorBankName').closest('.grid').parentElement;
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'error-message show text-red-500 text-xs mt-1';
+                errorMsg.textContent = validation.errors.bank;
+                bankError.appendChild(errorMsg);
+                document.getElementById('mentorBankName').classList.add('error');
+                document.getElementById('mentorBankAccount').classList.add('error');
+                document.getElementById('mentorBankHolder').classList.add('error');
+                showFormMessage(validation.errors.bank, 'error');
+                return;
+            }
 
-            // ============================================
+            if (!validation.valid) {
+                showFormMessage(validation.errors[Object.keys(validation.errors)[0]], 'error');
+                return;
+            }
+
             // CEK SLUG AVAILABILITY (DOUBLE CHECK)
-            // ============================================
             const { data: existingSlug } = await _supabase
                 .from('yata_mentoring_sessions')
                 .select('slug')
@@ -763,9 +918,7 @@ if (!validation.valid) {
                 return;
             }
 
-            // ============================================
-            // 🔥 CEK ONBOARDING (HANYA 1 YANG BOLEH AKTIF)
-            // ============================================
+            // CEK ONBOARDING (HANYA 1 YANG BOLEH AKTIF)
             if (isOnboarding) {
                 const { count: existingOnboarding } = await _supabase
                     .from('yata_mentoring_sessions')
@@ -787,9 +940,7 @@ if (!validation.valid) {
                 const session = await checkAuthAndLevel();
                 if (!session) return;
 
-                // ============================================
-                // INSERT KE DATABASE
-                // ============================================
+                // 🔥 TAMBAHAN: Insert dengan field rekening
                 const { data, error } = await _supabase
                     .from('yata_mentoring_sessions')
                     .insert([{
@@ -805,7 +956,10 @@ if (!validation.valid) {
                         start_date: startDate,
                         schedule: schedule,
                         meeting_link: meetingLink,
-                        // 🔥 FIELD BARU
+                        // 🔥 TAMBAHAN: field rekening
+                        mentor_bank_name: mentorBankName || null,
+                        mentor_bank_account: mentorBankAccount || null,
+                        mentor_bank_holder: mentorBankHolder || null,
                         is_onboarding: isOnboarding,
                         is_mandatory: isMandatory,
                         created_by: isAdmin ? 'admin' : 'member',
@@ -816,14 +970,7 @@ if (!validation.valid) {
 
                 if (error) throw error;
 
-                // ============================================
-                // SAVE RATE LIMIT (BERHASIL)
-                // ============================================
-                saveRateLimit('create_mentoring');
-
-                // ============================================
                 // KIRIM NOTIFIKASI KE ADMIN (JIKA BUKAN ADMIN)
-                // ============================================
                 if (!isAdmin) {
                     try {
                         const { data: admins } = await _supabase
