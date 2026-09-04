@@ -656,6 +656,12 @@
                     <a href="write.html" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition shadow-sm shadow-emerald-500/20 flex items-center gap-2">
                         <i class="fa-solid fa-plus"></i> Buat Tulisan
                     </a>
+                    
+                    <!-- 🔥 TAMBAHAN: TOMBOL AJUKAN PEMBICARA -->
+                    <button onclick="openSpeakerApplication()" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition shadow-sm shadow-purple-500/20 flex items-center gap-2">
+                        <i class="fa-solid fa-microphone"></i> Ajukan Pembicara
+                    </button>
+                    
                     <button onclick="openContactModal()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-4 py-2.5 rounded-xl text-sm transition flex items-center gap-2">
                         <i class="fa-regular fa-envelope"></i> Hubungi Tim
                     </button>
@@ -1124,6 +1130,62 @@
                 <h4 class="font-bold text-slate-800">✅ Pesan Terkirim!</h4>
                 <p class="text-sm text-slate-500 mt-1">Tim Yatta akan merespons pesan Anda secepatnya.</p>
                 <button onclick="closeContactModal()" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- 🔥 TAMBAHAN: MODAL PENGAJUAN PEMBICARA -->
+    <!-- ============================================ -->
+    <div id="speakerApplicationModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter max-h-[90vh] overflow-y-auto">
+            <button onclick="closeSpeakerApplication()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <span class="text-purple-600 text-sm font-bold uppercase tracking-wider">Pengajuan</span>
+                <h3 class="text-xl font-black text-slate-800 mt-1">🎤 Ajukan Diri sebagai Pembicara</h3>
+                <p class="text-xs text-slate-500 mt-1">Isi formulir untuk menjadi pembicara di event YATTA.</p>
+            </div>
+
+            <form id="speakerApplicationForm" class="space-y-4">
+                <div>
+                    <label for="appTopic" class="block text-xs font-semibold text-slate-700 mb-1">Topik yang Ingin Dibawakan <span class="text-red-500">*</span></label>
+                    <input type="text" id="appTopic" placeholder="Contoh: Teknik Menulis Cerpen yang Memikat" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="appExperience" class="block text-xs font-semibold text-slate-700 mb-1">Pengalaman Menulis / Mengajar <span class="text-red-500">*</span></label>
+                    <textarea id="appExperience" rows="3" placeholder="Ceritakan pengalaman menulis atau mengajar Anda..." required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm resize-none"></textarea>
+                </div>
+
+                <div>
+                    <label for="appAvailability" class="block text-xs font-semibold text-slate-700 mb-1">Ketersediaan Waktu</label>
+                    <input type="text" id="appAvailability" placeholder="Contoh: Sabtu/Minggu, 19.00 WIB" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm" />
+                </div>
+
+                <div>
+                    <label for="appPortfolio" class="block text-xs font-semibold text-slate-700 mb-1">Portfolio / Karya (opsional)</label>
+                    <input type="url" id="appPortfolio" placeholder="https://..." class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm" />
+                </div>
+
+                <button type="submit" id="appSubmitBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-regular fa-paper-plane mr-1"></i> Kirim Pengajuan
+                </button>
+
+                <div id="appMessage" class="text-sm text-center hidden"></div>
+            </form>
+
+            <div id="appSuccess" class="hidden text-center py-4">
+                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fa-solid fa-check text-purple-600 text-2xl"></i>
+                </div>
+                <h4 class="font-bold text-slate-800">✅ Pengajuan Terkirim!</h4>
+                <p class="text-sm text-slate-500 mt-1">Admin akan meninjau pengajuan Anda dan menghubungi jadwal.</p>
+                <button onclick="closeSpeakerApplication()" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition">
                     Tutup
                 </button>
             </div>
@@ -2422,6 +2484,127 @@
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Pesan';
             }
+        });
+
+        // ============================================
+        // 🔥 TAMBAHAN: FUNGSI PENGAJUAN PEMBICARA
+        // ============================================
+
+        function openSpeakerApplication() {
+            document.getElementById('speakerApplicationModal').classList.remove('hidden');
+            document.getElementById('speakerApplicationForm').classList.remove('hidden');
+            document.getElementById('appSuccess').classList.add('hidden');
+            document.getElementById('appMessage').className = 'text-sm text-center hidden';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSpeakerApplication() {
+            document.getElementById('speakerApplicationModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            document.getElementById('speakerApplicationForm').reset();
+        }
+
+        document.getElementById('speakerApplicationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            var topic = document.getElementById('appTopic').value.trim();
+            var experience = document.getElementById('appExperience').value.trim();
+            var availability = document.getElementById('appAvailability').value.trim();
+            var portfolio = document.getElementById('appPortfolio').value.trim();
+
+            if (!topic || !experience) {
+                showAppMessage('Harap isi topik dan pengalaman.', 'error');
+                return;
+            }
+
+            var submitBtn = document.getElementById('appSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
+            showAppMessage('', '');
+
+            try {
+                var session = await checkAuth(false);
+                if (!session) return;
+
+                // 1. Insert pengajuan ke database
+                var { data, error } = await _supabase
+                    .from('yata_speaker_applications')
+                    .insert([{
+                        user_id: session.user.id,
+                        topic: topic,
+                        experience: experience,
+                        availability: availability || null,
+                        portfolio: portfolio || null,
+                        status: 'pending'
+                    }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                // 2. Kirim notifikasi ke admin
+                var { data: admins } = await _supabase
+                    .from('yata_profiles')
+                    .select('id')
+                    .eq('role', 'admin');
+
+                if (admins && admins.length > 0) {
+                    var notifContent = '🎤 ' + (session.user.user_metadata?.full_name || 'Member') + ' mengajukan diri sebagai pembicara.\n\n📌 Topik: ' + topic + '\n📝 Pengalaman: ' + experience + '\n📅 Ketersediaan: ' + (availability || 'Tidak disebutkan');
+
+                    for (var i = 0; i < admins.length; i++) {
+                        var admin = admins[i];
+                        var { data: notifData } = await _supabase
+                            .from('yata_notifications')
+                            .insert([{
+                                title: '🎤 Pengajuan Pembicara Baru!',
+                                content: notifContent,
+                                type: 'event'
+                            }])
+                            .select()
+                            .single();
+
+                        if (notifData) {
+                            await _supabase
+                                .from('yata_user_notifications')
+                                .insert([{
+                                    notification_id: notifData.id,
+                                    user_id: admin.id,
+                                    is_read: false
+                                }]);
+                        }
+                    }
+                }
+
+                // 3. Kirim notifikasi ke user (konfirmasi pengajuan)
+                await sendNotification(
+                    session.user.id,
+                    '🎤 Pengajuan Pembicara Terkirim!',
+                    'Pengajuan Anda sebagai pembicara dengan topik "' + topic + '" telah terkirim. Admin akan menghubungi Anda untuk jadwal.',
+                    'info'
+                );
+
+                document.getElementById('speakerApplicationForm').classList.add('hidden');
+                document.getElementById('appSuccess').classList.remove('hidden');
+                showAppMessage('✅ Pengajuan berhasil dikirim!', 'success');
+
+            } catch (err) {
+                console.error('Submit application error:', err);
+                showAppMessage('❌ Gagal mengirim pengajuan: ' + err.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-regular fa-paper-plane mr-1"></i> Kirim Pengajuan';
+            }
+        });
+
+        function showAppMessage(text, type) {
+            var msg = document.getElementById('appMessage');
+            msg.textContent = text;
+            msg.className = 'text-sm text-center ' + (type ? 'block' : 'hidden') + ' ' + (type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-red-600' : '');
+        }
+
+        // Event listener untuk close modal klik di luar
+        document.getElementById('speakerApplicationModal').addEventListener('click', function(e) {
+            if (e.target === this) closeSpeakerApplication();
         });
 
         // ============================================
