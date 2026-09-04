@@ -229,6 +229,15 @@
             background: #FCE7F3;
             color: #9D174D;
         }
+        .speaker-badge {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            display: inline-block;
+            background: #F3E8FF;
+            color: #6B21A8;
+        }
     </style>
 </head>
 <body>
@@ -332,6 +341,7 @@
                                 <span id="sessionCategory" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-600">Umum</span>
                                 <span id="onboardingBadge" class="onboarding-badge hidden">🎓 Onboarding</span>
                                 <span id="mandatoryBadge" class="mandatory-badge hidden">📖 Wajib</span>
+                                <span id="speakerBadge" class="speaker-badge hidden">🎤 Pembicara</span>
                             </div>
                             <h1 id="sessionTitle" class="text-2xl md:text-3xl font-black text-slate-800">Judul Kelas</h1>
                             
@@ -361,7 +371,7 @@
                             <div id="accessMessageContainer" class="mt-3"></div>
                         </div>
                         <div class="flex flex-col items-end gap-2 flex-shrink-0" id="actionButtons">
-                            <button id="registerBtn" onclick="openRegisterModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            <button id="registerBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
                                 <i class="fa-regular fa-user-plus mr-1"></i> Daftar Sekarang
                             </button>
                             <span id="registrationStatus" class="text-xs text-slate-400 hidden"></span>
@@ -506,9 +516,7 @@
         </div>
     </div>
 
-    <!-- ============================================ -->
-    <!-- 🔥 TAMBAHAN: MODAL PEMBAYARAN -->
-    <!-- ============================================ -->
+    <!-- MODAL PEMBAYARAN -->
     <div id="paymentModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter max-h-[90vh] overflow-y-auto">
             <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">
@@ -524,7 +532,6 @@
             <form id="paymentForm" class="space-y-4">
                 <input type="hidden" id="paymentSessionId" value="" />
 
-                <!-- Detail Pembayaran -->
                 <div class="bg-amber-50 rounded-xl p-4 border border-amber-200">
                     <p class="text-sm font-semibold text-slate-700" id="paymentClassName">Kelas</p>
                     <p class="text-sm text-slate-600">Harga: <strong id="paymentPrice">Rp0</strong></p>
@@ -534,7 +541,6 @@
                     </div>
                 </div>
 
-                <!-- Upload Bukti -->
                 <div>
                     <label for="paymentProof" class="block text-xs font-semibold text-slate-700 mb-1">Upload Bukti Transfer <span class="text-red-500">*</span></label>
                     <input type="file" id="paymentProof" accept="image/*" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm file:mr-2 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100" />
@@ -686,13 +692,16 @@
 
     <!-- JAVASCRIPT -->
     <script>
-        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        var _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
-        let sessionId = null;
-        let sessionData = null;
-        let currentUser = null;
-        let participantStatus = null;
-        let reviewStatus = null;
+        var sessionId = null;
+        var sessionData = null;
+        var currentUser = null;
+        var participantStatus = null;
+        var reviewStatus = null;
+        var speakerConfirmed = false;
+        var speakerApproved = false;
+        var isSpeakerParticipant = false;
 
         // ============================================
         // CEK AKSES PROYEK BUKU
@@ -700,16 +709,16 @@
         async function checkProjectAccess(e) {
             if (e) e.preventDefault();
             try {
-                const { data: { session } } = await _supabase.auth.getSession();
+                var { data: { session } } = await _supabase.auth.getSession();
                 if (!session) { window.location.href = 'login.html'; return; }
-                const { data: profile, error } = await _supabase
+                var { data: profile, error } = await _supabase
                     .from('yata_profiles')
                     .select('member_level')
                     .eq('id', session.user.id)
                     .single();
                 if (error) { window.location.href = 'projects.html'; return; }
-                const allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
-                if (allowedLevels.includes(profile.member_level)) {
+                var allowedLevels = ['Penulis', 'Penulis Profesional', 'Mentor'];
+                if (allowedLevels.indexOf(profile.member_level) !== -1) {
                     window.location.href = 'projects.html';
                 } else {
                     showError('⚠️ Fitur Proyek Buku hanya untuk Member level Penulis ke atas!', 'Akses Ditolak');
@@ -724,7 +733,7 @@
         // 1. AMBIL ID DARI URL
         // ============================================
         function getSessionId() {
-            const params = new URLSearchParams(window.location.search);
+            var params = new URLSearchParams(window.location.search);
             return params.get('id');
         }
 
@@ -733,7 +742,7 @@
         // ============================================
         async function checkAuth() {
             try {
-                const { data: { session } } = await _supabase.auth.getSession();
+                var { data: { session } } = await _supabase.auth.getSession();
                 if (session) {
                     currentUser = session.user;
                 }
@@ -749,7 +758,7 @@
         // ============================================
         async function checkClassAccess(sessionId, userId) {
             try {
-                const { data: session, error: sessionError } = await _supabase
+                var { data: session, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('is_onboarding, is_mandatory, title')
                     .eq('id', sessionId)
@@ -774,7 +783,7 @@
                     };
                 }
 
-                const { data: onboardingData, error: onboardingError } = await _supabase
+                var { data: onboardingData, error: onboardingError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('id, attended, session_id')
                     .eq('user_id', userId)
@@ -790,11 +799,11 @@
                     };
                 }
 
-                let hasOnboarding = false;
+                var hasOnboarding = false;
                 if (onboardingData && onboardingData.length > 0) {
-                    const onboardingSessionIds = onboardingData.map(p => p.session_id);
+                    var onboardingSessionIds = onboardingData.map(function(p) { return p.session_id; });
                     
-                    const { data: onboardingSessions, error: sessionCheckError } = await _supabase
+                    var { data: onboardingSessions, error: sessionCheckError } = await _supabase
                         .from('yata_mentoring_sessions')
                         .select('id')
                         .in('id', onboardingSessionIds)
@@ -847,7 +856,7 @@
             try {
                 await checkAuth();
 
-                const { data: session, error } = await _supabase
+                var { data: session, error } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('*')
                     .eq('id', sessionId)
@@ -872,7 +881,7 @@
 
                 sessionData = session;
 
-                const mentorName = session.mentor_name || 'Mentor YATTA';
+                var mentorName = session.mentor_name || 'Mentor YATTA';
                 session.mentor = {
                     full_name: mentorName,
                     username: 'mentor',
@@ -880,33 +889,46 @@
                     avatar_url: null
                 };
 
+                // Reset status
+                participantStatus = null;
+                speakerConfirmed = false;
+                speakerApproved = false;
+                isSpeakerParticipant = false;
+
                 if (currentUser) {
-                    const { data: participant } = await _supabase
+                    var { data: participant, error: partError } = await _supabase
                         .from('yata_mentoring_participants')
-                        .select('status, attended')
+                        .select('status, attended, role, speaker_approved, confirmed_at')
                         .eq('session_id', sessionId)
                         .eq('user_id', currentUser.id)
                         .maybeSingle();
 
-                    if (participant) {
+                    if (!partError && participant) {
                         participantStatus = participant.status;
-                        attended = participant.attended || false;
+                        var attended = participant.attended || false;
                         if (participant.attended === true) {
                             participantStatus = 'completed';
                         }
+                        isSpeakerParticipant = participant.role === 'mentor_speaker';
+                        speakerApproved = participant.speaker_approved || false;
+                        speakerConfirmed = participant.confirmed_at !== null;
                     }
 
-                    const { data: review } = await _supabase
+                    var { data: review, error: reviewError } = await _supabase
                         .from('yata_onboarding_reviews')
                         .select('id')
                         .eq('user_id', currentUser.id)
                         .eq('session_id', sessionId)
                         .maybeSingle();
 
-                    reviewStatus = review ? 'reviewed' : 'not_reviewed';
+                    if (!reviewError && review) {
+                        reviewStatus = 'reviewed';
+                    } else {
+                        reviewStatus = 'not_reviewed';
+                    }
                 }
 
-                const { data: materials, error: materialError } = await _supabase
+                var { data: materials, error: materialError } = await _supabase
                     .from('yata_mentoring_materials')
                     .select('*')
                     .eq('session_id', sessionId)
@@ -916,14 +938,14 @@
                     session.materials = materials || [];
                 }
 
-                const { data: reviews, error: reviewError } = await _supabase
+                var { data: reviews, error: reviewError2 } = await _supabase
                     .from('yata_onboarding_reviews')
                     .select('*, profile:user_id(full_name)')
                     .eq('session_id', sessionId)
                     .order('created_at', { ascending: false })
                     .limit(5);
 
-                if (!reviewError) {
+                if (!reviewError2) {
                     session.reviews = reviews || [];
                 }
 
@@ -943,14 +965,14 @@
         // 5. RENDER SESSION
         // ============================================
         function renderSession(session) {
-            const statusLabels = {
+            var statusLabels = {
                 draft: '📝 Draft',
                 published: '✅ Published',
                 ongoing: '🔄 Sedang Berlangsung',
                 completed: '✅ Selesai',
                 cancelled: '❌ Dibatalkan'
             };
-            const statusClasses = {
+            var statusClasses = {
                 draft: 'status-draft',
                 published: 'status-published',
                 ongoing: 'status-ongoing',
@@ -958,29 +980,30 @@
                 cancelled: 'status-cancelled'
             };
 
-            const levelLabels = {
+            var levelLabels = {
                 pemula: '🌱 Pemula',
                 menengah: '📈 Menengah',
                 lanjutan: '🚀 Lanjutan'
             };
-            const levelClasses = {
+            var levelClasses = {
                 pemula: 'level-pemula',
                 menengah: 'level-menengah',
                 lanjutan: 'level-lanjutan'
             };
 
             document.getElementById('sessionStatus').textContent = statusLabels[session.status] || '📝 Draft';
-            document.getElementById('sessionStatus').className = `status-badge ${statusClasses[session.status] || 'status-draft'}`;
+            document.getElementById('sessionStatus').className = 'status-badge ' + (statusClasses[session.status] || 'status-draft');
             document.getElementById('sessionLevel').textContent = levelLabels[session.level] || '🌱 Pemula';
-            document.getElementById('sessionLevel').className = `level-badge ${levelClasses[session.level] || 'level-pemula'}`;
+            document.getElementById('sessionLevel').className = 'level-badge ' + (levelClasses[session.level] || 'level-pemula');
             document.getElementById('sessionCategory').textContent = session.category || 'Umum';
             document.getElementById('sessionTitle').textContent = session.title;
             document.getElementById('sessionDescription').textContent = session.description || 'Tidak ada deskripsi.';
 
             renderRating(session);
 
-            const onboardingBadge = document.getElementById('onboardingBadge');
-            const mandatoryBadge = document.getElementById('mandatoryBadge');
+            var onboardingBadge = document.getElementById('onboardingBadge');
+            var mandatoryBadge = document.getElementById('mandatoryBadge');
+            var speakerBadge = document.getElementById('speakerBadge');
             
             if (session.is_onboarding) {
                 onboardingBadge.classList.remove('hidden');
@@ -996,8 +1019,17 @@
                 mandatoryBadge.classList.add('hidden');
             }
 
-            const mentor = session.mentor || {};
-            const avatarEl = document.getElementById('mentorAvatar');
+            // 🔥 SPEAKER BADGE
+            var isSpeaker = session.speaker_id === currentUser?.id || isSpeakerParticipant;
+            if (isSpeaker) {
+                speakerBadge.classList.remove('hidden');
+                speakerBadge.textContent = '🎤 Pembicara';
+            } else {
+                speakerBadge.classList.add('hidden');
+            }
+
+            var mentor = session.mentor || {};
+            var avatarEl = document.getElementById('mentorAvatar');
             avatarEl.textContent = (mentor.full_name || 'M').charAt(0).toUpperCase();
             avatarEl.className = 'w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm overflow-hidden';
             document.getElementById('mentorName').textContent = mentor.full_name || 'Mentor YATTA';
@@ -1008,11 +1040,10 @@
             document.getElementById('startDate').textContent = session.start_date ? new Date(session.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'TBA';
             document.getElementById('schedule').textContent = session.schedule || 'TBA';
 
-            const isFree = session.price === 0;
-            const isPaid = session.price > 0;
+            var isFree = session.price === 0;
+            var isPaid = session.price > 0;
 
-            // 🔥 TAMBAHAN: Tampilkan harga dengan warna berbeda untuk berbayar
-            const priceDisplay = document.getElementById('priceDisplay');
+            var priceDisplay = document.getElementById('priceDisplay');
             if (isPaid) {
                 priceDisplay.textContent = '💰 Rp' + (session.price || 0).toLocaleString();
                 priceDisplay.className = 'font-bold text-amber-600';
@@ -1023,7 +1054,7 @@
 
             document.getElementById('infoLevel').textContent = levelLabels[session.level] || '🌱 Pemula';
             
-            const infoPrice = document.getElementById('infoPrice');
+            var infoPrice = document.getElementById('infoPrice');
             if (isPaid) {
                 infoPrice.textContent = '💰 Rp' + (session.price || 0).toLocaleString();
                 infoPrice.className = 'font-semibold text-amber-600';
@@ -1032,10 +1063,10 @@
                 infoPrice.className = 'font-semibold text-emerald-600';
             }
             
-            document.getElementById('infoQuota').textContent = `${session.current_participants || 0} / ${session.max_participants || '∞'}`;
+            document.getElementById('infoQuota').textContent = session.current_participants + ' / ' + (session.max_participants || '∞');
             document.getElementById('infoSchedule').textContent = session.schedule || 'TBA';
 
-            const classTypeLabel = document.getElementById('classTypeLabel');
+            var classTypeLabel = document.getElementById('classTypeLabel');
             if (session.is_onboarding) {
                 classTypeLabel.textContent = '🎓 Onboarding (Wajib)';
                 classTypeLabel.className = 'font-semibold text-sm text-blue-600';
@@ -1047,7 +1078,7 @@
                 classTypeLabel.className = 'font-semibold text-sm text-emerald-600';
             }
 
-            const meetingContainer = document.getElementById('meetingLinkContainer');
+            var meetingContainer = document.getElementById('meetingLinkContainer');
             if ((participantStatus === 'approved' || participantStatus === 'completed') && session.meeting_link) {
                 meetingContainer.classList.remove('hidden');
                 document.getElementById('meetingLink').href = session.meeting_link;
@@ -1056,17 +1087,16 @@
                 meetingContainer.classList.add('hidden');
             }
 
-            // 🔥 TAMBAHAN: Render info pembayaran di bawah deskripsi
-            const descContainer = document.getElementById('sessionDescription');
+            // 🔥 TAMPILKAN INFO PEMBAYARAN DI BAWAH DESKRIPSI
+            var descContainer = document.getElementById('sessionDescription');
             if (descContainer) {
-                // Cek apakah sudah ada elemen payment info sebelumnya, hapus jika ada
-                const existingPaymentInfo = document.getElementById('paymentInfoWrapper');
+                var existingPaymentInfo = document.getElementById('paymentInfoWrapper');
                 if (existingPaymentInfo) {
                     existingPaymentInfo.remove();
                 }
 
                 if (isPaid && session.mentor_bank_account) {
-                    const paymentHtml = `
+                    var paymentHtml = `
                         <div id="paymentInfoWrapper" class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
                             <h4 class="font-semibold text-amber-700 flex items-center gap-2">
                                 <i class="fa-solid fa-coins"></i> Informasi Pembayaran
@@ -1086,7 +1116,7 @@
                     `;
                     descContainer.insertAdjacentHTML('afterend', paymentHtml);
                 } else if (isPaid && !session.mentor_bank_account) {
-                    const paymentHtml = `
+                    var paymentHtml = `
                         <div id="paymentInfoWrapper" class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
                             <p class="text-sm text-yellow-700">
                                 ⚠️ Kelas ini berbayar namun rekening mentor belum diisi.
@@ -1098,23 +1128,52 @@
                 }
             }
 
-            // 🔥 TAMBAHAN: Update tombol register
+            // 🔥 TAMPILKAN INFO KHUSUS PEMBICARA
+            if (isSpeaker) {
+                var existingSpeakerInfo = document.getElementById('speakerInfoWrapper');
+                if (existingSpeakerInfo) {
+                    existingSpeakerInfo.remove();
+                }
+
+                var speakerInfoHtml = `
+                    <div id="speakerInfoWrapper" class="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+                        <div class="flex items-center gap-2 text-purple-700">
+                            <i class="fa-solid fa-microphone"></i>
+                            <span class="font-semibold">Anda adalah Pembicara di kelas ini!</span>
+                        </div>
+                        ${speakerConfirmed ? `
+                            <p class="text-sm text-emerald-600 mt-1">✅ Anda sudah mengonfirmasi kesiapan.</p>
+                        ` : `
+                            <p class="text-sm text-purple-600 mt-1">
+                                📌 Klik tombol "Konfirmasi Siap Jadi Pembicara" untuk mengonfirmasi kesiapan Anda.
+                            </p>
+                        `}
+                        ${speakerApproved ? `
+                            <p class="text-sm text-emerald-600 mt-1">✅ Sesi pembicaraan telah selesai dan disetujui admin.</p>
+                        ` : ''}
+                    </div>
+                `;
+                descContainer.insertAdjacentHTML('afterend', speakerInfoHtml);
+            }
+
+            // 🔥 UPDATE TOMBOL REGISTER & TOMBOL PEMBICARA
             updateRegisterButton(session);
 
-            const isCompleted = participantStatus === 'completed' || participantStatus === 'approved' && attended === true;
+            var isCompleted = participantStatus === 'completed' || participantStatus === 'approved' && attended === true;
             renderMaterials(session.materials || [], isCompleted);
             renderReviews(session.reviews || []);
         }
 
         // ============================================
-        // 🔥 TAMBAHAN: UPDATE REGISTER BUTTON
+        // 🔥 UPDATE REGISTER BUTTON + TOMBOL PEMBICARA
         // ============================================
         async function updateRegisterButton(session) {
-            const registerBtn = document.getElementById('registerBtn');
-            const statusText = document.getElementById('registrationStatus');
-            const accessContainer = document.getElementById('accessMessageContainer');
+            var registerBtn = document.getElementById('registerBtn');
+            var statusText = document.getElementById('registrationStatus');
+            var accessContainer = document.getElementById('accessMessageContainer');
+            var actionButtons = document.getElementById('actionButtons');
 
-            let access = { allowed: true, message: '', isOnboarding: false };
+            var access = { allowed: true, message: '', isOnboarding: false };
 
             if (currentUser) {
                 try {
@@ -1131,8 +1190,8 @@
 
             // Tampilkan access message
             if (accessContainer) {
-                let msgClass = 'access-unlocked';
-                let icon = '✅';
+                var msgClass = 'access-unlocked';
+                var icon = '✅';
                 if (!access.allowed) {
                     msgClass = 'access-locked';
                     icon = '🔒';
@@ -1153,9 +1212,39 @@
             registerBtn.disabled = false;
             statusText.classList.add('hidden');
 
+            // 🔥 HAPUS TOMBOL PEMBICARA LAMA
+            var existingSpeakerBtn = document.getElementById('speakerConfirmBtn');
+            if (existingSpeakerBtn) {
+                existingSpeakerBtn.remove();
+            }
+
+            // CEK APAKAH USER ADALAH PEMBICARA
+            var isSpeaker = session.speaker_id === currentUser?.id || isSpeakerParticipant;
+
+            if (isSpeaker && currentUser) {
+                // Tampilkan tombol konfirmasi pembicara
+                var speakerBtn = document.createElement('button');
+                speakerBtn.id = 'speakerConfirmBtn';
+                
+                if (speakerConfirmed) {
+                    speakerBtn.textContent = '✅ Sudah Konfirmasi Siap';
+                    speakerBtn.className = 'bg-emerald-100 text-emerald-700 font-bold px-6 py-3 rounded-xl text-sm transition cursor-default';
+                    speakerBtn.disabled = true;
+                } else {
+                    speakerBtn.textContent = '🎤 Konfirmasi Siap Jadi Pembicara';
+                    speakerBtn.className = 'bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition';
+                    speakerBtn.onclick = function() {
+                        confirmSpeakerReady(sessionId);
+                    };
+                }
+                if (actionButtons) {
+                    actionButtons.prepend(speakerBtn);
+                }
+            }
+
             if (!currentUser) {
                 registerBtn.textContent = '🔒 Login untuk Daftar';
-                registerBtn.onclick = () => {
+                registerBtn.onclick = function() {
                     document.getElementById('loginPopupModal').classList.remove('hidden');
                     document.body.style.overflow = 'hidden';
                 };
@@ -1220,8 +1309,7 @@
                 return;
             }
 
-            // 🔥 TOMBOL UTAMA: BEDA ANTARA GRATIS & BERBAYAR
-            const isPaid = session.price > 0;
+            var isPaid = session.price > 0;
 
             if (isPaid) {
                 registerBtn.textContent = '💳 Bayar & Daftar';
@@ -1240,20 +1328,92 @@
         }
 
         // ============================================
+        // 🔥 KONFIRMASI KESIAPAN PEMBICARA
+        // ============================================
+        async function confirmSpeakerReady(sessionId) {
+            if (!currentUser) {
+                showError('Silakan login terlebih dahulu.', 'Info');
+                return;
+            }
+
+            if (!confirm('Konfirmasi bahwa Anda siap menjadi pembicara di kelas ini?')) return;
+
+            try {
+                var { error } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .update({
+                        confirmed_at: new Date().toISOString(),
+                        status: 'confirmed'
+                    })
+                    .eq('session_id', sessionId)
+                    .eq('user_id', currentUser.id)
+                    .eq('role', 'mentor_speaker');
+
+                if (error) throw error;
+
+                // Kirim notifikasi ke admin
+                var { data: admins, error: adminError } = await _supabase
+                    .from('yata_profiles')
+                    .select('id')
+                    .eq('role', 'admin');
+
+                if (!adminError && admins && admins.length > 0) {
+                    var { data: session } = await _supabase
+                        .from('yata_mentoring_sessions')
+                        .select('title')
+                        .eq('id', sessionId)
+                        .single();
+
+                    var notifContent = '✅ ' + (currentProfile?.full_name || 'Member') + ' mengonfirmasi kesiapan sebagai pembicara untuk kelas "' + (session?.title || 'Kelas') + '".';
+
+                    for (var i = 0; i < admins.length; i++) {
+                        var admin = admins[i];
+                        var { data: notifData, error: notifError } = await _supabase
+                            .from('yata_notifications')
+                            .insert([{
+                                title: '🎤 Pembicara Konfirmasi Siap!',
+                                content: notifContent,
+                                type: 'event'
+                            }])
+                            .select()
+                            .single();
+
+                        if (!notifError && notifData) {
+                            await _supabase
+                                .from('yata_user_notifications')
+                                .insert([{
+                                    notification_id: notifData.id,
+                                    user_id: admin.id,
+                                    is_read: false
+                                }]);
+                        }
+                    }
+                }
+
+                showError('✅ Anda telah mengonfirmasi kesiapan sebagai pembicara!', 'Sukses');
+                await loadSessionDetail();
+
+            } catch (err) {
+                console.error('Confirm speaker error:', err);
+                showError('❌ Gagal konfirmasi: ' + err.message, 'Error');
+            }
+        }
+
+        // ============================================
         // 6. RENDER RATING
         // ============================================
         function renderRating(session) {
-            const avgRating = session.avg_rating || 0;
-            const totalReviews = session.total_reviews || 0;
+            var avgRating = session.avg_rating || 0;
+            var totalReviews = session.total_reviews || 0;
 
-            const starsEl = document.getElementById('ratingStars');
-            const scoreEl = document.getElementById('ratingScore');
-            const countEl = document.getElementById('ratingCount');
+            var starsEl = document.getElementById('ratingStars');
+            var scoreEl = document.getElementById('ratingScore');
+            var countEl = document.getElementById('ratingCount');
 
-            const fullStars = Math.floor(avgRating);
-            const hasHalfStar = avgRating - fullStars >= 0.5;
-            let starsHtml = '';
-            for (let i = 1; i <= 5; i++) {
+            var fullStars = Math.floor(avgRating);
+            var hasHalfStar = avgRating - fullStars >= 0.5;
+            var starsHtml = '';
+            for (var i = 1; i <= 5; i++) {
                 if (i <= fullStars) {
                     starsHtml += '⭐';
                 } else if (i === fullStars + 1 && hasHalfStar) {
@@ -1264,9 +1424,9 @@
             }
             starsEl.textContent = starsHtml;
             scoreEl.textContent = avgRating.toFixed(1);
-            countEl.textContent = `(${totalReviews} ulasan)`;
+            countEl.textContent = '(' + totalReviews + ' ulasan)';
 
-            const ratingDisplay = document.getElementById('ratingDisplay');
+            var ratingDisplay = document.getElementById('ratingDisplay');
             if (totalReviews === 0) {
                 ratingDisplay.style.display = 'none';
             } else {
@@ -1278,9 +1438,9 @@
         // 7. RENDER MATERIALS
         // ============================================
         function renderMaterials(materials, isCompleted) {
-            const container = document.getElementById('materialList');
+            var container = document.getElementById('materialList');
 
-            const canAccessMaterials = isCompleted === true;
+            var canAccessMaterials = isCompleted === true;
 
             if (materials.length === 0) {
                 container.innerHTML = `
@@ -1304,7 +1464,7 @@
                 return;
             }
 
-            const fileIcons = {
+            var fileIcons = {
                 pdf: 'fa-regular fa-file-pdf text-red-500',
                 docx: 'fa-regular fa-file-word text-blue-500',
                 image: 'fa-regular fa-file-image text-purple-500',
@@ -1312,8 +1472,8 @@
                 default: 'fa-regular fa-file text-slate-400'
             };
 
-            container.innerHTML = materials.map(m => {
-                const icon = fileIcons[m.file_type] || fileIcons.default;
+            container.innerHTML = materials.map(function(m) {
+                var icon = fileIcons[m.file_type] || fileIcons.default;
                 return `
                     <div class="material-item flex items-center gap-3 p-3 rounded-xl border border-slate-100">
                         <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-lg">
@@ -1321,7 +1481,7 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="font-semibold text-slate-800 text-sm">${m.title}</p>
-                            ${m.content ? `<p class="text-xs text-slate-500 line-clamp-1">${m.content}</p>` : ''}
+                            ${m.content ? '<p class="text-xs text-slate-500 line-clamp-1">' + m.content + '</p>' : ''}
                         </div>
                         ${m.file_url ? `
                             <a href="${m.file_url}" target="_blank" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold px-3 py-1 rounded-full transition">
@@ -1337,8 +1497,8 @@
         // 8. RENDER REVIEWS
         // ============================================
         function renderReviews(reviews) {
-            const container = document.getElementById('reviewList');
-            const countEl = document.getElementById('reviewCount');
+            var container = document.getElementById('reviewList');
+            var countEl = document.getElementById('reviewCount');
 
             countEl.textContent = reviews.length;
 
@@ -1352,10 +1512,10 @@
                 return;
             }
 
-            container.innerHTML = reviews.map(r => {
-                const avgRating = (r.material_understanding + r.platform_satisfaction) / 2;
-                const stars = '⭐'.repeat(Math.round(avgRating)) + '☆'.repeat(5 - Math.round(avgRating));
-                const name = r.profile?.full_name || 'Member';
+            container.innerHTML = reviews.map(function(r) {
+                var avgRating = (r.material_understanding + r.platform_satisfaction) / 2;
+                var stars = '⭐'.repeat(Math.round(avgRating)) + '☆'.repeat(5 - Math.round(avgRating));
+                var name = r.profile?.full_name || 'Member';
                 return `
                     <div class="review-card p-3 rounded-xl border border-slate-100">
                         <div class="flex items-center justify-between">
@@ -1390,10 +1550,10 @@
                 return;
             }
 
-            const sessionToUse = session || sessionData;
+            var sessionToUse = session || sessionData;
             if (!sessionToUse) return;
 
-            const access = await checkClassAccess(sessionId, currentUser.id);
+            var access = await checkClassAccess(sessionId, currentUser.id);
             
             if (!access.allowed) {
                 document.getElementById('lockedMessage').textContent = access.message;
@@ -1408,14 +1568,16 @@
             }
 
             try {
-                const { data: profile } = await _supabase
+                var { data: profile, error: profileError } = await _supabase
                     .from('yata_profiles')
                     .select('full_name, email, member_level, member_id')
                     .eq('id', currentUser.id)
                     .single();
 
+                if (profileError) throw profileError;
+
                 document.getElementById('registerSessionId').value = sessionId;
-                document.getElementById('registerSubtitle').textContent = `Bergabung sebagai peserta "${sessionToUse?.title || 'Kelas'}"`;
+                document.getElementById('registerSubtitle').textContent = 'Bergabung sebagai peserta "' + (sessionToUse?.title || 'Kelas') + '"';
                 
                 document.getElementById('registerName').value = profile?.full_name || '';
                 document.getElementById('registerEmail').value = profile?.email || currentUser.email || '';
@@ -1454,20 +1616,20 @@
         // 10. POPUP KUOTA PENUH
         // ============================================
         async function showQuotaFullPopup(currentSession) {
-            const currentInfo = document.getElementById('currentSessionInfo');
+            var currentInfo = document.getElementById('currentSessionInfo');
             currentInfo.innerHTML = `
                 <p class="label">Kelas</p>
                 <p class="value">${currentSession.title}</p>
                 <p class="text-sm text-slate-600 mt-1">
                     <span class="font-semibold">Peserta:</span> ${currentSession.current_participants}/${currentSession.max_participants} (Penuh!)
                 </p>
-                ${currentSession.schedule ? `<p class="text-sm text-slate-600"><span class="font-semibold">Jadwal:</span> ${currentSession.schedule}</p>` : ''}
+                ${currentSession.schedule ? '<p class="text-sm text-slate-600"><span class="font-semibold">Jadwal:</span> ' + currentSession.schedule + '</p>' : ''}
             `;
 
             document.getElementById('quotaFullModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
 
-            const registerModal = document.getElementById('registerModal');
+            var registerModal = document.getElementById('registerModal');
             if (registerModal) {
                 registerModal.classList.add('hidden');
             }
@@ -1483,7 +1645,7 @@
         // ============================================
         async function updateQuota(sessionId) {
             try {
-                const { count, error: countError } = await _supabase
+                var { count, error: countError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*', { count: 'exact', head: true })
                     .eq('session_id', sessionId)
@@ -1491,7 +1653,7 @@
 
                 if (countError) throw countError;
 
-                const { error: updateError } = await _supabase
+                var { error: updateError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .update({ current_participants: count || 0 })
                     .eq('id', sessionId);
@@ -1513,13 +1675,13 @@
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const sessionId = document.getElementById('registerSessionId').value;
-            const name = document.getElementById('registerName').value.trim();
-            const email = document.getElementById('registerEmail').value.trim();
-            const level = document.getElementById('registerLevel').value;
-            const memberId = document.getElementById('registerMemberId').value.trim();
-            const phone = document.getElementById('registerPhone').value.trim();
-            const reason = document.getElementById('registerReason').value.trim();
+            var sessionId = document.getElementById('registerSessionId').value;
+            var name = document.getElementById('registerName').value.trim();
+            var email = document.getElementById('registerEmail').value.trim();
+            var level = document.getElementById('registerLevel').value;
+            var memberId = document.getElementById('registerMemberId').value.trim();
+            var phone = document.getElementById('registerPhone').value.trim();
+            var reason = document.getElementById('registerReason').value.trim();
 
             if (!name || !email || !phone) {
                 showRegisterMessage('Harap isi nama, email, dan nomor WA.', 'error');
@@ -1531,19 +1693,19 @@
                 return;
             }
 
-            const submitBtn = document.getElementById('registerSubmitBtn');
+            var submitBtn = document.getElementById('registerSubmitBtn');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mendaftar...';
             showRegisterMessage('', '');
 
             try {
-                const session = await checkAuth();
+                var session = await checkAuth();
                 if (!session) {
                     showRegisterMessage('Silakan login terlebih dahulu.', 'error');
                     return;
                 }
 
-                const { data: currentSession, error: sessionError } = await _supabase
+                var { data: currentSession, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('current_participants, max_participants, title, meeting_link, price')
                     .eq('id', sessionId)
@@ -1557,7 +1719,7 @@
                     return;
                 }
 
-                const { data: existing, error: checkError } = await _supabase
+                var { data: existing, error: checkError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('id')
                     .eq('session_id', sessionId)
@@ -1569,13 +1731,12 @@
                     return;
                 }
 
-                // 🔥 CEK APAKAH KELAS BERBAYAR - Jika price > 0, seharusnya tidak masuk ke sini
                 if (currentSession.price > 0) {
                     showRegisterMessage('⚠️ Kelas ini berbayar. Silakan gunakan tombol "Bayar & Daftar".', 'error');
                     return;
                 }
 
-                const { error: insertError } = await _supabase
+                var { error: insertError } = await _supabase
                     .from('yata_mentoring_participants')
                     .insert([{
                         session_id: sessionId,
@@ -1589,23 +1750,12 @@
 
                 await updateQuota(sessionId);
 
-                const isOnboarding = currentSession.is_onboarding || false;
-                const notifTitle = isOnboarding ? 
+                var isOnboarding = currentSession.is_onboarding || false;
+                var notifTitle = isOnboarding ? 
                     '🎓 Pendaftaran Onboarding Berhasil!' : 
                     '📝 Pendaftaran Kelas Berhasil!';
                 
-                const notifContent = `Anda berhasil mendaftar di kelas "${currentSession.title}".
-                
-📋 Data Pendaftaran:
-- Nama: ${name}
-- Email: ${email}
-- Level: ${level}
-- ID Anggota: ${memberId}
-- WhatsApp: ${phone}
-
-${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_link}` : '💡 Link meeting akan diinfokan kemudian.'}
-
-📌 Tips: Simpan link ini untuk akses cepat ke kelas.`;
+                var notifContent = 'Anda berhasil mendaftar di kelas "' + currentSession.title + '".\n\n📋 Data Pendaftaran:\n- Nama: ' + name + '\n- Email: ' + email + '\n- Level: ' + level + '\n- ID Anggota: ' + memberId + '\n- WhatsApp: ' + phone + '\n\n' + (currentSession.meeting_link ? '🔗 Link Meeting:\n' + currentSession.meeting_link : '💡 Link meeting akan diinfokan kemudian.') + '\n\n📌 Tips: Simpan link ini untuk akses cepat ke kelas.';
 
                 await sendNotification(
                     session.user.id,
@@ -1617,7 +1767,7 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
                 showRegisterMessage('✅ Pendaftaran berhasil!', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
 
-                setTimeout(() => {
+                setTimeout(function() {
                     closeRegisterModal();
                     loadSessionDetail();
                 }, 1500);
@@ -1632,15 +1782,15 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
         });
 
         function showRegisterMessage(text, type) {
-            const msg = document.getElementById('registerMessage');
+            var msg = document.getElementById('registerMessage');
             msg.textContent = text;
-            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-red-600' : ''}`;
+            msg.className = 'text-sm text-center ' + (type ? 'block' : 'hidden') + ' ' + (type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-red-600' : '');
         }
 
         // ============================================
-        // 🔥 TAMBAHAN: PEMBAYARAN - OPEN MODAL
+        // PEMBAYARAN - OPEN MODAL
         // ============================================
-        let currentPaymentSession = null;
+        var currentPaymentSession = null;
 
         function openPaymentModal(session) {
             currentPaymentSession = session;
@@ -1649,7 +1799,7 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
             document.getElementById('paymentClassName').textContent = session.title;
             document.getElementById('paymentPrice').textContent = 'Rp' + (session.price || 0).toLocaleString();
             document.getElementById('paymentBankInfo').textContent = 
-                `${session.mentor_bank_name || 'Bank'} - ${session.mentor_bank_account || 'N/A'} a.n. ${session.mentor_bank_holder || 'Mentor'}`;
+                (session.mentor_bank_name || 'Bank') + ' - ' + (session.mentor_bank_account || 'N/A') + ' a.n. ' + (session.mentor_bank_holder || 'Mentor');
             
             document.getElementById('paymentModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
@@ -1664,54 +1814,52 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
         }
 
         // ============================================
-        // 🔥 TAMBAHAN: SUBMIT PEMBAYARAN
+        // SUBMIT PEMBAYARAN
         // ============================================
         document.getElementById('paymentForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const sessionId = document.getElementById('paymentSessionId').value;
-            const fileInput = document.getElementById('paymentProof');
-            const notes = document.getElementById('paymentNotes').value.trim();
+            var sessionId = document.getElementById('paymentSessionId').value;
+            var fileInput = document.getElementById('paymentProof');
+            var notes = document.getElementById('paymentNotes').value.trim();
             
             if (!fileInput.files || !fileInput.files[0]) {
                 showPaymentMessage('Harap upload bukti transfer.', 'error');
                 return;
             }
             
-            const file = fileInput.files[0];
+            var file = fileInput.files[0];
             if (file.size > 5 * 1024 * 1024) {
                 showPaymentMessage('Ukuran file maksimal 5MB.', 'error');
                 return;
             }
             
-            const submitBtn = document.getElementById('paymentSubmitBtn');
+            var submitBtn = document.getElementById('paymentSubmitBtn');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
             showPaymentMessage('', '');
             
             try {
-                const session = await checkAuth();
+                var session = await checkAuth();
                 if (!session) return;
                 
-                // Upload bukti ke storage
-                const fileExt = file.name.split('.').pop();
-                const fileName = `payment-${sessionId}-${Date.now()}.${fileExt}`;
-                const filePath = `payment-proofs/${fileName}`;
+                var fileExt = file.name.split('.').pop();
+                var fileName = 'payment-' + sessionId + '-' + Date.now() + '.' + fileExt;
+                var filePath = 'payment-proofs/' + fileName;
                 
-                const { error: uploadError } = await _supabase.storage
+                var { error: uploadError } = await _supabase.storage
                     .from('payment-proofs')
                     .upload(filePath, file);
                 
                 if (uploadError) throw uploadError;
                 
-                const { data: urlData } = _supabase.storage
+                var { data: urlData } = _supabase.storage
                     .from('payment-proofs')
                     .getPublicUrl(filePath);
                 
-                const proofUrl = urlData.publicUrl;
+                var proofUrl = urlData.publicUrl;
                 
-                // Update participant dengan status pending payment
-                const { error: updateError } = await _supabase
+                var { error: updateError } = await _supabase
                     .from('yata_mentoring_participants')
                     .update({
                         payment_status: 'pending',
@@ -1724,25 +1872,24 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
                 
                 if (updateError) throw updateError;
                 
-                // Kirim notifikasi ke mentor
-                const { data: sessionData } = await _supabase
+                var { data: sessionData, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('mentor_id, title')
                     .eq('id', sessionId)
                     .single();
                 
-                if (sessionData && sessionData.mentor_id) {
-                    const { data: notifData } = await _supabase
+                if (!sessionError && sessionData && sessionData.mentor_id) {
+                    var { data: notifData, error: notifError } = await _supabase
                         .from('yata_notifications')
                         .insert([{
                             title: '💳 Ada Pembayaran Baru!',
-                            content: `Peserta mengirim bukti pembayaran untuk kelas "${sessionData.title}". Silakan verifikasi di dashboard.`,
+                            content: 'Peserta mengirim bukti pembayaran untuk kelas "' + sessionData.title + '". Silakan verifikasi di dashboard.',
                             type: 'warning'
                         }])
                         .select()
                         .single();
                     
-                    if (notifData) {
+                    if (!notifError && notifData) {
                         await _supabase
                             .from('yata_user_notifications')
                             .insert([{
@@ -1756,7 +1903,7 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
                 showPaymentMessage('✅ Bukti pembayaran terkirim! Menunggu konfirmasi mentor.', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Terkirim!';
                 
-                setTimeout(() => {
+                setTimeout(function() {
                     closePaymentModal();
                     loadSessionDetail();
                 }, 2000);
@@ -1771,24 +1918,24 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
         });
 
         function showPaymentMessage(text, type) {
-            const msg = document.getElementById('paymentMessage');
+            var msg = document.getElementById('paymentMessage');
             msg.textContent = text;
-            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-red-600' : ''}`;
+            msg.className = 'text-sm text-center ' + (type ? 'block' : 'hidden') + ' ' + (type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-red-600' : '');
         }
 
         // ============================================
         // 13. RATING FUNCTIONS
         // ============================================
-        let materialRatingValue = 0;
-        let platformRatingValue = 0;
-        let currentReviewSessionId = null;
+        var materialRatingValue = 0;
+        var platformRatingValue = 0;
+        var currentReviewSessionId = null;
 
         function setMaterialRating(rating) {
             materialRatingValue = rating;
             document.getElementById('materialRating').value = rating;
             
-            const stars = document.querySelectorAll('#materialStars span');
-            stars.forEach((star, index) => {
+            var stars = document.querySelectorAll('#materialStars span');
+            stars.forEach(function(star, index) {
                 if (index < rating) {
                     star.classList.add('active');
                 } else {
@@ -1796,16 +1943,16 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
                 }
             });
             
-            const labels = ['', 'Sangat Kurang', 'Kurang', 'Cukup', 'Baik', 'Sangat Baik'];
-            document.getElementById('materialLabel').textContent = `⭐ ${rating} - ${labels[rating]}`;
+            var labels = ['', 'Sangat Kurang', 'Kurang', 'Cukup', 'Baik', 'Sangat Baik'];
+            document.getElementById('materialLabel').textContent = '⭐ ' + rating + ' - ' + labels[rating];
         }
 
         function setPlatformRating(rating) {
             platformRatingValue = rating;
             document.getElementById('platformRating').value = rating;
             
-            const stars = document.querySelectorAll('#platformStars span');
-            stars.forEach((star, index) => {
+            var stars = document.querySelectorAll('#platformStars span');
+            stars.forEach(function(star, index) {
                 if (index < rating) {
                     star.classList.add('active');
                 } else {
@@ -1813,8 +1960,8 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
                 }
             });
             
-            const labels = ['', 'Sangat Kurang', 'Kurang', 'Cukup', 'Baik', 'Sangat Baik'];
-            document.getElementById('platformLabel').textContent = `⭐ ${rating} - ${labels[rating]}`;
+            var labels = ['', 'Sangat Kurang', 'Kurang', 'Cukup', 'Baik', 'Sangat Baik'];
+            document.getElementById('platformLabel').textContent = '⭐ ' + rating + ' - ' + labels[rating];
         }
 
         function openReviewModal(sessionId) {
@@ -1830,8 +1977,8 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
             document.getElementById('materialLabel').textContent = 'Klik bintang untuk menilai';
             document.getElementById('platformLabel').textContent = 'Klik bintang untuk menilai';
             
-            const allStars = document.querySelectorAll('#materialStars span, #platformStars span');
-            allStars.forEach(star => star.classList.remove('active'));
+            var allStars = document.querySelectorAll('#materialStars span, #platformStars span');
+            allStars.forEach(function(star) { star.classList.remove('active'); });
             
             document.getElementById('reviewModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
@@ -1849,26 +1996,26 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
         document.getElementById('reviewForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const sessionId = document.getElementById('reviewSessionId').value;
-            const materialRating = parseInt(document.getElementById('materialRating').value) || 0;
-            const platformRating = parseInt(document.getElementById('platformRating').value) || 0;
-            const feedback = document.getElementById('reviewFeedback').value.trim();
+            var sessionId = document.getElementById('reviewSessionId').value;
+            var materialRating = parseInt(document.getElementById('materialRating').value) || 0;
+            var platformRating = parseInt(document.getElementById('platformRating').value) || 0;
+            var feedback = document.getElementById('reviewFeedback').value.trim();
 
             if (materialRating === 0 || platformRating === 0) {
                 showReviewMessage('Harap beri rating untuk materi dan platform.', 'error');
                 return;
             }
 
-            const submitBtn = document.getElementById('reviewSubmitBtn');
+            var submitBtn = document.getElementById('reviewSubmitBtn');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengirim...';
             showReviewMessage('', '');
 
             try {
-                const session = await checkAuth();
+                var session = await checkAuth();
                 if (!session) return;
 
-                const { error } = await _supabase
+                var { error } = await _supabase
                     .from('yata_onboarding_reviews')
                     .insert([{
                         user_id: session.user.id,
@@ -1885,7 +2032,7 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
 
                 await updateSessionRating(sessionId);
 
-                setTimeout(() => {
+                setTimeout(function() {
                     closeReviewModal();
                     loadSessionDetail();
                 }, 2000);
@@ -1900,9 +2047,9 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
         });
 
         function showReviewMessage(text, type) {
-            const msg = document.getElementById('reviewMessage');
+            var msg = document.getElementById('reviewMessage');
             msg.textContent = text;
-            msg.className = `text-sm text-center ${type ? 'block' : 'hidden'} ${type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-red-600' : ''}`;
+            msg.className = 'text-sm text-center ' + (type ? 'block' : 'hidden') + ' ' + (type === 'success' ? 'text-emerald-600' : type === 'error' ? 'text-red-600' : '');
         }
 
         // ============================================
@@ -1910,7 +2057,7 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
         // ============================================
         async function updateSessionRating(sessionId) {
             try {
-                const { data: reviews, error } = await _supabase
+                var { data: reviews, error } = await _supabase
                     .from('yata_onboarding_reviews')
                     .select('material_understanding, platform_satisfaction')
                     .eq('session_id', sessionId);
@@ -1918,12 +2065,12 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
                 if (error) throw error;
 
                 if (reviews && reviews.length > 0) {
-                    let total = 0;
-                    reviews.forEach(r => {
-                        const avgRating = (r.material_understanding + r.platform_satisfaction) / 2;
+                    var total = 0;
+                    reviews.forEach(function(r) {
+                        var avgRating = (r.material_understanding + r.platform_satisfaction) / 2;
                         total += avgRating;
                     });
-                    const avg = total / reviews.length;
+                    var avg = total / reviews.length;
 
                     await _supabase
                         .from('yata_mentoring_sessions')
@@ -1933,7 +2080,7 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
                         })
                         .eq('id', sessionId);
 
-                    console.log(`✅ Rating diperbarui: ${avg.toFixed(2)} (${reviews.length} ulasan)`);
+                    console.log('✅ Rating diperbarui: ' + avg.toFixed(2) + ' (' + reviews.length + ' ulasan)');
                 }
             } catch (err) {
                 console.error('Update rating error:', err);
@@ -1943,9 +2090,10 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
         // ============================================
         // 16. NOTIFICATION HELPER
         // ============================================
-        async function sendNotification(userId, title, content, type = 'info') {
+        async function sendNotification(userId, title, content, type) {
+            if (type === undefined) type = 'info';
             try {
-                const { data: notifData, error } = await _supabase
+                var { data: notifData, error } = await _supabase
                     .from('yata_notifications')
                     .insert([{
                         title: title,
@@ -1979,7 +2127,7 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
                 try {
-                    const { error } = await _supabase.auth.signOut();
+                    var { error } = await _supabase.auth.signOut();
                     if (!error) {
                         window.location.href = 'login.html';
                     } else {
@@ -1994,12 +2142,12 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
         // ============================================
         // 18. EVENT LISTENERS
         // ============================================
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', function() {
             loadSessionDetail();
 
             if (window.location.hash === '#review') {
-                setTimeout(() => {
-                    const reviewSection = document.getElementById('review');
+                setTimeout(function() {
+                    var reviewSection = document.getElementById('review');
                     if (reviewSection) {
                         reviewSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
@@ -2013,8 +2161,10 @@ ${currentSession.meeting_link ? `🔗 Link Meeting:\n${currentSession.meeting_li
                 document.getElementById('mobileMenu').classList.toggle('hidden');
             });
 
-            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(el => {
-                el.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
+            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    document.getElementById('mobileMenu').classList.add('hidden');
+                });
             });
 
             document.getElementById('registerModal').addEventListener('click', function(e) {

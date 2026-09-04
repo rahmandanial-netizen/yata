@@ -21,6 +21,7 @@
         .status-present { background: #D1FAE5; color: #065F46; }
         .status-absent { background: #FEE2E2; color: #991B1B; }
         .status-pending { background: #FEF3C7; color: #92400E; }
+        .status-speaker-approved { background: #F3E8FF; color: #6B21A8; }
         .table-container { overflow-x: auto; }
         .presensi-table th { 
             position: sticky; 
@@ -35,11 +36,16 @@
         .btn-absen:hover { background: #B91C1C; }
         .btn-reset { background: #94A3B8; color: white; padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; }
         .btn-reset:hover { background: #64748B; }
+        .btn-speaker-approve { background: #7C3AED; color: white; padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; }
+        .btn-speaker-approve:hover { background: #6D28D9; }
+        .btn-speaker-approve:disabled { opacity: 0.5; cursor: not-allowed; }
         .riwayat-badge { font-weight: 600; font-size: 12px; padding: 2px 10px; border-radius: 9999px; display: inline-block; }
         .riwayat-complete { background: #D1FAE5; color: #065F46; }
         .riwayat-progress { color: #475569; }
         .badge-onboarding { background: #DBEAFE; color: #1E40AF; font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: 9999px; display: inline-block; }
         .badge-mandatory { background: #FCE7F3; color: #9D174D; font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: 9999px; display: inline-block; }
+        .badge-speaker { background: #F3E8FF; color: #6B21A8; font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: 9999px; display: inline-block; }
+        .badge-participant { background: #E2E8F0; color: #475569; font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: 9999px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -182,23 +188,23 @@
     <!-- JAVASCRIPT -->
     <!-- ============================================ -->
     <script>
-        const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+        var _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
-        let currentSessionId = null;
-        let allSessions = [];
+        var currentSessionId = null;
+        var allSessions = [];
 
         // ============================================
         // CEK ADMIN
         // ============================================
         async function checkAdmin() {
             try {
-                const { data: { session } } = await _supabase.auth.getSession();
+                var { data: { session } } = await _supabase.auth.getSession();
                 if (!session) {
                     window.location.href = 'login.html';
                     return null;
                 }
 
-                const { data: profile, error } = await _supabase
+                var { data: profile, error } = await _supabase
                     .from('yata_profiles')
                     .select('role')
                     .eq('id', session.user.id)
@@ -219,14 +225,15 @@
         }
 
         // ============================================
-        // 🔥 KIRIM NOTIFIKASI
+        // KIRIM NOTIFIKASI
         // ============================================
-        async function sendNotification(userId, title, content, type = 'info') {
+        async function sendNotification(userId, title, content, type) {
+            if (type === undefined) type = 'info';
             try {
                 console.log('📝 [sendNotification] Dipanggil untuk user:', userId);
                 console.log('📝 Title:', title);
                 
-                const { data: notifData, error } = await _supabase
+                var { data: notifData, error } = await _supabase
                     .from('yata_notifications')
                     .insert([{
                         title: title,
@@ -243,7 +250,7 @@
 
                 console.log('✅ Notifikasi berhasil dibuat, ID:', notifData.id);
 
-                const { error: linkError } = await _supabase
+                var { error: linkError } = await _supabase
                     .from('yata_user_notifications')
                     .insert([{
                         notification_id: notifData.id,
@@ -256,7 +263,7 @@
                     return false;
                 }
 
-                console.log(`✅ Notifikasi terkirim ke user ${userId}`);
+                console.log('✅ Notifikasi terkirim ke user ' + userId);
                 return true;
 
             } catch (err) {
@@ -266,15 +273,16 @@
         }
 
         // ============================================
-        // 🔥 KIRIM NOTIFIKASI DENGAN TOMBOL AKSI
+        // KIRIM NOTIFIKASI DENGAN TOMBOL AKSI
         // ============================================
-        async function sendNotificationWithAction(userId, title, content, type = 'success', actionLabel = null, actionUrl = null) {
+        async function sendNotificationWithAction(userId, title, content, type, actionLabel, actionUrl) {
+            if (type === undefined) type = 'success';
             try {
                 console.log('📝 [sendNotificationWithAction] Dipanggil untuk user:', userId);
                 console.log('📝 actionLabel:', actionLabel);
                 console.log('📝 actionUrl:', actionUrl);
                 
-                const { data: notifData, error } = await _supabase
+                var { data: notifData, error } = await _supabase
                     .from('yata_notifications')
                     .insert([{
                         title: title,
@@ -293,7 +301,7 @@
 
                 console.log('✅ Notifikasi berhasil dibuat, ID:', notifData.id);
 
-                const { error: linkError } = await _supabase
+                var { error: linkError } = await _supabase
                     .from('yata_user_notifications')
                     .insert([{
                         notification_id: notifData.id,
@@ -306,7 +314,7 @@
                     return false;
                 }
 
-                console.log(`✅ Notifikasi dengan aksi terkirim ke user ${userId}`);
+                console.log('✅ Notifikasi dengan aksi terkirim ke user ' + userId);
                 return true;
 
             } catch (err) {
@@ -316,14 +324,13 @@
         }
 
         // ============================================
-        // 🔥 BUAT SERTIFIKAT - TANPA certificate_name di WHERE
+        // BUAT SERTIFIKAT
         // ============================================
-        async function createCertificate(userId, certificateType = 'onboarding', certificateName = null) {
+        async function createCertificate(userId, certificateType, certificateName) {
             try {
                 console.log('🔍 [createCertificate] Dipanggil untuk user:', userId, 'type:', certificateType, 'name:', certificateName);
                 
-                // 🔥 CEK APAKAH SERTIFIKAT SUDAH ADA (TANPA certificate_name)
-                const { data: existingCert, error: certError } = await _supabase
+                var { data: existingCert, error: certError } = await _supabase
                     .from('yata_certificates')
                     .select('id, certificate_number')
                     .eq('user_id', userId)
@@ -340,8 +347,7 @@
                     return true;
                 }
 
-                // AMBIL DATA USER
-                const { data: profile, error: profileError } = await _supabase
+                var { data: profile, error: profileError } = await _supabase
                     .from('yata_profiles')
                     .select('full_name, email')
                     .eq('id', userId)
@@ -352,24 +358,23 @@
                     return false;
                 }
 
-                // GENERATE NOMOR SERTIFIKAT
-                const now = new Date();
-                const dateStr = now.getFullYear() + 
+                var now = new Date();
+                var dateStr = now.getFullYear() + 
                     String(now.getMonth() + 1).padStart(2, '0') + 
                     String(now.getDate()).padStart(2, '0');
-                const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+                var random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
                 
-                const typeMap = {
+                var typeMap = {
                     'onboarding': 'ONBOARD',
-                    'mandatory_mentoring': 'MENTOR'
+                    'mandatory_mentoring': 'MENTOR',
+                    'speaker_internal': 'SPEAKER'
                 };
-                const typeCode = typeMap[certificateType] || 'CERT';
-                const certNumber = `YATTA-${typeCode}-${dateStr}-${random}`;
+                var typeCode = typeMap[certificateType] || 'CERT';
+                var certNumber = 'YATTA-' + typeCode + '-' + dateStr + '-' + random;
 
                 console.log('📜 [createCertificate] Membuat sertifikat:', certNumber);
 
-                // ✅ INSERT SERTIFIKAT DENGAN certificate_name
-                const { data: newCert, error: insertError } = await _supabase
+                var { data: newCert, error: insertError } = await _supabase
                     .from('yata_certificates')
                     .insert([{
                         user_id: userId,
@@ -391,7 +396,7 @@
                     return false;
                 }
 
-                console.log(`✅ [createCertificate] Sertifikat BERHASIL dibuat: ${certNumber}`);
+                console.log('✅ [createCertificate] Sertifikat BERHASIL dibuat: ' + certNumber);
                 return true;
 
             } catch (err) {
@@ -401,13 +406,13 @@
         }
 
         // ============================================
-        // 🔥 CEK DAN BUAT SERTIFIKAT
+        // CEK DAN BUAT SERTIFIKAT
         // ============================================
         async function checkAndCreateCertificate(userId, sessionId) {
             try {
                 console.log('🔍 [checkAndCreateCertificate] Dipanggil untuk user:', userId, 'session:', sessionId);
                 
-                const { data: session, error: sessionError } = await _supabase
+                var { data: session, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('id, title, is_onboarding, is_mandatory')
                     .eq('id', sessionId)
@@ -418,14 +423,13 @@
                     return false;
                 }
 
-                const isAdminClass = session.is_onboarding === true || session.is_mandatory === true;
+                var isAdminClass = session.is_onboarding === true || session.is_mandatory === true;
                 if (!isAdminClass) {
                     console.log('ℹ️ Bukan kelas admin, tidak dapat sertifikat');
                     return false;
                 }
 
-                // CEK KEHADIRAN
-                const { count: attendedCount, error: attendError } = await _supabase
+                var { count: attendedCount, error: attendError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', userId)
@@ -437,15 +441,14 @@
                     return false;
                 }
 
-                console.log(`📊 Attended: ${attendedCount || 0}`);
+                console.log('📊 Attended: ' + (attendedCount || 0));
 
                 if ((attendedCount || 0) === 0) {
                     console.log('⏳ User belum hadir di kelas ini');
                     return false;
                 }
 
-                // CEK REVIEW
-                const { count: reviewCount, error: reviewError } = await _supabase
+                var { count: reviewCount, error: reviewError } = await _supabase
                     .from('yata_onboarding_reviews')
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', userId)
@@ -456,7 +459,7 @@
                     return false;
                 }
 
-                console.log(`📝 Review: ${reviewCount || 0}`);
+                console.log('📝 Review: ' + (reviewCount || 0));
 
                 if ((reviewCount || 0) === 0) {
                     console.log('⏳ User belum review kelas ini');
@@ -465,29 +468,21 @@
 
                 console.log('✅ User sudah hadir dan review, membuat sertifikat...');
 
-                // Tentukan tipe dan nama sertifikat
-                let certificateType = 'onboarding';
+                var certificateType = 'onboarding';
                 if (session.is_onboarding) {
                     certificateType = 'onboarding';
                 } else if (session.is_mandatory) {
                     certificateType = 'mandatory_mentoring';
                 }
 
-                // 🔥 GUNAKAN JUDUL KELAS SEBAGAI NAMA SERTIFIKAT
-                const certResult = await createCertificate(userId, certificateType, session.title);
+                var certResult = await createCertificate(userId, certificateType, session.title);
                 console.log('📜 Hasil sertifikat:', certResult ? 'BERHASIL' : 'GAGAL');
 
                 if (certResult) {
-                    const notifTitle = `📜 Sertifikat "${session.title}" Tersedia!`;
-                    const notifContent = `Selamat! Anda telah menyelesaikan kelas "${session.title}".
+                    var notifTitle = '📜 Sertifikat "' + session.title + '" Tersedia!';
+                    var notifContent = 'Selamat! Anda telah menyelesaikan kelas "' + session.title + '".\n\n🏛️ Sertifikat ditandatangani oleh:\nAbd. Rahman Danial\nFounder & CEO YATTA\n\n📌 Klik tombol di bawah untuk melihat dan mengunduh sertifikat Anda.';
 
-🏛️ Sertifikat ditandatangani oleh:
-Abd. Rahman Danial
-Founder & CEO YATTA
-
-📌 Klik tombol di bawah untuk melihat dan mengunduh sertifikat Anda.`;
-
-                    const result = await sendNotificationWithAction(
+                    var result = await sendNotificationWithAction(
                         userId,
                         notifTitle,
                         notifContent,
@@ -509,12 +504,11 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 🔥 LOAD SESSIONS - TAMPILKAN SEMUA KELAS WAJIB
+        // LOAD SESSIONS
         // ============================================
         async function loadSessions() {
             try {
-                // 🔥 AMBIL SEMUA KELAS WAJIB (Onboarding + Mentoring Admin)
-                const { data: sessions, error } = await _supabase
+                var { data: sessions, error } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('*')
                     .or('is_onboarding.eq.true,is_mandatory.eq.true')
@@ -528,7 +522,7 @@ Founder & CEO YATTA
 
                 allSessions = sessions || [];
 
-                const select = document.getElementById('sessionSelect');
+                var select = document.getElementById('sessionSelect');
                 select.innerHTML = '<option value="">-- Pilih Kelas --</option>';
 
                 if (allSessions.length === 0) {
@@ -542,10 +536,10 @@ Founder & CEO YATTA
                     return;
                 }
 
-                allSessions.forEach(s => {
-                    const option = document.createElement('option');
+                allSessions.forEach(function(s) {
+                    var option = document.createElement('option');
                     option.value = s.id;
-                    let label = s.title;
+                    var label = s.title;
                     if (s.is_onboarding) {
                         label += ' 🎓 (Onboarding)';
                     } else if (s.is_mandatory) {
@@ -572,7 +566,7 @@ Founder & CEO YATTA
         // LOAD ATTENDANCE
         // ============================================
         async function loadAttendance() {
-            const sessionId = document.getElementById('sessionSelect').value;
+            var sessionId = document.getElementById('sessionSelect').value;
             if (!sessionId) {
                 document.getElementById('attendanceTable').innerHTML = `
                     <div class="text-center py-8 text-slate-400 text-sm">
@@ -585,7 +579,7 @@ Founder & CEO YATTA
             }
 
             currentSessionId = sessionId;
-            const container = document.getElementById('attendanceTable');
+            var container = document.getElementById('attendanceTable');
             container.innerHTML = `
                 <div class="text-center py-8 text-slate-400 text-sm">
                     <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data presensi...
@@ -593,13 +587,34 @@ Founder & CEO YATTA
             `;
 
             try {
-                const { data: participants, error } = await _supabase
+                // 🔥 TAMBAHKAN: Ambil data termasuk role
+                var { data: participants, error } = await _supabase
                     .from('yata_onboarding_attendance_view')
                     .select('*')
                     .eq('session_id', sessionId)
                     .order('full_name', { ascending: true });
 
                 if (error) throw error;
+
+                // 🔥 TAMBAHKAN: Ambil role dari tabel asli
+                if (participants && participants.length > 0) {
+                    var participantIds = participants.map(function(p) { return p.participant_id; });
+                    var { data: roles, error: roleError } = await _supabase
+                        .from('yata_mentoring_participants')
+                        .select('id, role, speaker_approved')
+                        .in('id', participantIds);
+
+                    if (!roleError && roles) {
+                        var roleMap = {};
+                        roles.forEach(function(r) {
+                            roleMap[r.id] = r;
+                        });
+                        participants.forEach(function(p) {
+                            p.role = roleMap[p.participant_id]?.role || 'participant';
+                            p.speaker_approved = roleMap[p.participant_id]?.speaker_approved || false;
+                        });
+                    }
+                }
 
                 if (!participants || participants.length === 0) {
                     container.innerHTML = `
@@ -614,23 +629,22 @@ Founder & CEO YATTA
 
                 console.log('📊 Data dari VIEW:', participants);
 
-                const total = participants.length;
-                const present = participants.filter(p => p.attendance_status === 'present').length;
-                const absent = participants.filter(p => p.attendance_status === 'absent').length;
-                const pending = participants.filter(p => p.attendance_status === 'pending' || !p.attendance_status).length;
+                var total = participants.length;
+                var present = participants.filter(function(p) { return p.attendance_status === 'present'; }).length;
+                var absent = participants.filter(function(p) { return p.attendance_status === 'absent'; }).length;
+                var pending = participants.filter(function(p) { return p.attendance_status === 'pending' || !p.attendance_status; }).length;
 
                 document.getElementById('statTotal').textContent = total;
                 document.getElementById('statPresent').textContent = present;
                 document.getElementById('statAbsent').textContent = absent;
                 document.getElementById('statPending').textContent = pending;
 
-                const session = allSessions.find(s => s.id === sessionId);
+                var session = allSessions.find(function(s) { return s.id === sessionId; });
                 if (session) {
-                    const info = document.getElementById('sessionInfo');
+                    var info = document.getElementById('sessionInfo');
                     info.classList.remove('hidden');
                     
-                    // 🔥 TAMPILKAN BADGE JENIS KELAS
-                    let typeBadge = '';
+                    var typeBadge = '';
                     if (session.is_onboarding) {
                         typeBadge = '<span class="badge-onboarding ml-2">🎓 Onboarding</span>';
                     } else if (session.is_mandatory) {
@@ -640,19 +654,20 @@ Founder & CEO YATTA
                     
                     document.getElementById('sessionDetailSchedule').textContent = session.schedule || 'Jadwal TBA';
                     document.getElementById('sessionDetailZoom').textContent = session.meeting_link ? '🔗 Zoom Tersedia' : '';
-                    document.getElementById('sessionDetailZoom').className = `ml-3 ${session.meeting_link ? 'text-emerald-600' : 'text-slate-400'}`;
-                    document.getElementById('sessionDetailCount').textContent = `${participants.length} peserta`;
+                    document.getElementById('sessionDetailZoom').className = 'ml-3 ' + (session.meeting_link ? 'text-emerald-600' : 'text-slate-400');
+                    document.getElementById('sessionDetailCount').textContent = participants.length + ' peserta';
                 }
 
-                const allSessionsCount = allSessions.length;
+                var allSessionsCount = allSessions.length;
 
-                let html = `
+                var html = `
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm presensi-table">
                             <thead>
                                 <tr class="bg-slate-50">
                                     <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">No</th>
                                     <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">Nama</th>
+                                    <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">Role</th>
                                     <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">ID Anggota</th>
                                     <th class="px-3 py-3 text-left text-xs font-semibold text-slate-500">WA</th>
                                     <th class="px-3 py-3 text-center text-xs font-semibold text-slate-500">Status</th>
@@ -662,32 +677,68 @@ Founder & CEO YATTA
                             </thead>
                             <tbody>
                 `;
-                   participants.forEach((p, index) => {
-                    const name = p.full_name || 'Peserta ' + (index + 1);
-                    const memberId = p.member_id || '-';
-                    const phone = p.phone || '-';
-                    const regStatus = p.registration_status || 'pending';
-                    
-                    const attStatus = p.attendance_status || 'pending';
-                    const attLabel = attStatus === 'present' ? '✅ Hadir' : attStatus === 'absent' ? '❌ Absen' : '⏳ Belum';
-                    const attClass = attStatus === 'present' ? 'status-present' : attStatus === 'absent' ? 'status-absent' : 'status-pending';
 
-                    let actionButtons = '';
-                    if (attStatus === 'pending') {
-                        actionButtons = `
-                            <button onclick="markAttendance('${p.participant_id}', 'present')" class="btn-hadir">Hadir</button>
-                            <button onclick="markAttendance('${p.participant_id}', 'absent')" class="btn-absen">Absen</button>
-                        `;
+                participants.forEach(function(p, index) {
+                    var name = p.full_name || 'Peserta ' + (index + 1);
+                    var memberId = p.member_id || '-';
+                    var phone = p.phone || '-';
+                    var regStatus = p.registration_status || 'pending';
+                    
+                    var attStatus = p.attendance_status || 'pending';
+                    var attLabel = attStatus === 'present' ? '✅ Hadir' : attStatus === 'absent' ? '❌ Absen' : '⏳ Belum';
+                    var attClass = attStatus === 'present' ? 'status-present' : attStatus === 'absent' ? 'status-absent' : 'status-pending';
+
+                    // 🔥 TAMBAHKAN: Role & Speaker Status
+                    var isSpeaker = p.role === 'mentor_speaker';
+                    var roleLabel = isSpeaker ? '🎤 Pembicara' : '👤 Peserta';
+                    var roleClass = isSpeaker ? 'badge-speaker' : 'badge-participant';
+                    var isSpeakerApproved = p.speaker_approved || false;
+
+                    var actionButtons = '';
+                    
+                    if (isSpeaker) {
+                        // 🔥 TOMBOL UNTUK PEMBICARA
+                        if (attStatus === 'present' && !isSpeakerApproved) {
+                            actionButtons = `
+                                <button onclick="approveSpeakerAttendance('${p.participant_id}')" class="btn-speaker-approve">
+                                    <i class="fa-solid fa-check mr-1"></i> Approve & Sertifikat
+                                </button>
+                            `;
+                        } else if (isSpeakerApproved) {
+                            actionButtons = `
+                                <span class="text-xs text-emerald-600 font-semibold">✅ Sertifikat Terbit</span>
+                            `;
+                        } else if (attStatus === 'pending') {
+                            actionButtons = `
+                                <button onclick="markAttendance('${p.participant_id}', 'present')" class="btn-hadir">Hadir</button>
+                                <button onclick="markAttendance('${p.participant_id}', 'absent')" class="btn-absen">Absen</button>
+                            `;
+                        } else {
+                            actionButtons = `
+                                <span class="text-xs text-slate-400">⏳ Menunggu</span>
+                            `;
+                        }
                     } else {
-                        actionButtons = `
-                            <button onclick="markAttendance('${p.participant_id}', 'pending')" class="btn-reset">Reset</button>
-                        `;
+                        // 🔥 TOMBOL UNTUK PESERTA (NORMAL)
+                        if (attStatus === 'pending') {
+                            actionButtons = `
+                                <button onclick="markAttendance('${p.participant_id}', 'present')" class="btn-hadir">Hadir</button>
+                                <button onclick="markAttendance('${p.participant_id}', 'absent')" class="btn-absen">Absen</button>
+                            `;
+                        } else {
+                            actionButtons = `
+                                <button onclick="markAttendance('${p.participant_id}', 'pending')" class="btn-reset">Reset</button>
+                            `;
+                        }
                     }
 
                     html += `
                         <tr class="border-b border-slate-100 hover:bg-slate-50">
                             <td class="px-3 py-3 text-xs text-slate-400">${index + 1}</td>
                             <td class="px-3 py-3 font-medium text-slate-800">${name}</td>
+                            <td class="px-3 py-3 text-xs">
+                                <span class="px-2 py-0.5 rounded-full ${roleClass} font-semibold">${roleLabel}</span>
+                            </td>
                             <td class="px-3 py-3 text-xs text-slate-500">${memberId}</td>
                             <td class="px-3 py-3 text-xs text-slate-500">${phone}</td>
                             <td class="px-3 py-3 text-center">
@@ -699,6 +750,7 @@ Founder & CEO YATTA
                                 <span class="text-xs px-3 py-1 rounded-full font-semibold ${attClass}">
                                     ${attLabel}
                                 </span>
+                                ${isSpeakerApproved ? '<span class="text-xs text-purple-600 font-semibold ml-1">🎤 Selesai</span>' : ''}
                             </td>
                             <td class="px-3 py-3 text-center">
                                 <div class="flex items-center justify-center gap-1 flex-wrap">
@@ -715,6 +767,7 @@ Founder & CEO YATTA
                     </div>
                     <div class="mt-4 text-xs text-slate-400">
                         <p>💡 Klik "Hadir" atau "Absen" untuk mengisi presensi peserta.</p>
+                        <p>🎤 Pembicara akan mendapat sertifikat langsung setelah di-approve admin.</p>
                         <p>🎉 Kelas wajib: 1 Onboarding + 2 Mentoring Admin. Selesaikan semua untuk naik level!</p>
                     </div>
                 `;
@@ -735,13 +788,13 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 🔥 MARK ATTENDANCE - DENGAN NOTIFIKASI
+        // MARK ATTENDANCE
         // ============================================
         async function markAttendance(participantId, status) {
             try {
                 console.log('📝 [markAttendance] Participant:', participantId, 'Status:', status);
                 
-                const { data: participant, error: fetchError } = await _supabase
+                var { data: participant, error: fetchError } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*, session:session_id(*)')
                     .eq('id', participantId)
@@ -749,15 +802,15 @@ Founder & CEO YATTA
 
                 if (fetchError) throw fetchError;
 
-                const isPresent = status === 'present';
-                const sessionTitle = participant.session?.title || 'Kelas Onboarding';
-                const sessionId = participant.session_id;
-                const userId = participant.user_id;
+                var isPresent = status === 'present';
+                var sessionTitle = participant.session?.title || 'Kelas Onboarding';
+                var sessionId = participant.session_id;
+                var userId = participant.user_id;
 
                 console.log('📝 Session ID:', sessionId);
                 console.log('📝 User ID:', userId);
 
-                const { error: updateError } = await _supabase
+                var { error: updateError } = await _supabase
                     .from('yata_mentoring_participants')
                     .update({
                         attended: isPresent,
@@ -769,25 +822,17 @@ Founder & CEO YATTA
                 if (updateError) throw updateError;
 
                 if (isPresent) {
-                    // 🔥 KIRIM NOTIFIKASI KELAS SELESAI
                     console.log('📝 Mengirim notifikasi kelas selesai...');
                     
-                    const notifResult = await sendNotification(
+                    var notifResult = await sendNotification(
                         userId,
-                        `✅ Kelas "${sessionTitle}" Selesai!`,
-                        `Selamat! Anda telah menyelesaikan kelas "${sessionTitle}".
-
-📌 Langkah selanjutnya:
-1. Buka menu "Mentoring Saya"
-2. Klik tombol "Ulasan" pada kelas ini
-3. Berikan rating dan feedback
-4. Sertifikat akan otomatis tersedia!`,
+                        '✅ Kelas "' + sessionTitle + '" Selesai!',
+                        'Selamat! Anda telah menyelesaikan kelas "' + sessionTitle + '".\n\n📌 Langkah selanjutnya:\n1. Buka menu "Mentoring Saya"\n2. Klik tombol "Ulasan" pada kelas ini\n3. Berikan rating dan feedback\n4. Sertifikat akan otomatis tersedia!',
                         'success'
                     );
                     
                     console.log('📝 Hasil kirim notifikasi kelas selesai:', notifResult ? 'BERHASIL' : 'GAGAL');
 
-                    // Update status participant
                     await _supabase
                         .from('yata_mentoring_participants')
                         .update({ 
@@ -799,8 +844,8 @@ Founder & CEO YATTA
                 } else {
                     await sendNotification(
                         userId,
-                        `⚠️ Absen: ${sessionTitle}`,
-                        `Anda tidak mengikuti kelas "${sessionTitle}" hari ini.`,
+                        '⚠️ Absen: ' + sessionTitle,
+                        'Anda tidak mengikuti kelas "' + sessionTitle + '" hari ini.',
                         'warning'
                     );
                 }
@@ -814,7 +859,74 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 🔥 MARK ALL PRESENT - DENGAN NOTIFIKASI
+        // 🔥 APPROVE SPEAKER ATTENDANCE (BARU)
+        // ============================================
+        async function approveSpeakerAttendance(participantId) {
+            if (!confirm('Konfirmasi bahwa pembicara telah hadir dan menyelesaikan sesi?')) return;
+
+            try {
+                var { data: participant, error: fetchError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('*, session:session_id(*)')
+                    .eq('id', participantId)
+                    .single();
+
+                if (fetchError) throw fetchError;
+
+                var sessionTitle = participant.session?.title || 'Kelas Mentoring';
+                var userId = participant.user_id;
+
+                // 1. Update status pembicara
+                var { error: updateError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .update({
+                        attended: true,
+                        speaker_approved: true,
+                        attendance_status: 'present',
+                        attendance_time: new Date().toISOString(),
+                        status: 'completed'
+                    })
+                    .eq('id', participantId);
+
+                if (updateError) throw updateError;
+
+                // 2. 🔥 BUAT SERTIFIKAT UNTUK PEMBICARA
+                var certResult = await createCertificate(
+                    userId,
+                    'speaker_internal',
+                    'Pembicara: ' + sessionTitle
+                );
+
+                if (certResult) {
+                    // 3. Kirim notifikasi ke mentor
+                    var notifContent = '🎤 Selamat! Sesi pembicaraan Anda di "' + sessionTitle + '" telah selesai dan disetujui admin.\n\n📜 Sertifikat telah tersedia di menu Sertifikat.\n⭐ Syarat "Pembicara Internal" terpenuhi untuk naik level!\n\n🏛️ Sertifikat ditandatangani oleh:\nAbd. Rahman Danial\nFounder & CEO YATTA';
+
+                    await sendNotificationWithAction(
+                        userId,
+                        '🎤 Sesi Pembicaraan Selesai!',
+                        notifContent,
+                        'success',
+                        '📜 Lihat Sertifikat',
+                        '/certificates.html'
+                    );
+
+                    // 4. Update level otomatis
+                    if (typeof updateLevelUI === 'function') {
+                        await updateLevelUI(userId);
+                    }
+                }
+
+                alert('✅ Pembicara disetujui! Sertifikat telah terbit dan notifikasi dikirim.');
+                await loadAttendance();
+
+            } catch (err) {
+                console.error('Approve speaker error:', err);
+                alert('❌ Gagal approve pembicara: ' + err.message);
+            }
+        }
+
+        // ============================================
+        // MARK ALL PRESENT
         // ============================================
         async function markAllPresent() {
             if (!currentSessionId) {
@@ -825,16 +937,19 @@ Founder & CEO YATTA
             if (!confirm('Tandai semua peserta di kelas ini sebagai HADIR?')) return;
 
             try {
-                const { data: participants, error: fetchError } = await _supabase
+                var { data: participants, error: fetchError } = await _supabase
                     .from('yata_mentoring_participants')
-                    .select('id, user_id')
+                    .select('id, user_id, role')
                     .eq('session_id', currentSessionId);
 
                 if (fetchError) throw fetchError;
 
-                const sessionTitle = allSessions.find(s => s.id === currentSessionId)?.title || 'Kelas';
+                var sessionTitle = allSessions.find(function(s) { return s.id === currentSessionId; })?.title || 'Kelas';
 
-                for (const p of participants) {
+                for (var i = 0; i < participants.length; i++) {
+                    var p = participants[i];
+                    var isSpeaker = p.role === 'mentor_speaker';
+                    
                     await _supabase
                         .from('yata_mentoring_participants')
                         .update({
@@ -842,21 +957,24 @@ Founder & CEO YATTA
                             attendance_status: 'present',
                             attendance_time: new Date().toISOString(),
                             status: 'completed',
-                            completed_at: new Date().toISOString()
+                            completed_at: new Date().toISOString(),
+                            speaker_approved: isSpeaker ? true : false
                         })
                         .eq('id', p.id);
 
-                    // 🔥 KIRIM NOTIFIKASI KE SETIAP USER
+                    // 🔥 Jika pembicara, beri sertifikat langsung
+                    if (isSpeaker) {
+                        await createCertificate(
+                            p.user_id,
+                            'speaker_internal',
+                            'Pembicara: ' + sessionTitle
+                        );
+                    }
+
                     await sendNotification(
                         p.user_id,
-                        `✅ Kelas "${sessionTitle}" Selesai!`,
-                        `Selamat! Anda telah menyelesaikan kelas "${sessionTitle}".
-
-📌 Langkah selanjutnya:
-1. Buka menu "Mentoring Saya"
-2. Klik tombol "Ulasan" pada kelas ini
-3. Berikan rating dan feedback
-4. Sertifikat akan otomatis tersedia!`,
+                        '✅ Kelas "' + sessionTitle + '" Selesai!',
+                        'Selamat! Anda telah menyelesaikan kelas "' + sessionTitle + '".\n\n📌 Langkah selanjutnya:\n1. Buka menu "Mentoring Saya"\n2. Klik tombol "Ulasan" pada kelas ini\n3. Berikan rating dan feedback\n4. Sertifikat akan otomatis tersedia!',
                         'success'
                     );
                 }
@@ -891,7 +1009,7 @@ Founder & CEO YATTA
         async function handleLogout() {
             if (confirm('Yakin ingin keluar?')) {
                 try {
-                    const { error } = await _supabase.auth.signOut();
+                    var { error } = await _supabase.auth.signOut();
                     if (!error) {
                         window.location.href = 'login.html';
                     }
@@ -904,9 +1022,9 @@ Founder & CEO YATTA
         // ============================================
         // EVENT LISTENERS
         // ============================================
-        document.addEventListener('DOMContentLoaded', async () => {
-            await checkAdmin();
-            await loadSessions();
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAdmin();
+            loadSessions();
 
             document.getElementById('btnLogout').addEventListener('click', handleLogout);
             document.getElementById('btnLogoutMobile').addEventListener('click', handleLogout);
@@ -915,8 +1033,10 @@ Founder & CEO YATTA
                 document.getElementById('mobileMenu').classList.toggle('hidden');
             });
 
-            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(el => {
-                el.addEventListener('click', () => document.getElementById('mobileMenu').classList.add('hidden'));
+            document.querySelectorAll('#mobileMenu a, #mobileMenu button').forEach(function(el) {
+                el.addEventListener('click', function() {
+                    document.getElementById('mobileMenu').classList.add('hidden');
+                });
             });
         });
     </script>

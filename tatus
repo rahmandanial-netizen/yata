@@ -1,0 +1,201 @@
+[1mdiff --git a/admin.html b/admin.html[m
+[1mindex b044ef6..fed5a97 100644[m
+[1m--- a/admin.html[m
+[1m+++ b/admin.html[m
+[36m@@ -242,16 +242,7 @@[m
+         .rep-level-improving { background: #fef3c7; color: #92400e; }[m
+         .rep-level-limited { background: #fee2e2; color: #991b1b; }[m
+ [m
+[31m-        /* 🔥 TAMBAHAN: Style untuk pembicara */[m
+[31m-        .badge-speaker {[m
+[31m-            background: #F3E8FF;[m
+[31m-            color: #6B21A8;[m
+[31m-            font-size: 10px;[m
+[31m-            font-weight: 700;[m
+[31m-            padding: 2px 10px;[m
+[31m-            border-radius: 9999px;[m
+[31m-            display: inline-block;[m
+[31m-        }[m
+[32m+[m[32m        /* 🔥 TAMBAHAN: Style untuk pembicara applications */[m
+         .speaker-card {[m
+             transition: all 0.3s ease;[m
+         }[m
+[36m@@ -259,6 +250,11 @@[m
+             transform: translateY(-2px);[m
+             box-shadow: 0 8px 24px -8px rgba(107, 33, 168, 0.15);[m
+         }[m
+[32m+[m[32m        .badge-speaker-pending { background: #FEF3C7; color: #92400E; }[m
+[32m+[m[32m        .badge-speaker-approved { background: #D1FAE5; color: #065F46; }[m
+[32m+[m[32m        .badge-speaker-scheduled { background: #DBEAFE; color: #1E40AF; }[m
+[32m+[m[32m        .badge-speaker-rejected { background: #FEE2E2; color: #991B1B; }[m
+[32m+[m[32m        .badge-speaker-completed { background: #E0E7FF; color: #3730A3; }[m
+     </style>[m
+ </head>[m
+ <body>[m
+[36m@@ -309,9 +305,10 @@[m
+                 <a href="#" onclick="switchAdminTab('reputation')" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition" id="tabReputation">[m
+                     <i class="fa-solid fa-star w-5 text-yellow-500"></i> Reputasi Member[m
+                 </a>[m
+[31m-                <!-- 🔥 TAMBAHAN: Tab Kelola Pembicara -->[m
+[31m-                <a href="#" onclick="switchAdminTab('speakers')" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition" id="tabSpeakers">[m
+[31m-                    <i class="fa-solid fa-microphone w-5 text-purple-500"></i> Kelola Pembicara[m
+[32m+[m[32m                <!-- 🔥 TAMBAHAN: Tab Pengajuan Pembicara -->[m
+[32m+[m[32m                <a href="#" onclick="switchAdminTab('speaker_applications')" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition" id="tabSpeakerApplications">[m
+[32m+[m[32m                    <i class="fa-solid fa-microphone w-5 text-purple-500"></i> Pengajuan Pembicara[m
+[32m+[m[32m                    <span id="pendingSpeakerCount" class="ml-auto bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-0.5 rounded-full">0</span>[m
+                 </a>[m
+                 <a href="admin-presensi.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-600 rounded-xl transition">[m
+                     <i class="fa-solid fa-clipboard-check w-5"></i> Presensi Onboarding[m
+[36m@@ -354,8 +351,8 @@[m
+             <a href="#" onclick="switchAdminTab('onboarding')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kelola Onboarding</a>[m
+             <a href="#" onclick="switchAdminTab('levelRequests')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Pengajuan Naik Level</a>[m
+             <a href="#" onclick="switchAdminTab('reputation')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">⭐ Reputasi Member</a>[m
+[31m-            <!-- 🔥 TAMBAHAN: Mobile menu untuk pembicara -->[m
+[31m-            <a href="#" onclick="switchAdminTab('speakers')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">🎤 Kelola Pembicara</a>[m
+[32m+[m[32m            <!-- 🔥 TAMBAHAN: Mobile menu pengajuan pembicara -->[m
+[32m+[m[32m            <a href="#" onclick="switchAdminTab('speaker_applications')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">🎤 Pengajuan Pembicara</a>[m
+             <a href="admin-presensi.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Presensi Onboarding</a>[m
+             <hr class="my-2 border-emerald-100" />[m
+             <a href="dashboard.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kembali ke Yatta</a>[m
+[36m@@ -852,90 +849,33 @@[m
+             </div>[m
+ [m
+             <!-- ============================================ -->[m
+[31m-            <!-- 🔥 TAB: KELOLA PEMBICARA (BARU) -->[m
+[32m+[m[32m            <!-- 🔥 TAB: KELOLA PENGAJUAN PEMBICARA (BARU) -->[m
+             <!-- ============================================ -->[m
+[31m-            <div id="adminSpeakers" class="hidden bg-white rounded-2xl border border-emerald-100/60 shadow-sm overflow-hidden">[m
+[32m+[m[32m            <div id="adminSpeakerApplications" class="hidden bg-white rounded-2xl border border-emerald-100/60 shadow-sm overflow-hidden">[m
+                 <div class="p-4 border-b border-emerald-100/60">[m
+                     <div class="flex items-center justify-between">[m
+                         <div>[m
+[31m-                            <h2 class="font-bold text-slate-800">🎤 Tunjuk Pembicara Internal</h2>[m
+[31m-                            <p class="text-xs text-slate-500">Tunjuk mentor sebagai pembicara di kelas wajib.</p>[m
+[32m+[m[32m                            <h2 class="font-bold text-slate-800">🎤 Kelola Pengajuan Pembicara</h2>[m
+[32m+[m[32m                            <p class="text-xs text-slate-500">Tinjau pengajuan member yang ingin menjadi pembicara internal.</p>[m
+                         </div>[m
+                         <span class="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">🛡️ Admin Only</span>[m
+                     </div>[m
+                 </div>[m
+ [m
+[31m-                <div class="p-5">[m
+[31m-                    <!-- Pilih Kelas -->[m
+[31m-                    <div class="mb-4">[m
+[31m-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Kelas Wajib <span class="text-red-500">*</span></label>[m
+[31m-                        <select id="speakerSessionSelect" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white">[m
+[31m-                            <option value="">-- Pilih Kelas --</option>[m
+[31m-                        </select>[m
+[31m-                    </div>[m
+[31m-[m
+[31m-                    <!-- Cari Mentor -->[m
+[31m-                    <div class="mb-4">[m
+[31m-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Cari Mentor <span class="text-red-500">*</span></label>[m
+[31m-                        <div class="relative">[m
+[31m-                            <input type="text" id="speakerSearchMentor" placeholder="Cari mentor berdasarkan nama atau email..." [m
+[31m-                                   oninput="searchMentorsForSpeaker()"[m
+[31m-                                   class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm pl-9" />[m
+[31m-                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>[m
+[31m-                        </div>[m
+[31m-                        <div id="speakerMentorResults" class="mt-2 max-h-48 overflow-y-auto border border-slate-200 rounded-xl hidden bg-white shadow-lg"></div>[m
+[31m-                    </div>[m
+[31m-[m
+[31m-                    <!-- Mentor Terpilih -->[m
+[31m-                    <div id="speakerSelectedMentor" class="hidden mb-4 p-3 bg-purple-50 border border-purple-200 rounded-xl">[m
+[31m-                        <div class="flex items-center justify-between">[m
+[31m-                            <div class="flex items-center gap-3">[m
+[31m-                                <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm">[m
+[31m-                                    ?[m
+[31m-                                </div>[m
+[31m-                                <div>[m
+[31m-                                    <p id="speakerSelectedName" class="font-bold text-slate-800 text-sm">Nama Mentor</p>[m
+[31m-                                    <p id="speakerSelectedEmail" class="text-xs text-slate-500">email@domain.com</p>[m
+[31m-                                </div>[m
+[31m-                            </div>[m
+[31m-                            <button onclick="clearSelectedMentor()" class="text-red-400 hover:text-red-600 text-sm">[m
+[31m-                                <i class="fa-solid fa-xmark"></i>[m
+[31m-                            </button>[m
+[31m-                        </div>[m
+[31m-                        <input type="hidden" id="speakerSelectedMentorId" value="" />[m
+[31m-                    </div>[m
+[31m-[m
+[31m-                    <!-- Informasi Tambahan -->[m
+[31m-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">[m
+[31m-                        <div>[m
+[31m-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Topik / Materi</label>[m
+[31m-                            <input type="text" id="speakerTopic" placeholder="Contoh: Teknik Menulis Cerpen" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />[m
+[31m-                        </div>[m
+[31m-                        <div>[m
+[31m-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan Admin</label>[m
+[31m-                            <input type="text" id="speakerNotes" placeholder="Catatan internal..." class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />[m
+[31m-                        </div>[m
+[31m-                    </div>[m
+[31m-[m
+[31m-                    <button onclick="assignSpeaker()" id="assignSpeakerBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition text-sm disabled:opacity-50 disabled:cursor-not-allowed">[m
+[31m-                        <i class="fa-solid fa-microphone mr-1"></i> Tunjuk sebagai Pembicara[m
+[31m-                    </button>[m
+[31m-[m
+[31m-                    <div id="speakerMessage" class="mt-3 text-sm text-center hidden"></div>[m
+[32m+[m[32m                <!-- Filter Status -->[m
+[32m+[m[32m                <div class="p-4 border-b border-slate-100 flex flex-wrap items-center gap-2">[m
+[32m+[m[32m                    <button onclick="filterSpeakerApplications('all')" class="filter-btn active px-3 py-1.5 rounded-full text-xs font-bold transition bg-purple-600 text-white" id="spFilterAll">📋 Semua</button>[m
+[32m+[m[32m                    <button onclick="filterSpeakerApplications('pending')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="spFilterPending">⏳ Menunggu</button>[m
+[32m+[m[32m                    <button onclick="filterSpeakerApplications('approved')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="spFilterApproved">✅ Disetujui</button>[m
+[32m+[m[32m                    <button onclick="filterSpeakerApplications('scheduled')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="spFilterScheduled">📅 Dijadwalkan</button>[m
+[32m+[m[32m                    <button onclick="filterSpeakerApplications('rejected')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="spFilterRejected">❌ Ditolak</button>[m
+[32m+[m[32m                    <span class="ml-auto text-xs text-slate-400" id="speakerAppCount">0 pengajuan</span>[m
+                 </div>[m
+ [m
+[31m-                <!-- Daftar Pembicara yang Sudah Ditunjuk -->[m
+[31m-                <div class="p-5 border-t border-slate-100">[m
+[31m-                    <div class="flex items-center justify-between mb-3">[m
+[31m-                        <h3 class="font-semibold text-slate-700 text-sm">📋 Daftar Pembicara yang Ditunjuk</h3>[m
+[31m-                        <button onclick="loadAssignedSpeakers()" class="text-xs text-purple-600 hover:text-purple-700 font-semibold">[m
+[31m-                            <i class="fa-solid fa-rotate-right mr-1"></i> Refresh[m
+[31m-                        </button>[m
+[31m-                    </div>[m
+[31m-                    <div id="assignedSpeakersList" class="space-y-2">[m
+[31m-                        <div class="text-center py-6 text-slate-400 text-sm">[m
+[31m-                            <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat...[m
+[31m-                        </div>[m
+[32m+[m[32m                <!-- Daftar Pengajuan -->[m
+[32m+[m[32m                <div id="speakerApplicationsList" class="p-4 space-y-4">[m
+[32m+[m[32m                    <div class="text-center py-8 text-slate-400 text-sm">[m
+[32m+[m[32m                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat pengajuan...[m
+                     </div>[m
+                 </div>[m
+             </div>[m
+[36m@@ -1162,6 +1102,59 @@[m
+         </div>[m
+     </div>[m
+ [m
+[32m+[m[32m    <!-- ============================================ -->[m
+[32m+[m[32m    <!-- 🔥 TAMBAHAN: MODAL JADWALKAN PEMBICARA -->[m
+[32m+[m[32m    <!-- ============================================ -->[m
+[32m+[m[32m    <div id="scheduleSpeakerModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">[m
+[32m+[m[32m        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 relative shadow-2xl modal-enter">[m
+[32m+[m[32m            <button onclick="closeScheduleSpeakerModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl">[m
+[32m+[m[32m                <i class="fa-solid fa-xmark"></i>[m
+[32m+[m[32m            </button>[m
+[32m+[m
+[32m+[m[32m            <div class="text-center mb-6">[m
+[32m+[m[32m                <span class="text-purple-600 text-sm font-bold uppercase tracking-wider">Jadwalkan</span>[m
+[32m+[m[32m                <h3 class="text-xl font-black text-slate-800 mt-1">📅 Jadwalkan Pembicara</h3>[m
+[32m+[m[32m                <p class="text-xs text-slate-500 mt-1">Tentukan jadwal dan event untuk pembicara.</p>[m
+[32m+[m[32m            </div>[m
+[32m+[m
+[32m+[m[32m            <form id="scheduleSpeakerForm" class="space-y-4">[m
+[32m+[m[32m                <input type="hidden" id="scheduleAppId" value="" />[m
+[32m+[m
+[32m+[m[32m                <div>[m
+[32m+[m[32m                    <label for="scheduleEventName" class="block text-xs font-semibold text-slate-700 mb-1">Nama Event <span class="text-red-500">*</span></label>[m
+[32m+[m[32m                    <input type="text" id="scheduleEventName" placeholder="Contoh: Webinar Menulis Cerpen" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm" />[m
+[32m+[m[32m                </div>[m
+[32m+[m
+[32m+[m[32m                <div class="grid grid-cols-2 gap-3">[m
+[32m+[m[32m                    <div>[m
+[32m+[m[32m                        <label for="scheduleDate" class="block text-xs font-semibold text-slate-700 mb-1">Tanggal <span class="text-red-500">*</span></label>[m
+[32m+[m[32m                        <input type="date" id="scheduleDate" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm" />[m
+[32m+[m[32m                    </div>[m
+[32m+[m[32m                    <div>[m
+[32m+[m[32m                        <label for="scheduleTime" class="block text-xs font-semibold text-slate-700 mb-1">Waktu</label>[m
+[32m+[m[32m              
