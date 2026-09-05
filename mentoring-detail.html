@@ -238,6 +238,110 @@
             background: #F3E8FF;
             color: #6B21A8;
         }
+        .action-btn {
+            background: #065F46;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .action-btn:hover {
+            background: #0D9488;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(6, 95, 70, 0.25);
+        }
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .action-btn .icon {
+            font-size: 18px;
+        }
+        .action-section {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 16px;
+            margin-top: 16px;
+        }
+        .action-info {
+            font-size: 12px;
+            color: #94a3b8;
+            text-align: center;
+            padding: 8px 0;
+        }
+        .level-requirement-met {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+        .level-requirement-unmet {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+        .btn-speaker-confirm {
+            background: #7C3AED;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-speaker-confirm:hover {
+            background: #6D28D9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+        .btn-speaker-confirm:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-speaker-confirmed {
+            background: #D1FAE5;
+            color: #065F46;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: default;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .speaker-info-box {
+            background: #F3E8FF;
+            border: 1px solid #C4B5FD;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-top: 12px;
+        }
+        .speaker-info-box .title {
+            font-weight: 700;
+            color: #6B21A8;
+        }
+        .speaker-info-box .sub {
+            font-size: 13px;
+            color: #6B21A8;
+        }
     </style>
 </head>
 <body>
@@ -432,6 +536,11 @@
                                 <div id="classTypeInfo" class="pt-2 border-t border-slate-100">
                                     <p class="text-xs text-slate-400">Jenis Kelas</p>
                                     <p id="classTypeLabel" class="font-semibold text-sm">📚 Mentoring Reguler</p>
+                                </div>
+                                <!-- 🔥 SPEAKER INFO BOX -->
+                                <div id="speakerInfoBox" class="speaker-info-box hidden">
+                                    <p class="title">🎤 Anda adalah Pembicara di kelas ini!</p>
+                                    <p id="speakerStatusText" class="sub mt-1"></p>
                                 </div>
                             </div>
                         </div>
@@ -697,11 +806,13 @@
         var sessionId = null;
         var sessionData = null;
         var currentUser = null;
+        var currentProfile = null;
         var participantStatus = null;
         var reviewStatus = null;
         var speakerConfirmed = false;
         var speakerApproved = false;
         var isSpeakerParticipant = false;
+        var attended = false;
 
         // ============================================
         // CEK AKSES PROYEK BUKU
@@ -745,6 +856,12 @@
                 var { data: { session } } = await _supabase.auth.getSession();
                 if (session) {
                     currentUser = session.user;
+                    var { data: profile } = await _supabase
+                        .from('yata_profiles')
+                        .select('*')
+                        .eq('id', session.user.id)
+                        .single();
+                    currentProfile = profile;
                 }
                 return session;
             } catch (err) {
@@ -894,6 +1011,7 @@
                 speakerConfirmed = false;
                 speakerApproved = false;
                 isSpeakerParticipant = false;
+                attended = false;
 
                 if (currentUser) {
                     var { data: participant, error: partError } = await _supabase
@@ -905,7 +1023,7 @@
 
                     if (!partError && participant) {
                         participantStatus = participant.status;
-                        var attended = participant.attended || false;
+                        attended = participant.attended || false;
                         if (participant.attended === true) {
                             participantStatus = 'completed';
                         }
@@ -962,7 +1080,7 @@
         }
 
         // ============================================
-        // 5. RENDER SESSION
+        // 5. RENDER SESSION - DIPERBAIKI UNTUK SPEAKER
         // ============================================
         function renderSession(session) {
             var statusLabels = {
@@ -1019,7 +1137,7 @@
                 mandatoryBadge.classList.add('hidden');
             }
 
-            // 🔥 SPEAKER BADGE
+            // 🔥 SPEAKER BADGE - cek dari participant role juga
             var isSpeaker = session.speaker_id === currentUser?.id || isSpeakerParticipant;
             if (isSpeaker) {
                 speakerBadge.classList.remove('hidden');
@@ -1087,85 +1205,37 @@
                 meetingContainer.classList.add('hidden');
             }
 
-            // 🔥 TAMPILKAN INFO PEMBAYARAN DI BAWAH DESKRIPSI
-            var descContainer = document.getElementById('sessionDescription');
-            if (descContainer) {
-                var existingPaymentInfo = document.getElementById('paymentInfoWrapper');
-                if (existingPaymentInfo) {
-                    existingPaymentInfo.remove();
+            // 🔥 SPEAKER INFO BOX
+            var speakerInfoBox = document.getElementById('speakerInfoBox');
+            var speakerStatusText = document.getElementById('speakerStatusText');
+            
+            if (isSpeaker && currentUser) {
+                speakerInfoBox.classList.remove('hidden');
+                if (speakerConfirmed) {
+                    speakerStatusText.textContent = '✅ Anda sudah mengonfirmasi kesiapan sebagai pembicara.';
+                    speakerStatusText.className = 'sub mt-1 text-emerald-600';
+                } else {
+                    speakerStatusText.textContent = '📌 Klik tombol "Konfirmasi Siap Jadi Pembicara" di bawah untuk mengonfirmasi kesiapan Anda.';
+                    speakerStatusText.className = 'sub mt-1 text-purple-600';
                 }
-
-                if (isPaid && session.mentor_bank_account) {
-                    var paymentHtml = `
-                        <div id="paymentInfoWrapper" class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                            <h4 class="font-semibold text-amber-700 flex items-center gap-2">
-                                <i class="fa-solid fa-coins"></i> Informasi Pembayaran
-                            </h4>
-                            <p class="text-sm text-slate-600 mt-1">
-                                Transfer ke rekening mentor sebesar <strong>Rp${(session.price || 0).toLocaleString()}</strong>
-                            </p>
-                            <div class="mt-2 p-3 bg-white rounded-xl border border-slate-200">
-                                <p class="text-sm font-semibold">${session.mentor_bank_name || 'Bank'}</p>
-                                <p class="text-lg font-mono font-bold text-slate-800">${session.mentor_bank_account}</p>
-                                <p class="text-sm text-slate-500">a.n. ${session.mentor_bank_holder || 'Mentor'}</p>
-                            </div>
-                            <p class="text-xs text-amber-600 mt-2">
-                                ⚠️ Setelah transfer, upload bukti untuk verifikasi.
-                            </p>
-                        </div>
-                    `;
-                    descContainer.insertAdjacentHTML('afterend', paymentHtml);
-                } else if (isPaid && !session.mentor_bank_account) {
-                    var paymentHtml = `
-                        <div id="paymentInfoWrapper" class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-                            <p class="text-sm text-yellow-700">
-                                ⚠️ Kelas ini berbayar namun rekening mentor belum diisi.
-                                <br>Silakan hubungi admin untuk informasi pembayaran.
-                            </p>
-                        </div>
-                    `;
-                    descContainer.insertAdjacentHTML('afterend', paymentHtml);
+                if (speakerApproved) {
+                    speakerStatusText.textContent = '✅ Sesi pembicaraan telah selesai dan disetujui admin.';
+                    speakerStatusText.className = 'sub mt-1 text-emerald-600';
                 }
-            }
-
-            // 🔥 TAMPILKAN INFO KHUSUS PEMBICARA
-            if (isSpeaker) {
-                var existingSpeakerInfo = document.getElementById('speakerInfoWrapper');
-                if (existingSpeakerInfo) {
-                    existingSpeakerInfo.remove();
-                }
-
-                var speakerInfoHtml = `
-                    <div id="speakerInfoWrapper" class="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-xl">
-                        <div class="flex items-center gap-2 text-purple-700">
-                            <i class="fa-solid fa-microphone"></i>
-                            <span class="font-semibold">Anda adalah Pembicara di kelas ini!</span>
-                        </div>
-                        ${speakerConfirmed ? `
-                            <p class="text-sm text-emerald-600 mt-1">✅ Anda sudah mengonfirmasi kesiapan.</p>
-                        ` : `
-                            <p class="text-sm text-purple-600 mt-1">
-                                📌 Klik tombol "Konfirmasi Siap Jadi Pembicara" untuk mengonfirmasi kesiapan Anda.
-                            </p>
-                        `}
-                        ${speakerApproved ? `
-                            <p class="text-sm text-emerald-600 mt-1">✅ Sesi pembicaraan telah selesai dan disetujui admin.</p>
-                        ` : ''}
-                    </div>
-                `;
-                descContainer.insertAdjacentHTML('afterend', speakerInfoHtml);
+            } else {
+                speakerInfoBox.classList.add('hidden');
             }
 
             // 🔥 UPDATE TOMBOL REGISTER & TOMBOL PEMBICARA
             updateRegisterButton(session);
 
-            var isCompleted = participantStatus === 'completed' || participantStatus === 'approved' && attended === true;
+            var isCompleted = participantStatus === 'completed' || (participantStatus === 'approved' && attended === true);
             renderMaterials(session.materials || [], isCompleted);
             renderReviews(session.reviews || []);
         }
 
         // ============================================
-        // 🔥 UPDATE REGISTER BUTTON + TOMBOL PEMBICARA
+        // 🔥 UPDATE REGISTER BUTTON + TOMBOL PEMBICARA - DIPERBAIKI
         // ============================================
         async function updateRegisterButton(session) {
             var registerBtn = document.getElementById('registerBtn');
@@ -1174,6 +1244,31 @@
             var actionButtons = document.getElementById('actionButtons');
 
             var access = { allowed: true, message: '', isOnboarding: false };
+
+            // 🔥 CEK APAKAH USER ADALAH PEMBICARA - dari participant role
+            var isSpeaker = session.speaker_id === currentUser?.id || isSpeakerParticipant;
+            
+            // Jika belum tahu, cek dari database
+            if (!isSpeaker && currentUser) {
+                try {
+                    var { data: participantCheck, error: pCheckError } = await _supabase
+                        .from('yata_mentoring_participants')
+                        .select('role, confirmed_at')
+                        .eq('session_id', sessionId)
+                        .eq('user_id', currentUser.id)
+                        .maybeSingle();
+                    
+                    if (!pCheckError && participantCheck) {
+                        if (participantCheck.role === 'mentor_speaker') {
+                            isSpeaker = true;
+                            isSpeakerParticipant = true;
+                            speakerConfirmed = participantCheck.confirmed_at !== null;
+                        }
+                    }
+                } catch (err) {
+                    console.error('Check speaker role error:', err);
+                }
+            }
 
             if (currentUser) {
                 try {
@@ -1218,21 +1313,22 @@
                 existingSpeakerBtn.remove();
             }
 
-            // CEK APAKAH USER ADALAH PEMBICARA
-            var isSpeaker = session.speaker_id === currentUser?.id || isSpeakerParticipant;
-
+            // 🔥 TAMPILKAN TOMBOL KONFIRMASI UNTUK SPEAKER
             if (isSpeaker && currentUser) {
-                // Tampilkan tombol konfirmasi pembicara
                 var speakerBtn = document.createElement('button');
                 speakerBtn.id = 'speakerConfirmBtn';
                 
                 if (speakerConfirmed) {
                     speakerBtn.textContent = '✅ Sudah Konfirmasi Siap';
-                    speakerBtn.className = 'bg-emerald-100 text-emerald-700 font-bold px-6 py-3 rounded-xl text-sm transition cursor-default';
+                    speakerBtn.className = 'btn-speaker-confirmed';
+                    speakerBtn.disabled = true;
+                } else if (speakerApproved) {
+                    speakerBtn.textContent = '✅ Sesi Selesai & Disetujui';
+                    speakerBtn.className = 'btn-speaker-confirmed';
                     speakerBtn.disabled = true;
                 } else {
                     speakerBtn.textContent = '🎤 Konfirmasi Siap Jadi Pembicara';
-                    speakerBtn.className = 'bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition';
+                    speakerBtn.className = 'btn-speaker-confirm';
                     speakerBtn.onclick = function() {
                         confirmSpeakerReady(sessionId);
                     };
@@ -1338,6 +1434,12 @@
 
             if (!confirm('Konfirmasi bahwa Anda siap menjadi pembicara di kelas ini?')) return;
 
+            var btn = document.getElementById('speakerConfirmBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '⏳ Memproses...';
+            }
+
             try {
                 var { error } = await _supabase
                     .from('yata_mentoring_participants')
@@ -1351,51 +1453,66 @@
 
                 if (error) throw error;
 
-                // Kirim notifikasi ke admin
+                // 🔥 Kirim notifikasi ke admin
                 var { data: admins, error: adminError } = await _supabase
                     .from('yata_profiles')
                     .select('id')
                     .eq('role', 'admin');
 
                 if (!adminError && admins && admins.length > 0) {
-                    var { data: session } = await _supabase
+                    var { data: session, error: sessionError } = await _supabase
                         .from('yata_mentoring_sessions')
                         .select('title')
                         .eq('id', sessionId)
                         .single();
 
-                    var notifContent = '✅ ' + (currentProfile?.full_name || 'Member') + ' mengonfirmasi kesiapan sebagai pembicara untuk kelas "' + (session?.title || 'Kelas') + '".';
+                    if (!sessionError && session) {
+                        var notifContent = '✅ ' + (currentProfile?.full_name || 'Member') + ' mengonfirmasi kesiapan sebagai pembicara untuk kelas "' + (session?.title || 'Kelas') + '".';
 
-                    for (var i = 0; i < admins.length; i++) {
-                        var admin = admins[i];
-                        var { data: notifData, error: notifError } = await _supabase
-                            .from('yata_notifications')
-                            .insert([{
-                                title: '🎤 Pembicara Konfirmasi Siap!',
-                                content: notifContent,
-                                type: 'event'
-                            }])
-                            .select()
-                            .single();
-
-                        if (!notifError && notifData) {
-                            await _supabase
-                                .from('yata_user_notifications')
+                        for (var i = 0; i < admins.length; i++) {
+                            var admin = admins[i];
+                            var { data: notifData, error: notifError } = await _supabase
+                                .from('yata_notifications')
                                 .insert([{
-                                    notification_id: notifData.id,
-                                    user_id: admin.id,
-                                    is_read: false
-                                }]);
+                                    title: '🎤 Pembicara Konfirmasi Siap!',
+                                    content: notifContent,
+                                    type: 'event'
+                                }])
+                                .select()
+                                .single();
+
+                            if (!notifError && notifData) {
+                                await _supabase
+                                    .from('yata_user_notifications')
+                                    .insert([{
+                                        notification_id: notifData.id,
+                                        user_id: admin.id,
+                                        is_read: false
+                                    }]);
+                            }
                         }
                     }
                 }
 
+                // 🔥 Kirim notifikasi ke user (konfirmasi sukses)
+                await sendNotification(
+                    currentUser.id,
+                    '✅ Konfirmasi Pembicara Berhasil!',
+                    'Anda telah mengonfirmasi kesiapan sebagai pembicara. Admin akan segera memproses.',
+                    'success'
+                );
+
                 showError('✅ Anda telah mengonfirmasi kesiapan sebagai pembicara!', 'Sukses');
+                speakerConfirmed = true;
                 await loadSessionDetail();
 
             } catch (err) {
                 console.error('Confirm speaker error:', err);
                 showError('❌ Gagal konfirmasi: ' + err.message, 'Error');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '🎤 Konfirmasi Siap Jadi Pembicara';
+                }
             }
         }
 
