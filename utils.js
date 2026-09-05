@@ -1246,39 +1246,11 @@ async function submitLevelUpRequest() {
             }]);
 
         // Notifikasi ke admin
-        const { data: admins } = await supabase
-            .from('yata_profiles')
-            .select('id')
-            .eq('role', 'admin');
-
-        if (admins && admins.length > 0) {
-            const detailSummary = requirements.details?.map(d => 
-                d.icon + ' ' + d.label + ': ' + d.current + '/' + d.target + ' ' + (d.met ? '✅' : '❌')
-            ).join('\n') || '';
-
-            const notifContent = '📢 Member mengajukan naik level.\n\n📊 Data:\n- Level saat ini: ' + currentLevel + '\n- Target: ' + targetLevel + '\n- User: ' + (session.user.email || userId) + '\n\n📋 Syarat:\n' + detailSummary + '\n\n📌 Silakan verifikasi pengajuan ini.';
-
-            const { data: notifData, error: notifError } = await supabase
-                .from('yata_notifications')
-                .insert([{
-                    title: '📢 Pengajuan Naik Level',
-                    content: notifContent,
-                    type: 'campaign'
-                }])
-                .select()
-                .single();
-
-            if (!notifError && notifData) {
-                const entries = admins.map(admin => ({
-                    notification_id: notifData.id,
-                    user_id: admin.id,
-                    is_read: false
-                }));
-                await supabase
-                    .from('yata_user_notifications')
-                    .insert(entries);
-            }
-        }
+        await sendNotificationToAdmins(
+            '⭐ Pengajuan Naik Level',
+            'Member ' + (session.user.email || userId) + ' mengajukan naik level dari "' + currentLevel + '" ke "' + targetLevel + '".\n\n📌 Silakan verifikasi pengajuan ini.',
+            'campaign'
+        );
 
         // Update status
         await supabase
@@ -1814,7 +1786,7 @@ async function getFavoriteIds(userId) {
 }
 
 // ============================================
-// FUNGSI KIRIM NOTIFIKASI (DENGAN TOMBOL AKSI)
+// FUNGSI KIRIM NOTIFIKASI
 // ============================================
 
 async function sendNotification(userId, title, content, type) {
@@ -1853,10 +1825,6 @@ async function sendNotification(userId, title, content, type) {
         return false;
     }
 }
-
-// ============================================
-// 🔥 FUNGSI KIRIM NOTIFIKASI DENGAN TOMBOL AKSI (BARU)
-// ============================================
 
 async function sendNotificationWithAction(userId, title, content, type, actionLabel, actionUrl) {
     if (type === undefined) type = 'success';
@@ -1898,7 +1866,7 @@ async function sendNotificationWithAction(userId, title, content, type, actionLa
 }
 
 // ============================================
-// 🔥 FUNGSI KIRIM NOTIFIKASI KE ALL ADMIN (BARU)
+// 🔥 KIRIM NOTIFIKASI KE SEMUA ADMIN
 // ============================================
 
 async function sendNotificationToAdmins(title, content, type) {
@@ -1954,7 +1922,7 @@ async function sendNotificationToAdmins(title, content, type) {
 }
 
 // ============================================
-// 🔥 FUNGSI CREATE CERTIFICATE (DENGAN SPEAKER INTERNAL)
+// 🔥 CREATE CERTIFICATE
 // ============================================
 
 async function createCertificate(userId, certificateType, certificateName) {
@@ -1962,7 +1930,6 @@ async function createCertificate(userId, certificateType, certificateName) {
         var supabase = getSupabaseClient();
         if (!supabase) return false;
 
-        // 🔥 CEK SERTIFIKAT SUDAH ADA
         var { data: existingCert, error: certError } = await supabase
             .from('yata_certificates')
             .select('id, certificate_number')
@@ -1981,7 +1948,6 @@ async function createCertificate(userId, certificateType, certificateName) {
             return true;
         }
 
-        // AMBIL DATA USER
         var { data: profile, error: profileError } = await supabase
             .from('yata_profiles')
             .select('full_name, email')
@@ -1993,7 +1959,6 @@ async function createCertificate(userId, certificateType, certificateName) {
             return false;
         }
 
-        // GENERATE NOMOR SERTIFIKAT
         var now = new Date();
         var dateStr = now.getFullYear() + 
             String(now.getMonth() + 1).padStart(2, '0') + 
@@ -2010,13 +1975,11 @@ async function createCertificate(userId, certificateType, certificateName) {
 
         console.log('📜 [createCertificate] Membuat sertifikat:', certNumber);
 
-        // 🔥 TENTUKAN NAMA SERTIFIKAT UNTUK SPEAKER
         var certName = certificateName || certificateType;
         if (certificateType === 'speaker_internal') {
             certName = certificateName || 'Pembicara Internal YATTA';
         }
 
-        // INSERT SERTIFIKAT
         var { data: newCert, error: insertError } = await supabase
             .from('yata_certificates')
             .insert([{

@@ -417,7 +417,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- JAVASCRIPT - FULL -->
+    <!-- JAVASCRIPT -->
     <!-- ============================================ -->
     <script>
         const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
@@ -555,14 +555,10 @@
         }
 
         // ============================================
-        // 🔥 KIRIM NOTIFIKASI DENGAN TOMBOL AKSI
+        // KIRIM NOTIFIKASI DENGAN TOMBOL AKSI
         // ============================================
         async function sendNotificationWithAction(userId, title, content, type = 'success', actionLabel = null, actionUrl = null) {
             try {
-                console.log('📝 [sendNotificationWithAction] Dipanggil untuk user:', userId);
-                console.log('📝 actionLabel:', actionLabel);
-                console.log('📝 actionUrl:', actionUrl);
-                
                 const { data: notifData, error } = await _supabase
                     .from('yata_notifications')
                     .insert([{
@@ -580,8 +576,6 @@
                     return false;
                 }
 
-                console.log('✅ Notifikasi berhasil dibuat:', notifData.id);
-
                 const { error: linkError } = await _supabase
                     .from('yata_user_notifications')
                     .insert([{
@@ -595,7 +589,6 @@
                     return false;
                 }
 
-                console.log('✅ Notifikasi berhasil dikirim ke user:', userId);
                 return true;
 
             } catch (err) {
@@ -605,12 +598,47 @@
         }
 
         // ============================================
-        // 🔥 BUAT SERTIFIKAT
+        // KIRIM NOTIFIKASI
+        // ============================================
+        async function sendNotification(userId, title, content, type = 'info') {
+            try {
+                const { data: notifData, error } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: title,
+                        content: content,
+                        type: type
+                    }])
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('❌ Insert notif error:', error);
+                    return false;
+                }
+
+                if (notifData && userId) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: userId,
+                            is_read: false
+                        }]);
+                }
+                return true;
+
+            } catch (err) {
+                console.error('❌ Send notification error:', err);
+                return false;
+            }
+        }
+
+        // ============================================
+        // BUAT SERTIFIKAT
         // ============================================
         async function createCertificate(userId, certificateType = 'onboarding', certificateName = null) {
             try {
-                console.log('🔍 [createCertificate] userId:', userId, 'type:', certificateType, 'name:', certificateName);
-                
                 const { data: existingCert, error: certError } = await _supabase
                     .from('yata_certificates')
                     .select('id, certificate_number')
@@ -653,8 +681,6 @@
                 const typeCode = typeMap[certificateType] || 'CERT';
                 const certNumber = `YATTA-${typeCode}-${dateStr}-${random}`;
 
-                console.log('📜 [createCertificate] Membuat sertifikat:', certNumber);
-
                 const { data: newCert, error: insertError } = await _supabase
                     .from('yata_certificates')
                     .insert([{
@@ -687,12 +713,10 @@
         }
 
         // ============================================
-        // 🔥 CEK DAN BUAT SERTIFIKAT
+        // CEK DAN BUAT SERTIFIKAT
         // ============================================
         async function checkAndCreateCertificate(userId, sessionId) {
             try {
-                console.log('🔍 [checkAndCreateCertificate] Dipanggil untuk user:', userId, 'session:', sessionId);
-                
                 const { data: session, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
                     .select('id, title, is_onboarding, is_mandatory')
@@ -703,8 +727,6 @@
                     console.error('❌ Error ambil sesi:', sessionError);
                     return false;
                 }
-
-                console.log(`📚 Kelas: ${session.title} (onboarding: ${session.is_onboarding}, mandatory: ${session.is_mandatory})`);
 
                 const { count: attendedCount, error: attendError } = await _supabase
                     .from('yata_mentoring_participants')
@@ -717,8 +739,6 @@
                     console.error('❌ Error cek kehadiran:', attendError);
                     return false;
                 }
-
-                console.log(`📊 Attended: ${attendedCount || 0}`);
 
                 if ((attendedCount || 0) === 0) {
                     console.log('⏳ User belum hadir di kelas ini');
@@ -736,14 +756,10 @@
                     return false;
                 }
 
-                console.log(`📝 Review: ${reviewCount || 0}`);
-
                 if ((reviewCount || 0) === 0) {
                     console.log('⏳ User belum review kelas ini');
                     return false;
                 }
-
-                console.log('✅ User sudah hadir dan review, membuat sertifikat...');
 
                 let certificateType = 'mentoring';
                 if (session.is_onboarding) {
@@ -753,7 +769,6 @@
                 }
 
                 const certResult = await createCertificate(userId, certificateType, session.title);
-                console.log('📜 Hasil sertifikat:', certResult ? 'BERHASIL' : 'GAGAL');
 
                 if (certResult) {
                     const notifTitle = `📜 Sertifikat "${session.title}" Tersedia!`;
@@ -765,9 +780,7 @@ Founder & CEO YATTA
 
 📌 Klik tombol di bawah untuk melihat dan mengunduh sertifikat Anda.`;
 
-                    console.log('📝 Mengirim notifikasi...');
-                    
-                    const result = await sendNotificationWithAction(
+                    await sendNotificationWithAction(
                         userId,
                         notifTitle,
                         notifContent,
@@ -775,9 +788,7 @@ Founder & CEO YATTA
                         '📜 Lihat Sertifikat',
                         '/certificates.html'
                     );
-                    
-                    console.log('📝 Hasil kirim notifikasi:', result ? 'BERHASIL' : 'GAGAL');
-                    return result;
+                    return true;
                 }
 
                 return false;
@@ -785,6 +796,100 @@ Founder & CEO YATTA
             } catch (err) {
                 console.error('❌ [checkAndCreateCertificate] Error:', err);
                 return false;
+            }
+        }
+
+        // ============================================
+        // 🔥 CEK DAN UPDATE STATUS PENGAJUAN PEMBICARA
+        // ============================================
+        async function checkAndUpdateSpeakerStatus(sessionId) {
+            try {
+                // 1. Ambil data kelas
+                var { data: session, error: sessionError } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('mentor_id, title')
+                    .eq('id', sessionId)
+                    .single();
+                
+                if (sessionError || !session) {
+                    console.log('ℹ️ Session tidak ditemukan');
+                    return;
+                }
+
+                // 2. Cek apakah ada participant dengan role mentor_speaker
+                var { data: speakerParticipant, error: speakerError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .select('user_id')
+                    .eq('session_id', sessionId)
+                    .eq('role', 'mentor_speaker')
+                    .maybeSingle();
+
+                if (speakerError || !speakerParticipant) {
+                    console.log('ℹ️ Tidak ada pembicara di kelas ini');
+                    return;
+                }
+
+                // 3. Cari aplikasi pembicara yang sesuai
+                var { data: speakerApp, error: appError } = await _supabase
+                    .from('yata_speaker_applications')
+                    .select('id, status')
+                    .eq('user_id', speakerParticipant.user_id)
+                    .eq('event_name', session.title)
+                    .eq('status', 'confirmed')
+                    .maybeSingle();
+
+                if (appError || !speakerApp) {
+                    console.log('ℹ️ Tidak ada aplikasi pembicara yang sesuai');
+                    return;
+                }
+
+                // 4. Update status menjadi 'completed'
+                await _supabase
+                    .from('yata_speaker_applications')
+                    .update({
+                        status: 'completed',
+                        completed_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', speakerApp.id);
+
+                console.log('✅ Status pengajuan pembicara diupdate ke completed');
+
+                // 5. Kirim notifikasi ke admin
+                var { data: admins, error: adminError } = await _supabase
+                    .from('yata_profiles')
+                    .select('id')
+                    .eq('role', 'admin');
+
+                if (!adminError && admins && admins.length > 0) {
+                    var notifContent = '✅ Kelas pembicara "' + session.title + '" telah selesai dilaksanakan. Silakan beri sertifikat untuk pembicara.\n\n📌 Buka menu Pengajuan Pembicara untuk memberikan sertifikat.';
+
+                    for (var i = 0; i < admins.length; i++) {
+                        var admin = admins[i];
+                        var { data: notifData, error: notifError } = await _supabase
+                            .from('yata_notifications')
+                            .insert([{
+                                title: '🎤 Kelas Pembicara Selesai!',
+                                content: notifContent,
+                                type: 'event'
+                            }])
+                            .select()
+                            .single();
+
+                        if (!notifError && notifData) {
+                            await _supabase
+                                .from('yata_user_notifications')
+                                .insert([{
+                                    notification_id: notifData.id,
+                                    user_id: admin.id,
+                                    is_read: false
+                                }]);
+                        }
+                    }
+                }
+
+            } catch (err) {
+                console.error('Update speaker status error:', err);
             }
         }
 
@@ -866,7 +971,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // LOAD PARTICIPANTS - DIPERBAIKI UNTUK MENTOR_SPEAKER
+        // LOAD PARTICIPANTS
         // ============================================
         async function loadParticipants(userId) {
             const container = document.getElementById('participantList');
@@ -874,7 +979,6 @@ Founder & CEO YATTA
             const countEl = document.getElementById('participantCount');
 
             try {
-                // 🔥 PERBAIKAN: Query mencakup role participant dan mentor_speaker
                 const { data: participants, error } = await _supabase
                     .from('yata_mentoring_participants')
                     .select('*, session:session_id(*)')
@@ -1066,7 +1170,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // RENDER PARTICIPANTS - DIPERBAIKI UNTUK MENTOR_SPEAKER
+        // RENDER PARTICIPANTS
         // ============================================
         function renderParticipants() {
             const container = document.getElementById('participantList');
@@ -1150,8 +1254,6 @@ Founder & CEO YATTA
                 const displayClass = statusClassDisplay[displayStatus] || statusClasses[p.status] || 'status-pending';
 
                 const showReviewBtn = p.attended === true || p.status === 'completed';
-
-                // 🔥 TOMBOL UNTUK SPEAKER
                 const isSpeakerPending = isSpeaker && p.confirmed_at === null;
                 const isSpeakerConfirmed = isSpeaker && p.confirmed_at !== null;
 
@@ -1339,7 +1441,7 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 🔥 SUBMIT REVIEW
+        // SUBMIT REVIEW - DIPERBAIKI DENGAN CEK SPEAKER STATUS
         // ============================================
         document.getElementById('reviewForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1363,9 +1465,7 @@ Founder & CEO YATTA
                 const session = await checkAuth();
                 if (!session) return;
 
-                console.log('📝 [review] User ID:', session.user.id);
-                console.log('📝 [review] Session ID:', sessionId);
-
+                // 1. INSERT REVIEW
                 const { error } = await _supabase
                     .from('yata_onboarding_reviews')
                     .insert([{
@@ -1381,8 +1481,13 @@ Founder & CEO YATTA
                 showReviewMessage('✅ Ulasan berhasil dikirim!', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
 
+                // 2. UPDATE RATING KELAS
                 await updateSessionRating(sessionId);
 
+                // 3. 🔥 UPDATE STATUS PENGAJUAN PEMBICARA (JIKA ADA)
+                await checkAndUpdateSpeakerStatus(sessionId);
+
+                // 4. CEK DAN BUAT SERTIFIKAT PESERTA
                 console.log('📝 [review] Memanggil checkAndCreateCertificate...');
                 const certResult = await checkAndCreateCertificate(session.user.id, sessionId);
                 console.log('📜 Hasil sertifikat:', certResult ? 'BERHASIL' : 'GAGAL');
