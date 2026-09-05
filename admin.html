@@ -4338,7 +4338,7 @@
         }
 
         // ============================================
-        // 🔥 TAMBAHAN: FUNGSI JADWALKAN PEMBICARA (ADMIN)
+        // 🔥 TAMBAHAN: FUNGSI JADWALKAN PEMBICARA (ADMIN) - DIPERBAIKI
         // ============================================
 
         var currentScheduleAppId = null;
@@ -4362,6 +4362,9 @@
             currentScheduleAppId = null;
         }
 
+        // ============================================
+        // 🔥 PERBAIKAN UTAMA: JADWALKAN PEMBICARA DENGAN SQL FUNCTION
+        // ============================================
         document.getElementById('scheduleSpeakerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -4383,35 +4386,30 @@
             showScheduleMessage('', '');
 
             try {
-                var { data: app, error: appError } = await _supabase
-                    .from('yata_speaker_applications')
-                    .select('user_id, topic')
-                    .eq('id', appId)
-                    .single();
+                // 🔥 Panggil SQL Function yang sudah dibuat
+                var { data, error } = await _supabase.rpc('schedule_speaker', {
+                    app_id: appId,
+                    event_name: eventName,
+                    scheduled_date: date,
+                    scheduled_time: time || null,
+                    meeting_link: meetingLink || null,
+                    admin_notes: adminNotes || null
+                });
 
-                if (appError) throw appError;
+                if (error) {
+                    console.error('RPC Error:', error);
+                    throw new Error(error.message);
+                }
 
-                var { error: updateError } = await _supabase
-                    .from('yata_speaker_applications')
-                    .update({
-                        status: 'scheduled',
-                        event_name: eventName,
-                        scheduled_date: date,
-                        scheduled_time: time || null,
-                        meeting_link: meetingLink || null,
-                        admin_notes: adminNotes || null,
-                        approved_by: currentUser?.id,
-                        approved_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', appId);
+                if (!data || !data.success) {
+                    throw new Error(data?.message || 'Gagal menjadwalkan pembicara');
+                }
 
-                if (updateError) throw updateError;
-
-                var notifContent = '🎤 Pengajuan Anda sebagai pembicara dengan topik "' + app.topic + '" telah DISETUJUI!\n\n📅 Jadwal: ' + new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + (time || '') + '\n📌 Event: ' + eventName + '\n' + (meetingLink ? '🔗 Link: ' + meetingLink : '') + '\n\n📌 Silakan konfirmasi kesiapan Anda di menu Mentoring Saya.';
+                // ✅ Kirim notifikasi ke user (dari client)
+                var notifContent = '🎤 Pengajuan Anda sebagai pembicara dengan topik "' + data.topic + '" telah DISETUJUI!\n\n📅 Jadwal: ' + new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + (time || '') + '\n📌 Event: ' + eventName + '\n' + (meetingLink ? '🔗 Link: ' + meetingLink : '') + '\n\n📌 Silakan konfirmasi kesiapan Anda di menu Mentoring Saya.';
 
                 await sendNotificationWithAction(
-                    app.user_id,
+                    data.user_id,
                     '🎤 Pengajuan Pembicara Disetujui!',
                     notifContent,
                     'success',
