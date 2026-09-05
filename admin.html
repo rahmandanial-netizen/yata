@@ -4366,73 +4366,72 @@
         // 🔥 PERBAIKAN UTAMA: JADWALKAN PEMBICARA DENGAN SQL FUNCTION
         // ============================================
         document.getElementById('scheduleSpeakerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+    e.preventDefault();
 
-            var appId = document.getElementById('scheduleAppId').value;
-            var eventName = document.getElementById('scheduleEventName').value.trim();
-            var date = document.getElementById('scheduleDate').value;
-            var time = document.getElementById('scheduleTime').value;
-            var meetingLink = document.getElementById('scheduleMeetingLink').value.trim();
-            var adminNotes = document.getElementById('scheduleAdminNotes').value.trim();
+    var appId = document.getElementById('scheduleAppId').value;
+    var eventName = document.getElementById('scheduleEventName').value.trim();
+    var date = document.getElementById('scheduleDate').value;
+    var time = document.getElementById('scheduleTime').value;
+    var meetingLink = document.getElementById('scheduleMeetingLink').value.trim();
+    var adminNotes = document.getElementById('scheduleAdminNotes').value.trim();
 
-            if (!appId || !eventName || !date) {
-                showScheduleMessage('Nama event dan tanggal wajib diisi.', 'error');
-                return;
-            }
+    if (!appId || !eventName || !date) {
+        showScheduleMessage('Nama event dan tanggal wajib diisi.', 'error');
+        return;
+    }
 
-            var submitBtn = document.getElementById('scheduleSubmitBtn');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memproses...';
-            showScheduleMessage('', '');
+    var submitBtn = document.getElementById('scheduleSubmitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memproses...';
+    showScheduleMessage('', '');
 
-            try {
-                // 🔥 Panggil SQL Function yang sudah dibuat
-                var { data, error } = await _supabase.rpc('schedule_speaker', {
-                    app_id: appId,
-                    event_name: eventName,
-                    scheduled_date: date,
-                    scheduled_time: time || null,
-                    meeting_link: meetingLink || null,
-                    admin_notes: adminNotes || null
-                });
-
-                if (error) {
-                    console.error('RPC Error:', error);
-                    throw new Error(error.message);
-                }
-
-                if (!data || !data.success) {
-                    throw new Error(data?.message || 'Gagal menjadwalkan pembicara');
-                }
-
-                // ✅ Kirim notifikasi ke user (dari client)
-                var notifContent = '🎤 Pengajuan Anda sebagai pembicara dengan topik "' + data.topic + '" telah DISETUJUI!\n\n📅 Jadwal: ' + new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + (time || '') + '\n📌 Event: ' + eventName + '\n' + (meetingLink ? '🔗 Link: ' + meetingLink : '') + '\n\n📌 Silakan konfirmasi kesiapan Anda di menu Mentoring Saya.';
-
-                await sendNotificationWithAction(
-                    data.user_id,
-                    '🎤 Pengajuan Pembicara Disetujui!',
-                    notifContent,
-                    'success',
-                    '📋 Lihat Jadwal',
-                    '/mentoring-my.html'
-                );
-
-                showScheduleMessage('✅ Pembicara berhasil dijadwalkan! Notifikasi telah dikirim.', 'success');
-                submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
-
-                setTimeout(function() {
-                    closeScheduleSpeakerModal();
-                    loadSpeakerApplications();
-                }, 1500);
-
-            } catch (err) {
-                console.error('Schedule speaker error:', err);
-                showScheduleMessage('❌ Gagal menjadwalkan: ' + err.message, 'error');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fa-solid fa-calendar-check mr-1"></i> Setujui & Jadwalkan';
-            }
+    try {
+        // 🔥 PERUBAHAN DI SINI: Parameter pakai p_ (prefix)
+        var { data, error } = await _supabase.rpc('schedule_speaker', {
+            p_app_id: appId,
+            p_event_name: eventName,
+            p_scheduled_date: date,
+            p_scheduled_time: time || null,
+            p_meeting_link: meetingLink || null,
+            p_admin_notes: adminNotes || null
         });
+
+        if (error) {
+            console.error('RPC Error:', error);
+            throw new Error(error.message);
+        }
+
+        if (!data || !data.success) {
+            throw new Error(data?.message || 'Gagal menjadwalkan pembicara');
+        }
+
+        var notifContent = '🎤 Pengajuan Anda sebagai pembicara dengan topik "' + data.topic + '" telah DISETUJUI!\n\n📅 Jadwal: ' + new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + (time || '') + '\n📌 Event: ' + eventName + '\n' + (meetingLink ? '🔗 Link: ' + meetingLink : '') + '\n\n📌 Silakan konfirmasi kesiapan Anda di menu Mentoring Saya.';
+
+        await sendNotificationWithAction(
+            data.user_id,
+            '🎤 Pengajuan Pembicara Disetujui!',
+            notifContent,
+            'success',
+            '📋 Lihat Jadwal',
+            '/mentoring-my.html'
+        );
+
+        showScheduleMessage('✅ Pembicara berhasil dijadwalkan! Notifikasi telah dikirim.', 'success');
+        submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
+
+        setTimeout(function() {
+            closeScheduleSpeakerModal();
+            loadSpeakerApplications();
+        }, 1500);
+
+    } catch (err) {
+        console.error('Schedule speaker error:', err);
+        showScheduleMessage('❌ Gagal menjadwalkan: ' + err.message, 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-calendar-check mr-1"></i> Setujui & Jadwalkan';
+    }
+});
 
         function showScheduleMessage(text, type) {
             var msg = document.getElementById('scheduleMessage');
