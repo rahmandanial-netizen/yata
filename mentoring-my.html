@@ -830,19 +830,59 @@ Founder & CEO YATTA
                 }
 
                 // 3. Cari aplikasi pembicara yang sesuai
-                var { data: speakerApp, error: appError } = await _supabase
-                    .from('yata_speaker_applications')
-                    .select('id, status')
-                    .eq('user_id', speakerParticipant.user_id)
-                    .eq('event_name', session.title)
-                    .eq('status', 'confirmed')
-                    .maybeSingle();
+                // Cari berdasarkan event_name dulu
+var { data: speakerApp, error: appError } = await _supabase
+    .from('yata_speaker_applications')
+    .select('id, status')
+    .eq('user_id', speakerParticipant.user_id)
+    .eq('event_name', session.title)
+    .eq('status', 'confirmed')
+    .maybeSingle();
 
-                if (appError || !speakerApp) {
-                    console.log('ℹ️ Tidak ada aplikasi pembicara yang sesuai');
-                    return;
-                }
+// Jika tidak ditemukan, cari berdasarkan topic (FALLBACK)
+if (appError || !speakerApp) {
+    console.log('ℹ️ Tidak ditemukan berdasarkan event_name, coba berdasarkan topic...');
+    var { data: topicApp, error: topicError } = await _supabase
+        .from('yata_speaker_applications')
+        .select('id, status')
+        .eq('user_id', speakerParticipant.user_id)
+        .eq('topic', session.title)
+        .eq('status', 'confirmed')
+        .maybeSingle();
+    
+    if (topicError || !topicApp) {
+        console.log('ℹ️ Tidak ada aplikasi pembicara yang ditemukan');
+        return;
+    }
+    
+    // Update berdasarkan topic
+    await _supabase
+        .from('yata_speaker_applications')
+        .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', topicApp.id);
+    
+    console.log('✅ Status aplikasi pembicara diupdate ke completed (berdasarkan topic)');
+    
+    // Kirim notifikasi ke admin
+    await notifyAdminsClassCompleted(session.title);
+    return;
+}
 
+// Update berdasarkan event_name
+await _supabase
+    .from('yata_speaker_applications')
+    .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+    })
+    .eq('id', speakerApp.id);
+
+console.log('✅ Status aplikasi pembicara diupdate ke completed (berdasarkan event_name)');
                 // 4. Update status menjadi 'completed'
                 await _supabase
                     .from('yata_speaker_applications')
