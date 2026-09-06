@@ -1422,100 +1422,119 @@
             }
             statusText.classList.add('hidden');
         }
+// ============================================
+// 🔥 KONFIRMASI KESIAPAN PEMBICARA - DIPERBAIKI
+// ============================================
+async function confirmSpeakerReady(sessionId) {
+    if (!currentUser) {
+        showError('Silakan login terlebih dahulu.', 'Info');
+        return;
+    }
 
-        // ============================================
-        // 🔥 KONFIRMASI KESIAPAN PEMBICARA
-        // ============================================
-        async function confirmSpeakerReady(sessionId) {
-            if (!currentUser) {
-                showError('Silakan login terlebih dahulu.', 'Info');
-                return;
-            }
+    if (!confirm('Konfirmasi bahwa Anda siap menjadi pembicara di kelas ini?')) return;
 
-            if (!confirm('Konfirmasi bahwa Anda siap menjadi pembicara di kelas ini?')) return;
+    var btn = document.getElementById('speakerConfirmBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Memproses...';
+    }
 
-            var btn = document.getElementById('speakerConfirmBtn');
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = '⏳ Memproses...';
-            }
+    try {
+        // 1. Ambil data session untuk mencari aplikasi pembicara
+        var { data: session, error: sessionError } = await _supabase
+            .from('yata_mentoring_sessions')
+            .select('title, mentor_id')
+            .eq('id', sessionId)
+            .single();
 
-            try {
-                var { error } = await _supabase
-                    .from('yata_mentoring_participants')
-                    .update({
-                        confirmed_at: new Date().toISOString(),
-                        status: 'confirmed'
-                    })
-                    .eq('session_id', sessionId)
-                    .eq('user_id', currentUser.id)
-                    .eq('role', 'mentor_speaker');
+        if (sessionError) throw sessionError;
 
-                if (error) throw error;
+        // 2. UPDATE DATABASE: participant
+        var { error: updateError } = await _supabase
+            .from('yata_mentoring_participants')
+            .update({
+                confirmed_at: new Date().toISOString(),
+                status: 'confirmed'
+            })
+            .eq('session_id', sessionId)
+            .eq('user_id', currentUser.id)
+            .eq('role', 'mentor_speaker');
 
-                // 🔥 Kirim notifikasi ke admin
-                var { data: admins, error: adminError } = await _supabase
-                    .from('yata_profiles')
-                    .select('id')
-                    .eq('role', 'admin');
+        if (updateError) throw updateError;
 
-                if (!adminError && admins && admins.length > 0) {
-                    var { data: session, error: sessionError } = await _supabase
-                        .from('yata_mentoring_sessions')
-                        .select('title')
-                        .eq('id', sessionId)
-                        .single();
+        // 🔥 3. UPDATE STATUS APLIKASI PEMBICARA DI yata_speaker_applications
+        var { error: appUpdateError } = await _supabase
+            .from('yata_speaker_applications')
+            .update({
+                status: 'confirmed',
+                confirmed_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('user_id', currentUser.id)
+            .eq('event_name', session.title)
+            .eq('status', 'scheduled');
 
-                    if (!sessionError && session) {
-                        var notifContent = '✅ ' + (currentProfile?.full_name || 'Member') + ' mengonfirmasi kesiapan sebagai pembicara untuk kelas "' + (session?.title || 'Kelas') + '".';
+        if (appUpdateError) {
+            console.error('⚠️ Gagal update aplikasi pembicara:', appUpdateError);
+        } else {
+            console.log('✅ Status aplikasi pembicara diupdate ke confirmed');
+        }
 
-                        for (var i = 0; i < admins.length; i++) {
-                            var admin = admins[i];
-                            var { data: notifData, error: notifError } = await _supabase
-                                .from('yata_notifications')
-                                .insert([{
-                                    title: '🎤 Pembicara Konfirmasi Siap!',
-                                    content: notifContent,
-                                    type: 'event'
-                                }])
-                                .select()
-                                .single();
+        // 4. Kirim notifikasi ke admin
+        var { data: admins, error: adminError } = await _supabase
+            .from('yata_profiles')
+            .select('id')
+            .eq('role', 'admin');
 
-                            if (!notifError && notifData) {
-                                await _supabase
-                                    .from('yata_user_notifications')
-                                    .insert([{
-                                        notification_id: notifData.id,
-                                        user_id: admin.id,
-                                        is_read: false
-                                    }]);
-                            }
-                        }
-                    }
-                }
+        if (!adminError && admins && admins.length > 0) {
+            var mentorName = currentProfile?.full_name || 'Member';
+            var notifContent = '✅ ' + mentorName + ' mengonfirmasi kesiapan sebagai pembicara untuk kelas "' + session.title + '".\n\n📌 Silakan verifikasi di menu Pengajuan Pembicara.';
 
-                // 🔥 Kirim notifikasi ke user (konfirmasi sukses)
-                await sendNotification(
-                    currentUser.id,
-                    '✅ Konfirmasi Pembicara Berhasil!',
-                    'Anda telah mengonfirmasi kesiapan sebagai pembicara. Admin akan segera memproses.',
-                    'success'
-                );
+            for (var i = 0; i < admins.length; i++) {
+                var admin = admins[i];
+                var { data: notifData, error: notifError } = await _supabase
+                    .from('yata_notifications')
+                    .insert([{
+                        title: '🎤 Pembicara Konfirmasi Siap!',
+                        content: notifContent,
+                        type: 'event'
+                    }])
+                    .select()
+                    .single();
 
-                showError('✅ Anda telah mengonfirmasi kesiapan sebagai pembicara!', 'Sukses');
-                speakerConfirmed = true;
-                await loadSessionDetail();
-
-            } catch (err) {
-                console.error('Confirm speaker error:', err);
-                showError('❌ Gagal konfirmasi: ' + err.message, 'Error');
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = '🎤 Konfirmasi Siap Jadi Pembicara';
+                if (!notifError && notifData) {
+                    await _supabase
+                        .from('yata_user_notifications')
+                        .insert([{
+                            notification_id: notifData.id,
+                            user_id: admin.id,
+                            is_read: false
+                        }]);
                 }
             }
         }
 
+        // 5. Kirim notifikasi ke user
+        await sendNotification(
+            currentUser.id,
+            '✅ Konfirmasi Pembicara Berhasil!',
+            'Anda telah mengonfirmasi kesiapan sebagai pembicara. Admin akan segera memproses.',
+            'success'
+        );
+
+        showError('✅ Anda telah mengonfirmasi kesiapan sebagai pembicara!', 'Sukses');
+        speakerConfirmed = true;
+        await loadSessionDetail();
+
+    } catch (err) {
+        console.error('Confirm speaker error:', err);
+        showError('❌ Gagal konfirmasi: ' + err.message, 'Error');
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '🎤 Konfirmasi Siap Jadi Pembicara';
+        }
+    }
+}
         // ============================================
         // 6. RENDER RATING
         // ============================================
