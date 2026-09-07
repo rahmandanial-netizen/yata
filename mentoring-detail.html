@@ -537,7 +537,7 @@
                                     <p class="text-xs text-slate-400">Jenis Kelas</p>
                                     <p id="classTypeLabel" class="font-semibold text-sm">📚 Mentoring Reguler</p>
                                 </div>
-                                <!-- 🔥 SPEAKER INFO BOX -->
+                                <!-- SPEAKER INFO BOX -->
                                 <div id="speakerInfoBox" class="speaker-info-box hidden">
                                     <p class="title">🎤 Anda adalah Pembicara di kelas ini!</p>
                                     <p id="speakerStatusText" class="sub mt-1"></p>
@@ -799,7 +799,9 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT - VERSI DIPERBAIKI -->
+    <!-- ============================================ -->
     <script>
         var _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
@@ -1137,7 +1139,7 @@
                 mandatoryBadge.classList.add('hidden');
             }
 
-            // 🔥 SPEAKER BADGE - cek dari participant role juga
+            // SPEAKER BADGE - cek dari participant role juga
             var isSpeaker = session.speaker_id === currentUser?.id || isSpeakerParticipant;
             if (isSpeaker) {
                 speakerBadge.classList.remove('hidden');
@@ -1205,7 +1207,7 @@
                 meetingContainer.classList.add('hidden');
             }
 
-            // 🔥 SPEAKER INFO BOX
+            // SPEAKER INFO BOX
             var speakerInfoBox = document.getElementById('speakerInfoBox');
             var speakerStatusText = document.getElementById('speakerStatusText');
             
@@ -1226,7 +1228,7 @@
                 speakerInfoBox.classList.add('hidden');
             }
 
-            // 🔥 UPDATE TOMBOL REGISTER & TOMBOL PEMBICARA
+            // UPDATE TOMBOL REGISTER & TOMBOL PEMBICARA
             updateRegisterButton(session);
 
             var isCompleted = participantStatus === 'completed' || (participantStatus === 'approved' && attended === true);
@@ -1245,7 +1247,7 @@
 
             var access = { allowed: true, message: '', isOnboarding: false };
 
-            // 🔥 CEK APAKAH USER ADALAH PEMBICARA - dari participant role
+            // CEK APAKAH USER ADALAH PEMBICARA - dari participant role
             var isSpeaker = session.speaker_id === currentUser?.id || isSpeakerParticipant;
             
             // Jika belum tahu, cek dari database
@@ -1307,13 +1309,13 @@
             registerBtn.disabled = false;
             statusText.classList.add('hidden');
 
-            // 🔥 HAPUS TOMBOL PEMBICARA LAMA
+            // HAPUS TOMBOL PEMBICARA LAMA
             var existingSpeakerBtn = document.getElementById('speakerConfirmBtn');
             if (existingSpeakerBtn) {
                 existingSpeakerBtn.remove();
             }
 
-            // 🔥 TAMPILKAN TOMBOL KONFIRMASI UNTUK SPEAKER
+            // TAMPILKAN TOMBOL KONFIRMASI UNTUK SPEAKER
             if (isSpeaker && currentUser) {
                 var speakerBtn = document.createElement('button');
                 speakerBtn.id = 'speakerConfirmBtn';
@@ -1422,119 +1424,157 @@
             }
             statusText.classList.add('hidden');
         }
-// ============================================
-// 🔥 KONFIRMASI KESIAPAN PEMBICARA - DIPERBAIKI
-// ============================================
-async function confirmSpeakerReady(sessionId) {
-    if (!currentUser) {
-        showError('Silakan login terlebih dahulu.', 'Info');
-        return;
-    }
 
-    if (!confirm('Konfirmasi bahwa Anda siap menjadi pembicara di kelas ini?')) return;
+        // ============================================
+        // 🔥 KONFIRMASI KESIAPAN PEMBICARA - DIPERBAIKI
+        // ============================================
+        async function confirmSpeakerReady(sessionId) {
+            if (!currentUser) {
+                showError('Silakan login terlebih dahulu.', 'Info');
+                return;
+            }
 
-    var btn = document.getElementById('speakerConfirmBtn');
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = '⏳ Memproses...';
-    }
+            if (!confirm('Konfirmasi bahwa Anda siap menjadi pembicara di kelas ini?')) return;
 
-    try {
-        // 1. Ambil data session untuk mencari aplikasi pembicara
-        var { data: session, error: sessionError } = await _supabase
-            .from('yata_mentoring_sessions')
-            .select('title, mentor_id')
-            .eq('id', sessionId)
-            .single();
+            var btn = document.getElementById('speakerConfirmBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '⏳ Memproses...';
+            }
 
-        if (sessionError) throw sessionError;
-
-        // 2. UPDATE DATABASE: participant
-        var { error: updateError } = await _supabase
-            .from('yata_mentoring_participants')
-            .update({
-                confirmed_at: new Date().toISOString(),
-                status: 'confirmed'
-            })
-            .eq('session_id', sessionId)
-            .eq('user_id', currentUser.id)
-            .eq('role', 'mentor_speaker');
-
-        if (updateError) throw updateError;
-
-        // 🔥 3. UPDATE STATUS APLIKASI PEMBICARA DI yata_speaker_applications
-        var { error: appUpdateError } = await _supabase
-            .from('yata_speaker_applications')
-            .update({
-                status: 'confirmed',
-                confirmed_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            })
-            .eq('user_id', currentUser.id)
-            .eq('event_name', session.title)
-            .eq('status', 'scheduled');
-
-        if (appUpdateError) {
-            console.error('⚠️ Gagal update aplikasi pembicara:', appUpdateError);
-        } else {
-            console.log('✅ Status aplikasi pembicara diupdate ke confirmed');
-        }
-
-        // 4. Kirim notifikasi ke admin
-        var { data: admins, error: adminError } = await _supabase
-            .from('yata_profiles')
-            .select('id')
-            .eq('role', 'admin');
-
-        if (!adminError && admins && admins.length > 0) {
-            var mentorName = currentProfile?.full_name || 'Member';
-            var notifContent = '✅ ' + mentorName + ' mengonfirmasi kesiapan sebagai pembicara untuk kelas "' + session.title + '".\n\n📌 Silakan verifikasi di menu Pengajuan Pembicara.';
-
-            for (var i = 0; i < admins.length; i++) {
-                var admin = admins[i];
-                var { data: notifData, error: notifError } = await _supabase
-                    .from('yata_notifications')
-                    .insert([{
-                        title: '🎤 Pembicara Konfirmasi Siap!',
-                        content: notifContent,
-                        type: 'event'
-                    }])
-                    .select()
+            try {
+                // 1. Ambil data session untuk mencari aplikasi pembicara
+                var { data: session, error: sessionError } = await _supabase
+                    .from('yata_mentoring_sessions')
+                    .select('title, mentor_id')
+                    .eq('id', sessionId)
                     .single();
 
-                if (!notifError && notifData) {
-                    await _supabase
-                        .from('yata_user_notifications')
-                        .insert([{
-                            notification_id: notifData.id,
-                            user_id: admin.id,
-                            is_read: false
-                        }]);
+                if (sessionError) throw sessionError;
+
+                // 2. UPDATE DATABASE: participant
+                var { error: updateError } = await _supabase
+                    .from('yata_mentoring_participants')
+                    .update({
+                        confirmed_at: new Date().toISOString(),
+                        status: 'confirmed'
+                    })
+                    .eq('session_id', sessionId)
+                    .eq('user_id', currentUser.id)
+                    .eq('role', 'mentor_speaker');
+
+                if (updateError) throw updateError;
+
+                // 🔥 3. UPDATE STATUS APLIKASI PEMBICARA DI yata_speaker_applications
+                // 🔥 PERBAIKAN: Cari berdasarkan event_name ATAU topic dengan lebih baik
+                var speakerApp = null;
+                
+                // Coba cari berdasarkan event_name
+                var { data: appByEvent, error: appEventError } = await _supabase
+                    .from('yata_speaker_applications')
+                    .select('id, status')
+                    .eq('user_id', currentUser.id)
+                    .eq('event_name', session.title)
+                    .eq('status', 'scheduled')
+                    .maybeSingle();
+                
+                if (!appEventError && appByEvent) {
+                    speakerApp = appByEvent;
+                    console.log('✅ Ditemukan berdasarkan event_name:', appByEvent);
+                }
+                
+                // Jika tidak ditemukan, cari berdasarkan topic
+                if (!speakerApp) {
+                    var { data: appByTopic, error: appTopicError } = await _supabase
+                        .from('yata_speaker_applications')
+                        .select('id, status')
+                        .eq('user_id', currentUser.id)
+                        .eq('topic', session.title)
+                        .eq('status', 'scheduled')
+                        .maybeSingle();
+                    
+                    if (!appTopicError && appByTopic) {
+                        speakerApp = appByTopic;
+                        console.log('✅ Ditemukan berdasarkan topic:', appByTopic);
+                    }
+                }
+                
+                if (speakerApp) {
+                    // Update status ke 'confirmed'
+                    var { error: appUpdateError } = await _supabase
+                        .from('yata_speaker_applications')
+                        .update({
+                            status: 'confirmed',
+                            confirmed_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', speakerApp.id);
+
+                    if (appUpdateError) {
+                        console.error('⚠️ Gagal update aplikasi pembicara:', appUpdateError);
+                    } else {
+                        console.log('✅ Status aplikasi pembicara diupdate ke confirmed');
+                    }
+                } else {
+                    console.log('ℹ️ Tidak ada aplikasi pembicara dengan status "scheduled" ditemukan');
+                }
+
+                // 4. Kirim notifikasi ke admin
+                var { data: admins, error: adminError } = await _supabase
+                    .from('yata_profiles')
+                    .select('id')
+                    .eq('role', 'admin');
+
+                if (!adminError && admins && admins.length > 0) {
+                    var mentorName = currentProfile?.full_name || 'Member';
+                    var notifContent = '✅ ' + mentorName + ' mengonfirmasi kesiapan sebagai pembicara untuk kelas "' + session.title + '".\n\n📌 Silakan verifikasi di menu Pengajuan Pembicara.';
+
+                    for (var i = 0; i < admins.length; i++) {
+                        var admin = admins[i];
+                        var { data: notifData, error: notifError } = await _supabase
+                            .from('yata_notifications')
+                            .insert([{
+                                title: '🎤 Pembicara Konfirmasi Siap!',
+                                content: notifContent,
+                                type: 'event'
+                            }])
+                            .select()
+                            .single();
+
+                        if (!notifError && notifData) {
+                            await _supabase
+                                .from('yata_user_notifications')
+                                .insert([{
+                                    notification_id: notifData.id,
+                                    user_id: admin.id,
+                                    is_read: false
+                                }]);
+                        }
+                    }
+                }
+
+                // 5. Kirim notifikasi ke user
+                await sendNotification(
+                    currentUser.id,
+                    '✅ Konfirmasi Pembicara Berhasil!',
+                    'Anda telah mengonfirmasi kesiapan sebagai pembicara. Admin akan segera memproses.',
+                    'success'
+                );
+
+                showError('✅ Anda telah mengonfirmasi kesiapan sebagai pembicara!', 'Sukses');
+                speakerConfirmed = true;
+                await loadSessionDetail();
+
+            } catch (err) {
+                console.error('Confirm speaker error:', err);
+                showError('❌ Gagal konfirmasi: ' + err.message, 'Error');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '🎤 Konfirmasi Siap Jadi Pembicara';
                 }
             }
         }
 
-        // 5. Kirim notifikasi ke user
-        await sendNotification(
-            currentUser.id,
-            '✅ Konfirmasi Pembicara Berhasil!',
-            'Anda telah mengonfirmasi kesiapan sebagai pembicara. Admin akan segera memproses.',
-            'success'
-        );
-
-        showError('✅ Anda telah mengonfirmasi kesiapan sebagai pembicara!', 'Sukses');
-        speakerConfirmed = true;
-        await loadSessionDetail();
-
-    } catch (err) {
-        console.error('Confirm speaker error:', err);
-        showError('❌ Gagal konfirmasi: ' + err.message, 'Error');
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = '🎤 Konfirmasi Siap Jadi Pembicara';
-        }
-    }
-}
         // ============================================
         // 6. RENDER RATING
         // ============================================
@@ -2127,7 +2167,7 @@ async function confirmSpeakerReady(sessionId) {
         }
 
         // ============================================
-        // 14. SUBMIT REVIEW
+        // 14. SUBMIT REVIEW - DIPERBAIKI
         // ============================================
         document.getElementById('reviewForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -2151,6 +2191,7 @@ async function confirmSpeakerReady(sessionId) {
                 var session = await checkAuth();
                 if (!session) return;
 
+                // 1. INSERT REVIEW
                 var { error } = await _supabase
                     .from('yata_onboarding_reviews')
                     .insert([{
@@ -2166,7 +2207,25 @@ async function confirmSpeakerReady(sessionId) {
                 showReviewMessage('✅ Ulasan berhasil dikirim!', 'success');
                 submitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Berhasil!';
 
+                // 2. UPDATE RATING KELAS
                 await updateSessionRating(sessionId);
+
+                // 3. 🔥 UPDATE STATUS PENGAJUAN PEMBICARA (JIKA ADA)
+                console.log('📝 [review] Memanggil checkAndUpdateSpeakerStatus...');
+                try {
+                    await checkAndUpdateSpeakerStatus(sessionId);
+                } catch (speakerErr) {
+                    console.error('❌ Gagal update speaker status:', speakerErr);
+                }
+
+                // 4. CEK DAN BUAT SERTIFIKAT PESERTA
+                console.log('📝 [review] Memanggil checkAndCreateCertificate...');
+                var certResult = await checkAndCreateCertificate(session.user.id, sessionId);
+                console.log('📜 Hasil sertifikat:', certResult ? 'BERHASIL' : 'GAGAL');
+                
+                if (certResult) {
+                    showReviewMessage('✅ Sertifikat telah dibuat! Cek menu Notifikasi.', 'success');
+                }
 
                 setTimeout(function() {
                     closeReviewModal();

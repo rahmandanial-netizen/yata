@@ -255,6 +255,7 @@
         .badge-speaker-scheduled { background: #DBEAFE; color: #1E40AF; }
         .badge-speaker-rejected { background: #FEE2E2; color: #991B1B; }
         .badge-speaker-completed { background: #E0E7FF; color: #3730A3; }
+        .badge-speaker-done { background: #D1FAE5; color: #065F46; }
     </style>
 </head>
 <body>
@@ -351,7 +352,6 @@
             <a href="#" onclick="switchAdminTab('onboarding')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Kelola Onboarding</a>
             <a href="#" onclick="switchAdminTab('levelRequests')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Pengajuan Naik Level</a>
             <a href="#" onclick="switchAdminTab('reputation')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">⭐ Reputasi Member</a>
-            <!-- 🔥 TAMBAHAN: Mobile menu pengajuan pembicara -->
             <a href="#" onclick="switchAdminTab('speaker_applications')" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">🎤 Pengajuan Pembicara</a>
             <a href="admin-presensi.html" class="block px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl">Presensi Onboarding</a>
             <hr class="my-2 border-emerald-100" />
@@ -863,15 +863,17 @@
                 </div>
 
                 <!-- Filter Status -->
-       <div class="p-4 border-b border-slate-100 flex flex-wrap items-center gap-2">
-    <button onclick="filterSpeakerApplications('all')" class="filter-btn active px-3 py-1.5 rounded-full text-xs font-bold transition bg-purple-600 text-white" id="spFilterAll">📋 Semua</button>
-    <button onclick="filterSpeakerApplications('pending')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="spFilterPending">⏳ Menunggu</button>
-    <button onclick="filterSpeakerApplications('approved')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="spFilterApproved">✅ Disetujui</button>
-    <button onclick="filterSpeakerApplications('scheduled')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="spFilterScheduled">📅 Dijadwalkan</button>
-    <button onclick="filterSpeakerApplications('confirmed')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="spFilterConfirmed">✅ Sudah Konfirmasi</button>
-    <button onclick="filterSpeakerApplications('rejected')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="spFilterRejected">❌ Ditolak</button>
-    <span class="ml-auto text-xs text-slate-400" id="speakerAppCount">0 pengajuan</span>
-</div>
+                <div class="p-4 border-b border-slate-100 flex flex-wrap items-center gap-2">
+                    <button onclick="filterSpeakerApplications('all')" class="filter-btn active px-3 py-1.5 rounded-full text-xs font-bold transition bg-purple-600 text-white" id="spFilterAll">📋 Semua</button>
+                    <button onclick="filterSpeakerApplications('pending')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="spFilterPending">⏳ Menunggu</button>
+                    <button onclick="filterSpeakerApplications('scheduled')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="spFilterScheduled">📅 Dijadwalkan</button>
+                    <button onclick="filterSpeakerApplications('confirmed')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="spFilterConfirmed">✅ Sudah Konfirmasi</button>
+                    <button onclick="filterSpeakerApplications('completed')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="spFilterCompleted">📌 Kelas Selesai</button>
+                    <button onclick="filterSpeakerApplications('done')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="spFilterDone">🎤 Sertifikat Terbit</button>
+                    <button onclick="filterSpeakerApplications('rejected')" class="filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600" id="spFilterRejected">❌ Ditolak</button>
+                    <span class="ml-auto text-xs text-slate-400" id="speakerAppCount">0 pengajuan</span>
+                </div>
+
                 <!-- Daftar Pengajuan -->
                 <div id="speakerApplicationsList" class="p-4 space-y-4">
                     <div class="text-center py-8 text-slate-400 text-sm">
@@ -1156,7 +1158,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- JAVASCRIPT -->
+    <!-- JAVASCRIPT - BAGIAN UTAMA -->
     <!-- ============================================ -->
     <script>
         // ============================================
@@ -4196,71 +4198,74 @@
         // ============================================
         // 🔥 LOAD SPEAKER APPLICATIONS - DIPERBAIKI
         // ============================================
-     async function loadSpeakerApplications() {
-    var container = document.getElementById('speakerApplicationsList');
-    var countEl = document.getElementById('speakerAppCount');
-    var badgeEl = document.getElementById('pendingSpeakerCount');
+        async function loadSpeakerApplications() {
+            var container = document.getElementById('speakerApplicationsList');
+            var countEl = document.getElementById('speakerAppCount');
+            var badgeEl = document.getElementById('pendingSpeakerCount');
 
-    try {
-        var { data: applications, error } = await _supabase
-            .from('yata_speaker_applications')
-            .select('*, profile:user_id(full_name, email, member_level)')
-            .in('status', ['pending', 'scheduled', 'confirmed', 'approved', 'completed', 'rejected', 'done'])
-            .order('created_at', { ascending: false });
+            try {
+                var { data: applications, error } = await _supabase
+                    .from('yata_speaker_applications')
+                    .select('*, profile:user_id(full_name, email, member_level)')
+                    .in('status', ['pending', 'scheduled', 'confirmed', 'approved', 'completed', 'rejected', 'done'])
+                    .order('created_at', { ascending: false });
 
-        if (error) throw error;
+                if (error) throw error;
 
-        allSpeakerApplications = applications || [];
+                allSpeakerApplications = applications || [];
 
-        var pendingCount = allSpeakerApplications.filter(function(a) { 
-            return a.status === 'pending' || a.status === 'confirmed' || a.status === 'completed'; 
-        }).length;
-        
-        if (badgeEl) {
-            badgeEl.textContent = pendingCount;
-            badgeEl.classList.toggle('hidden', pendingCount === 0);
+                var pendingCount = allSpeakerApplications.filter(function(a) { 
+                    return a.status === 'pending' || a.status === 'confirmed' || a.status === 'completed'; 
+                }).length;
+                
+                if (badgeEl) {
+                    badgeEl.textContent = pendingCount;
+                    badgeEl.classList.toggle('hidden', pendingCount === 0);
+                }
+
+                if (countEl) countEl.textContent = allSpeakerApplications.length + ' pengajuan';
+
+                renderSpeakerApplications();
+
+            } catch (err) {
+                console.error('Load speaker applications error:', err);
+                container.innerHTML = `
+                    <div class="text-center py-8 text-red-400 text-sm">
+                        Gagal memuat pengajuan: ${err.message}
+                        <button onclick="loadSpeakerApplications()" class="block mt-2 text-purple-600 hover:text-purple-700 font-semibold text-sm">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
+                        </button>
+                    </div>
+                `;
+            }
         }
 
-        if (countEl) countEl.textContent = allSpeakerApplications.length + ' pengajuan';
-
-        renderSpeakerApplications();
-
-    } catch (err) {
-        console.error('Load speaker applications error:', err);
-        container.innerHTML = `
-            <div class="text-center py-8 text-red-400 text-sm">
-                Gagal memuat pengajuan: ${err.message}
-                <button onclick="loadSpeakerApplications()" class="block mt-2 text-purple-600 hover:text-purple-700 font-semibold text-sm">
-                    <i class="fa-solid fa-rotate-right mr-1"></i> Coba Lagi
-                </button>
-            </div>
-        `;
-    }
-}
         // ============================================
-        // 🔥 FILTER SPEAKER APPLICATIONS - DIPERBAIKI
+        // 🔥 FILTER SPEAKER APPLICATIONS
         // ============================================
         function filterSpeakerApplications(filter) {
-    speakerAppFilter = filter;
-    
-    document.querySelectorAll('#adminSpeakerApplications .filter-btn').forEach(function(btn) {
-        btn.className = 'filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600 bg-transparent';
-    });
-    var idMap = {
-        'all': 'spFilterAll',
-        'pending': 'spFilterPending',
-        'approved': 'spFilterApproved',
-        'scheduled': 'spFilterScheduled',
-        'confirmed': 'spFilterConfirmed',
-        'rejected': 'spFilterRejected'
-    };
-    var activeBtn = document.getElementById(idMap[filter]);
-    if (activeBtn) {
-        activeBtn.className = 'filter-btn active px-3 py-1.5 rounded-full text-xs font-bold transition bg-purple-600 text-white';
-    }
+            speakerAppFilter = filter;
+            
+            document.querySelectorAll('#adminSpeakerApplications .filter-btn').forEach(function(btn) {
+                btn.className = 'filter-btn px-3 py-1.5 rounded-full text-xs font-bold transition text-slate-600 bg-transparent';
+            });
+            var idMap = {
+                'all': 'spFilterAll',
+                'pending': 'spFilterPending',
+                'scheduled': 'spFilterScheduled',
+                'confirmed': 'spFilterConfirmed',
+                'completed': 'spFilterCompleted',
+                'done': 'spFilterDone',
+                'rejected': 'spFilterRejected'
+            };
+            var activeBtn = document.getElementById(idMap[filter]);
+            if (activeBtn) {
+                activeBtn.className = 'filter-btn active px-3 py-1.5 rounded-full text-xs font-bold transition bg-purple-600 text-white';
+            }
 
-    renderSpeakerApplications();
-}
+            renderSpeakerApplications();
+        }
+
         // ============================================
         // 🔥 RENDER SPEAKER APPLICATIONS - DIPERBAIKI
         // ============================================
@@ -4281,16 +4286,17 @@
                 `;
                 return;
             }
-var statusLabels = {
-    pending: '⏳ Menunggu Verifikasi',
-    approved: '✅ Disetujui',
-    rejected: '❌ Ditolak',
-    scheduled: '📅 Dijadwalkan',
-    confirmed: '✅ Sudah Konfirmasi',
-    completed: '✅ Kelas Selesai',
-    done: '🎤 Sertifikat Terbit',
-    cancelled: '❌ Dibatalkan'
-           };
+
+            var statusLabels = {
+                pending: '⏳ Menunggu Verifikasi',
+                approved: '✅ Disetujui',
+                rejected: '❌ Ditolak',
+                scheduled: '📅 Dijadwalkan',
+                confirmed: '✅ Sudah Konfirmasi',
+                completed: '📌 Kelas Selesai',
+                done: '🎤 Sertifikat Terbit',
+                cancelled: '❌ Dibatalkan'
+            };
             var statusClasses = {
                 pending: 'badge-speaker-pending',
                 approved: 'badge-speaker-approved',
@@ -4298,7 +4304,7 @@ var statusLabels = {
                 scheduled: 'badge-speaker-scheduled',
                 confirmed: 'badge-speaker-approved',
                 completed: 'badge-speaker-completed',
-                done: 'bg-emerald-100 text-emerald-700',
+                done: 'badge-speaker-done',
                 cancelled: 'bg-slate-100 text-slate-600'
             };
 
@@ -4326,11 +4332,16 @@ var statusLabels = {
                         <span class="text-xs text-blue-600 font-semibold px-2 py-1 bg-blue-50 rounded-xl">⏳ Menunggu Konfirmasi Mentor</span>
                     `;
                 } else if (isConfirmed) {
+                    // 🔥 TAMBAHKAN TOMBOL FIX STATUS UNTUK YANG MACET
                     actionButtons = `
                         <span class="text-xs text-emerald-600 font-semibold px-2 py-1 bg-emerald-50 rounded-xl">✅ Mentor Sudah Siap</span>
                         <span class="text-xs text-slate-400">⏳ Menunggu Kelas Selesai</span>
+                        <button onclick="fixSpeakerStatus('${a.id}')" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 font-semibold px-2 py-1 rounded-xl transition" title="Perbaiki jika status macet">
+                            <i class="fa-solid fa-wrench"></i> Fix Status
+                        </button>
                     `;
                 } else if (isCompleted) {
+                    // 🔥 TOMBOL "Beri Sertifikat Mentor" MUNCUL DI SINI
                     actionButtons = `
                         <button onclick="completeSpeakerSession('${a.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-xs transition">
                             <i class="fa-solid fa-certificate mr-1"></i> Beri Sertifikat Mentor
@@ -4382,6 +4393,89 @@ var statusLabels = {
         }
 
         // ============================================
+        // 🔥 FIX SPEAKER STATUS - UNTUK MEMPERBAIKI STATUS YANG MACET
+        // ============================================
+        async function fixSpeakerStatus(appId) {
+            if (!confirm('Perbaiki status aplikasi pembicara ini ke "completed"? Gunakan jika status macet.')) return;
+            
+            try {
+                // 1. Ambil data aplikasi
+                var { data: app, error: appError } = await _supabase
+                    .from('yata_speaker_applications')
+                    .select('user_id, event_name, topic, status')
+                    .eq('id', appId)
+                    .single();
+
+                if (appError) throw appError;
+
+                if (app.status === 'completed' || app.status === 'done') {
+                    alert('Status sudah ' + app.status + '. Tidak perlu perbaikan.');
+                    return;
+                }
+
+                // 2. Update status ke 'completed'
+                var { error: updateError } = await _supabase
+                    .from('yata_speaker_applications')
+                    .update({
+                        status: 'completed',
+                        completed_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', appId);
+
+                if (updateError) throw updateError;
+
+                // 3. Kirim notifikasi ke admin bahwa status diperbaiki
+                var { data: admins, error: adminError } = await _supabase
+                    .from('yata_profiles')
+                    .select('id')
+                    .eq('role', 'admin');
+
+                if (!adminError && admins && admins.length > 0) {
+                    var notifContent = '🔧 Admin memperbaiki status pengajuan pembicara untuk "' + (app.event_name || app.topic) + '" menjadi "completed".';
+
+                    for (var i = 0; i < admins.length; i++) {
+                        var admin = admins[i];
+                        var { data: notifData, error: notifError } = await _supabase
+                            .from('yata_notifications')
+                            .insert([{
+                                title: '🔧 Status Pembicara Diperbaiki',
+                                content: notifContent,
+                                type: 'info'
+                            }])
+                            .select()
+                            .single();
+
+                        if (!notifError && notifData) {
+                            await _supabase
+                                .from('yata_user_notifications')
+                                .insert([{
+                                    notification_id: notifData.id,
+                                    user_id: admin.id,
+                                    is_read: false
+                                }]);
+                        }
+                    }
+                }
+
+                // 4. Kirim notifikasi ke user
+                await sendNotificationToUser(
+                    app.user_id,
+                    '🔧 Status Pembicara Diperbaiki',
+                    'Status pengajuan pembicara Anda telah diperbaiki oleh admin. Silakan cek menu Pengajuan Pembicara.',
+                    'info'
+                );
+
+                alert('✅ Status aplikasi pembicara berhasil diperbaiki menjadi "completed"!');
+                loadSpeakerApplications();
+
+            } catch (err) {
+                console.error('Fix speaker status error:', err);
+                alert('❌ Gagal memperbaiki status: ' + err.message);
+            }
+        }
+
+        // ============================================
         // 🔥 TAMBAHAN: FUNGSI JADWALKAN PEMBICARA (ADMIN)
         // ============================================
 
@@ -4407,7 +4501,7 @@ var statusLabels = {
         }
 
         // ============================================
-        // 🔥 PERBAIKAN UTAMA: JADWALKAN PEMBICARA DENGAN SQL FUNCTION
+        // 🔥 JADWALKAN PEMBICARA
         // ============================================
         document.getElementById('scheduleSpeakerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -4430,35 +4524,39 @@ var statusLabels = {
             showScheduleMessage('', '');
 
             try {
-                // 🔥 Panggil SQL Function dengan parameter yang sesuai
-                var { data, error } = await _supabase.rpc('schedule_speaker', {
-                    p_app_id: appId,
-                    p_event_name: eventName,
-                    p_scheduled_date: date,
-                    p_scheduled_time: time || null,
-                    p_meeting_link: meetingLink || null,
-                    p_admin_notes: adminNotes || null
-                });
+                // Ambil data aplikasi
+                var { data: app, error: appError } = await _supabase
+                    .from('yata_speaker_applications')
+                    .select('user_id, topic, profile:user_id(full_name)')
+                    .eq('id', appId)
+                    .single();
 
-                if (error) {
-                    console.error('RPC Error:', error);
-                    throw new Error(error.message);
-                }
+                if (appError) throw appError;
 
-                if (!data || !data.success) {
-                    throw new Error(data?.message || 'Gagal menjadwalkan pembicara');
-                }
+                // Update aplikasi ke status 'scheduled'
+                var { error: updateError } = await _supabase
+                    .from('yata_speaker_applications')
+                    .update({
+                        status: 'scheduled',
+                        event_name: eventName,
+                        scheduled_date: date,
+                        scheduled_time: time || null,
+                        meeting_link: meetingLink || null,
+                        admin_notes: adminNotes || null,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', appId);
 
-                // ✅ Kirim notifikasi ke user (dari client)
-                var notifContent = '🎤 Pengajuan Anda sebagai pembicara dengan topik "' + data.topic + '" telah DISETUJUI!\n\n📅 Jadwal: ' + new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + (time || '') + '\n📌 Event: ' + eventName + '\n' + (meetingLink ? '🔗 Link: ' + meetingLink : '') + '\n\n📌 Silakan konfirmasi kesiapan Anda di menu Mentoring Saya.';
+                if (updateError) throw updateError;
 
-                await sendNotificationWithAction(
-                    data.user_id,
+                // Kirim notifikasi ke user
+                var notifContent = '🎤 Pengajuan Anda sebagai pembicara dengan topik "' + app.topic + '" telah DISETUJUI!\n\n📅 Jadwal: ' + new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + (time || '') + '\n📌 Event: ' + eventName + '\n' + (meetingLink ? '🔗 Link: ' + meetingLink : '') + '\n\n📌 Silakan konfirmasi kesiapan Anda di menu Mentoring Saya.';
+
+                await sendNotificationToUser(
+                    app.user_id,
                     '🎤 Pengajuan Pembicara Disetujui!',
                     notifContent,
-                    'success',
-                    '📋 Lihat Jadwal',
-                    '/mentoring-my.html'
+                    'success'
                 );
 
                 showScheduleMessage('✅ Pembicara berhasil dijadwalkan! Notifikasi telah dikirim.', 'success');
@@ -4546,7 +4644,7 @@ var statusLabels = {
                 // 1. Ambil data pengajuan
                 var { data: app, error: appError } = await _supabase
                     .from('yata_speaker_applications')
-                    .select('user_id, topic, event_name')
+                    .select('user_id, topic, event_name, status')
                     .eq('id', appId)
                     .single();
 
@@ -4562,7 +4660,7 @@ var statusLabels = {
                 var certResult = await createCertificate(
                     app.user_id,
                     'speaker_internal',
-                    'Pembicara: ' + app.event_name
+                    'Pembicara: ' + (app.event_name || app.topic || 'Kelas Mentoring')
                 );
 
                 if (!certResult) {
@@ -4575,7 +4673,7 @@ var statusLabels = {
 
                 // 5. Kirim notifikasi ke user
                 var notifTitle = '🎤 Sertifikat Pembicara Telah Terbit!';
-                var notifContent = 'Selamat! Sertifikat Pembicara Internal Anda telah terbit.\n\n📜 ' + app.event_name + '\n\n📌 Syarat "Pembicara Internal YATTA" telah terpenuhi untuk naik level!';
+                var notifContent = 'Selamat! Sertifikat Pembicara Internal Anda telah terbit.\n\n📜 ' + (app.event_name || app.topic) + '\n\n📌 Syarat "Pembicara Internal YATTA" telah terpenuhi untuk naik level!';
 
                 if (updateLevelResult.levelUpReady) {
                     notifContent += '\n\n⭐ SELAMAT! Anda sudah memenuhi SEMUA syarat untuk naik ke Penulis Profesional. Ajukan sekarang di dashboard!';
@@ -4616,7 +4714,7 @@ var statusLabels = {
         }
 
         // ============================================
-        // 🔥 UPDATE PROGRES LEVEL USER (SPEAKER INTERNAL)
+        // 🔥 UPDATE PROGRES LEVEL USER (SPEAKER INTERNAL) - DIPERBAIKI
         // ============================================
         async function updateSpeakerProgress(userId) {
             try {
@@ -4630,6 +4728,7 @@ var statusLabels = {
                 if (profileError) throw profileError;
 
                 var currentLevel = profile.member_level || 'Tamu';
+                console.log('📊 Current level user:', currentLevel);
 
                 // 2. Cek apakah user sedang dalam proses naik level ke Penulis Profesional
                 if (currentLevel !== 'Penulis') {
@@ -4641,10 +4740,12 @@ var statusLabels = {
 
                 // 3. Hitung ulang semua syarat naik level
                 var requirements = await checkLevelUpRequirements(userId);
+                console.log('📊 Requirements:', requirements);
 
                 // 4. Jika semua syarat terpenuhi, update status level menjadi 'pending'
                 if (requirements.canLevelUp) {
-                    await _supabase
+                    // ✅ UPDATE LEVEL STATUS
+                    var { error: updateError } = await _supabase
                         .from('yata_profiles')
                         .update({
                             level_status: 'pending',
@@ -4652,11 +4753,21 @@ var statusLabels = {
                         })
                         .eq('id', userId);
 
+                    if (updateError) throw updateError;
+
                     // Kirim notifikasi ke admin
                     await sendNotificationToAdmins(
                         '⭐ Pengajuan Naik Level Otomatis!',
                         'User ' + (profile.full_name || 'Member') + ' telah memenuhi semua syarat untuk naik ke Penulis Profesional.\n\n📋 Syarat terpenuhi:\n' + requirements.details.map(function(d) { return d.icon + ' ' + d.label + ': ' + d.current + '/' + d.target + ' ✅'; }).join('\n'),
                         'campaign'
+                    );
+
+                    // Kirim notifikasi ke user
+                    await sendNotificationToUser(
+                        userId,
+                        '⭐ Selamat! Anda Siap Naik Level!',
+                        'Selamat! Anda telah memenuhi SEMUA syarat untuk naik ke Penulis Profesional.\n\n📋 Syarat terpenuhi:\n' + requirements.details.map(function(d) { return d.icon + ' ' + d.label + ': ' + d.current + '/' + d.target + ' ✅'; }).join('\n') + '\n\n📌 Ajukan naik level sekarang di dashboard Anda!',
+                        'success'
                     );
 
                     return {

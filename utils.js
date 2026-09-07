@@ -1930,6 +1930,7 @@ async function createCertificate(userId, certificateType, certificateName) {
         var supabase = getSupabaseClient();
         if (!supabase) return false;
 
+        // Cek apakah sertifikat sudah ada
         var { data: existingCert, error: certError } = await supabase
             .from('yata_certificates')
             .select('id, certificate_number')
@@ -1948,6 +1949,7 @@ async function createCertificate(userId, certificateType, certificateName) {
             return true;
         }
 
+        // Ambil data user
         var { data: profile, error: profileError } = await supabase
             .from('yata_profiles')
             .select('full_name, email')
@@ -1959,6 +1961,7 @@ async function createCertificate(userId, certificateType, certificateName) {
             return false;
         }
 
+        // Generate nomor sertifikat
         var now = new Date();
         var dateStr = now.getFullYear() + 
             String(now.getMonth() + 1).padStart(2, '0') + 
@@ -1980,6 +1983,7 @@ async function createCertificate(userId, certificateType, certificateName) {
             certName = certificateName || 'Pembicara Internal YATTA';
         }
 
+        // Insert sertifikat
         var { data: newCert, error: insertError } = await supabase
             .from('yata_certificates')
             .insert([{
