@@ -417,7 +417,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- JAVASCRIPT -->
+    <!-- JAVASCRIPT - VERSI DIPERBAIKI -->
     <!-- ============================================ -->
     <script>
         const _supabase = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
@@ -800,26 +800,78 @@ Founder & CEO YATTA
         }
 
         // ============================================
-        // 🔥 CEK DAN UPDATE STATUS PENGAJUAN PEMBICARA
+        // 🔥 NOTIFIKASI KE ADMIN - KELAS PEMBICARA SELESAI (BARU)
+        // ============================================
+        async function notifyAdminsClassCompleted(sessionTitle) {
+            try {
+                var { data: admins, error: adminError } = await _supabase
+                    .from('yata_profiles')
+                    .select('id')
+                    .eq('role', 'admin');
+
+                if (adminError || !admins || admins.length === 0) {
+                    console.log('ℹ️ Tidak ada admin ditemukan');
+                    return;
+                }
+
+                var notifContent = '✅ Kelas pembicara "' + sessionTitle + '" telah selesai dilaksanakan. Silakan beri sertifikat untuk pembicara.\n\n📌 Buka menu Pengajuan Pembicara untuk memberikan sertifikat.';
+
+                for (var i = 0; i < admins.length; i++) {
+                    var admin = admins[i];
+                    var { data: notifData, error: notifError } = await _supabase
+                        .from('yata_notifications')
+                        .insert([{
+                            title: '🎤 Kelas Pembicara Selesai!',
+                            content: notifContent,
+                            type: 'event'
+                        }])
+                        .select()
+                        .single();
+
+                    if (!notifError && notifData) {
+                        await _supabase
+                            .from('yata_user_notifications')
+                            .insert([{
+                                notification_id: notifData.id,
+                                user_id: admin.id,
+                                is_read: false
+                            }]);
+                    }
+                }
+            } catch (err) {
+                console.error('Notify admins class completed error:', err);
+            }
+        }
+
+        // ============================================
+        // 🔥 CEK DAN UPDATE STATUS PENGAJUAN PEMBICARA (PERBAIKAN)
         // ============================================
         async function checkAndUpdateSpeakerStatus(sessionId) {
             try {
+                console.log('🔍 [checkAndUpdateSpeakerStatus] Dipanggil untuk session:', sessionId);
+                
                 // 1. Ambil data kelas
                 var { data: session, error: sessionError } = await _supabase
                     .from('yata_mentoring_sessions')
-                    .select('mentor_id, title')
+                    .select('mentor_id, title, is_onboarding')
                     .eq('id', sessionId)
                     .single();
                 
                 if (sessionError || !session) {
-                    console.log('ℹ️ Session tidak ditemukan');
+                    console.log('ℹ️ Session tidak ditemukan:', sessionError);
+                    return;
+                }
+
+                // ✅ HANYA UNTUK KELAS YANG BUKAN ONBOARDING
+                if (session.is_onboarding === true) {
+                    console.log('ℹ️ Kelas ini adalah onboarding, tidak perlu update speaker status');
                     return;
                 }
 
                 // 2. Cek apakah ada participant dengan role mentor_speaker
                 var { data: speakerParticipant, error: speakerError } = await _supabase
                     .from('yata_mentoring_participants')
-                    .select('user_id')
+                    .select('user_id, id, attended')
                     .eq('session_id', sessionId)
                     .eq('role', 'mentor_speaker')
                     .maybeSingle();
@@ -829,62 +881,49 @@ Founder & CEO YATTA
                     return;
                 }
 
+                console.log('🎤 Speaker participant ditemukan:', speakerParticipant);
+
                 // 3. Cari aplikasi pembicara yang sesuai
-                // Cari berdasarkan event_name dulu
-var { data: speakerApp, error: appError } = await _supabase
-    .from('yata_speaker_applications')
-    .select('id, status')
-    .eq('user_id', speakerParticipant.user_id)
-    .eq('event_name', session.title)
-    .eq('status', 'confirmed')
-    .maybeSingle();
+                var speakerApp = null;
+                
+                // Coba cari berdasarkan event_name
+                var { data: appByEvent, error: eventError } = await _supabase
+                    .from('yata_speaker_applications')
+                    .select('id, status, event_name')
+                    .eq('user_id', speakerParticipant.user_id)
+                    .eq('event_name', session.title)
+                    .eq('status', 'confirmed')
+                    .maybeSingle();
+                
+                if (!eventError && appByEvent) {
+                    speakerApp = appByEvent;
+                    console.log('✅ Ditemukan berdasarkan event_name:', speakerApp);
+                } else {
+                    // Fallback: cari berdasarkan topic
+                    console.log('ℹ️ Tidak ditemukan berdasarkan event_name, coba berdasarkan topic...');
+                    var { data: appByTopic, error: topicError } = await _supabase
+                        .from('yata_speaker_applications')
+                        .select('id, status, topic')
+                        .eq('user_id', speakerParticipant.user_id)
+                        .eq('topic', session.title)
+                        .eq('status', 'confirmed')
+                        .maybeSingle();
+                    
+                    if (!topicError && appByTopic) {
+                        speakerApp = appByTopic;
+                        console.log('✅ Ditemukan berdasarkan topic:', speakerApp);
+                    }
+                }
+                
+                if (!speakerApp) {
+                    console.log('ℹ️ Tidak ada aplikasi pembicara dengan status "confirmed" ditemukan');
+                    return;
+                }
 
-// Jika tidak ditemukan, cari berdasarkan topic (FALLBACK)
-if (appError || !speakerApp) {
-    console.log('ℹ️ Tidak ditemukan berdasarkan event_name, coba berdasarkan topic...');
-    var { data: topicApp, error: topicError } = await _supabase
-        .from('yata_speaker_applications')
-        .select('id, status')
-        .eq('user_id', speakerParticipant.user_id)
-        .eq('topic', session.title)
-        .eq('status', 'confirmed')
-        .maybeSingle();
-    
-    if (topicError || !topicApp) {
-        console.log('ℹ️ Tidak ada aplikasi pembicara yang ditemukan');
-        return;
-    }
-    
-    // Update berdasarkan topic
-    await _supabase
-        .from('yata_speaker_applications')
-        .update({
-            status: 'completed',
-            completed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        })
-        .eq('id', topicApp.id);
-    
-    console.log('✅ Status aplikasi pembicara diupdate ke completed (berdasarkan topic)');
-    
-    // Kirim notifikasi ke admin
-    await notifyAdminsClassCompleted(session.title);
-    return;
-}
-
-// Update berdasarkan event_name
-await _supabase
-    .from('yata_speaker_applications')
-    .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-    })
-    .eq('id', speakerApp.id);
-
-console.log('✅ Status aplikasi pembicara diupdate ke completed (berdasarkan event_name)');
-                // 4. Update status menjadi 'completed'
-                await _supabase
+                // 4. 🔥 UPDATE STATUS MENJADI 'completed'
+                console.log('📝 Mengupdate status aplikasi dari:', speakerApp.status, 'ke completed');
+                
+                var { error: updateError } = await _supabase
                     .from('yata_speaker_applications')
                     .update({
                         status: 'completed',
@@ -893,43 +932,28 @@ console.log('✅ Status aplikasi pembicara diupdate ke completed (berdasarkan ev
                     })
                     .eq('id', speakerApp.id);
 
-                console.log('✅ Status pengajuan pembicara diupdate ke completed');
-
-                // 5. Kirim notifikasi ke admin
-                var { data: admins, error: adminError } = await _supabase
-                    .from('yata_profiles')
-                    .select('id')
-                    .eq('role', 'admin');
-
-                if (!adminError && admins && admins.length > 0) {
-                    var notifContent = '✅ Kelas pembicara "' + session.title + '" telah selesai dilaksanakan. Silakan beri sertifikat untuk pembicara.\n\n📌 Buka menu Pengajuan Pembicara untuk memberikan sertifikat.';
-
-                    for (var i = 0; i < admins.length; i++) {
-                        var admin = admins[i];
-                        var { data: notifData, error: notifError } = await _supabase
-                            .from('yata_notifications')
-                            .insert([{
-                                title: '🎤 Kelas Pembicara Selesai!',
-                                content: notifContent,
-                                type: 'event'
-                            }])
-                            .select()
-                            .single();
-
-                        if (!notifError && notifData) {
-                            await _supabase
-                                .from('yata_user_notifications')
-                                .insert([{
-                                    notification_id: notifData.id,
-                                    user_id: admin.id,
-                                    is_read: false
-                                }]);
-                        }
-                    }
+                if (updateError) {
+                    console.error('❌ Gagal update status aplikasi:', updateError);
+                    return;
                 }
 
+                console.log('✅ Status aplikasi pembicara diupdate ke completed');
+
+                // 5. 🔥 KIRIM NOTIFIKASI KE PEMBICARA
+                await sendNotification(
+                    speakerParticipant.user_id,
+                    '🎤 Sesi Pembicaraan Selesai!',
+                    'Selamat! Sesi pembicaraan Anda di kelas "' + session.title + '" telah selesai.\n\n📌 Admin akan segera menerbitkan sertifikat Anda.\n\n🏛️ Sertifikat akan ditandatangani oleh:\nAbd. Rahman Danial\nFounder & CEO YATTA',
+                    'success'
+                );
+
+                // 6. 🔥 KIRIM NOTIFIKASI KE ADMIN
+                await notifyAdminsClassCompleted(session.title);
+
+                console.log('✅ Proses update speaker status selesai');
+
             } catch (err) {
-                console.error('Update speaker status error:', err);
+                console.error('❌ checkAndUpdateSpeakerStatus error:', err);
             }
         }
 
@@ -1481,7 +1505,7 @@ console.log('✅ Status aplikasi pembicara diupdate ke completed (berdasarkan ev
         }
 
         // ============================================
-        // SUBMIT REVIEW - DIPERBAIKI DENGAN CEK SPEAKER STATUS
+        // SUBMIT REVIEW - DIPERBAIKI DENGAN SPEAKER STATUS UPDATE
         // ============================================
         document.getElementById('reviewForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -1525,7 +1549,12 @@ console.log('✅ Status aplikasi pembicara diupdate ke completed (berdasarkan ev
                 await updateSessionRating(sessionId);
 
                 // 3. 🔥 UPDATE STATUS PENGAJUAN PEMBICARA (JIKA ADA)
-                await checkAndUpdateSpeakerStatus(sessionId);
+                console.log('📝 [review] Memanggil checkAndUpdateSpeakerStatus...');
+                try {
+                    await checkAndUpdateSpeakerStatus(sessionId);
+                } catch (speakerErr) {
+                    console.error('❌ Gagal update speaker status:', speakerErr);
+                }
 
                 // 4. CEK DAN BUAT SERTIFIKAT PESERTA
                 console.log('📝 [review] Memanggil checkAndCreateCertificate...');
